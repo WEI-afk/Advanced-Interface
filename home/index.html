@@ -101,10 +101,13 @@
         let w = walls[src]
         if (!w) {
           const frame = document.createElement('iframe')
-          frame.src = src
+          // fresh copy of the wall page on every visit, so a stale cached one can't get stuck
+          frame.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now()
           frame.tabIndex = -1
           frame.title = ''
           w = walls[src] = { frame, ready: false }
+          // show it once it has loaded, whether or not its "ready" message got through
+          frame.addEventListener('load', () => markReady(src))
           backdrop.append(frame)
         }
         w.frame.hidden = false
@@ -116,14 +119,16 @@
         clearTimeout(pauseTimer)
         pauseTimer = setTimeout(() => { if (!current) for (const w of Object.values(walls)) send(w, 'wall:pause') }, 800)
       }
-      // the wall says when it has loaded; show it if the pointer is still on its row
+      function markReady(src) {
+        const w = walls[src]
+        if (!w) return
+        w.ready = true
+        if (current === src) { send(w, 'wall:play'); backdrop.classList.add('on') }
+      }
+      // the wall also says when it's ready; show it if the pointer is still on its row
       addEventListener('message', (e) => {
         if (e.origin !== location.origin || e.data !== 'wall:ready') return
-        for (const [s, w] of Object.entries(walls)) {
-          if (w.frame.contentWindow !== e.source) continue
-          w.ready = true
-          if (current === s) { send(w, 'wall:play'); backdrop.classList.add('on') }
-        }
+        for (const [s, w] of Object.entries(walls)) if (w.frame.contentWindow === e.source) markReady(s)
       })
       // coming back with the Back button: start clean
       addEventListener('pageshow', (e) => { if (e.persisted) hideWall() })
