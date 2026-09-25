@@ -1,0 +1,50 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # home page at the root, then every folder with a package.json becomes /<Folder>/
+      - name: Build home page and every component
+        run: |
+          mkdir -p _site
+          cp -r home/. _site/
+          for dir in */; do
+            name="${dir%/}"
+            [ -f "$name/package.json" ] || continue
+            echo "::group::Building $name"
+            (cd "$name" && npm ci && npm run build)
+            mkdir -p "_site/$name"
+            cp -r "$name/dist/." "_site/$name/"
+            echo "::endgroup::"
+          done
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

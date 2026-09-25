@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Interface</title>
+    <meta name="color-scheme" content="light dark" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --paper: #f6f4ef;
+        --ink: #1b1a18;
+        --muted: #8a867e;
+        --rule: #d9d5cc;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #141312;
+          --ink: #ece8df;
+          --muted: #8d887f;
+          --rule: #2e2c29;
+        }
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+      main { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+      .label { font-size: 11px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+
+      header { padding: clamp(96px, 16vh, 168px) 0 clamp(72px, 12vh, 120px); }
+      h1 { margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(56px, 11vw, 128px); line-height: .92; letter-spacing: -0.02em; }
+      h1 em { font-style: italic; }
+      header p { margin: 28px 0 0; max-width: 420px; text-wrap: balance; font-size: 15px; line-height: 1.6; color: var(--muted); }
+
+      .index-head { display: flex; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid var(--ink); }
+      ol { list-style: none; margin: 0; padding: 0; }
+      .row {
+        position: relative; display: grid; grid-template-columns: 56px 1fr auto 40px; align-items: baseline; gap: 16px;
+        padding: 28px 0; border-bottom: 1px solid var(--rule); color: inherit; text-decoration: none; outline: none;
+      }
+      .num { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+      .title { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(30px, 4.4vw, 44px); line-height: 1.1;
+        transition: transform .5s cubic-bezier(.2,.7,.2,1); }
+      .meta { font-size: 13px; color: var(--muted); text-align: right; transition: opacity .3s; }
+      .arrow { justify-self: end; font-size: 18px; transition: transform .5s cubic-bezier(.2,.7,.2,1); }
+      /* hover a component: its live, final animations fill the screen behind the page */
+      main { position: relative; z-index: 1; }
+      .backdrop { position: fixed; inset: 0; z-index: 0; opacity: 0; pointer-events: none; transition: opacity .7s ease; }
+      .backdrop.on { opacity: 1; }
+      .backdrop iframe { display: block; width: 100%; height: 100%; border: 0; }
+      .backdrop::after { content: ''; position: absolute; inset: 0; background: var(--paper); opacity: .62; }
+      .row:hover .title, .row:focus-visible .title { transform: translateX(10px); }
+      .row:hover .arrow, .row:focus-visible .arrow { transform: translateX(6px); }
+      .row:hover .meta, .row:focus-visible .meta { opacity: 0; }
+      .row:focus-visible .title { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 1px; }
+
+      footer { display: flex; justify-content: space-between; padding: 96px 0 40px; }
+
+      @media (max-width: 640px) {
+        .row { grid-template-columns: 36px 1fr 24px; }
+        .meta { grid-column: 2; text-align: left; margin-top: -8px; }
+      }
+      @media (prefers-reduced-motion: reduce) { .title, .arrow, .backdrop { transition: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+    <main>
+      <header>
+        <h1>Advanced<br /><em>Interface</em></h1>
+        <p>A study of interface components through tone and function.</p>
+      </header>
+
+      <section aria-label="Components">
+        <div class="index-head label"><span>Components</span><span id="count"></span></div>
+        <ol id="components"></ol>
+      </section>
+
+      <footer class="label"><span>Advanced Interface</span><span>2026</span></footer>
+    </main>
+    <script>
+      // One entry per component folder. Add new components here (e.g. Button).
+      const COMPONENTS = [
+        { folder: 'Progress-Bar', title: 'Progress Indicators', meta: 'Week 1 · 12 studies', wall: 'Progress-Bar/?wall' },
+      ]
+
+      // each wall page is loaded once, on first hover, then kept. Hovering tells it to play;
+      // after it fades out it is told to pause, which clears its animations.
+      const canHover = matchMedia('(hover: hover)').matches
+      const backdrop = document.getElementById('backdrop')
+      const walls = {} // src -> { frame, ready }
+      let current = null, pauseTimer
+
+      function send(w, msg) { w.frame.contentWindow?.postMessage(msg, location.origin) }
+      function showWall(src) {
+        clearTimeout(pauseTimer)
+        for (const [s, w] of Object.entries(walls)) if (s !== src) { w.frame.hidden = true; send(w, 'wall:pause') }
+        current = src
+        let w = walls[src]
+        if (!w) {
+          const frame = document.createElement('iframe')
+          frame.src = src
+          frame.tabIndex = -1
+          frame.title = ''
+          w = walls[src] = { frame, ready: false }
+          backdrop.append(frame)
+        }
+        w.frame.hidden = false
+        if (w.ready) { send(w, 'wall:play'); backdrop.classList.add('on') }
+      }
+      function hideWall() {
+        current = null
+        backdrop.classList.remove('on')
+        clearTimeout(pauseTimer)
+        pauseTimer = setTimeout(() => { if (!current) for (const w of Object.values(walls)) send(w, 'wall:pause') }, 800)
+      }
+      // the wall says when it has loaded; show it if the pointer is still on its row
+      addEventListener('message', (e) => {
+        if (e.origin !== location.origin || e.data !== 'wall:ready') return
+        for (const [s, w] of Object.entries(walls)) {
+          if (w.frame.contentWindow !== e.source) continue
+          w.ready = true
+          if (current === s) { send(w, 'wall:play'); backdrop.classList.add('on') }
+        }
+      })
+      // coming back with the Back button: start clean
+      addEventListener('pageshow', (e) => { if (e.persisted) hideWall() })
+
+      const list = document.getElementById('components')
+      COMPONENTS.forEach((c, i) => {
+        const li = document.createElement('li')
+        li.innerHTML = '<a class="row"><span class="num"></span><span class="title"></span><span class="meta"></span><span class="arrow" aria-hidden="true">→</span></a>'
+        const a = li.querySelector('a')
+        a.href = `${c.folder}/`
+        a.querySelector('.num').textContent = String(i + 1).padStart(2, '0')
+        a.querySelector('.title').textContent = c.title
+        a.querySelector('.meta').textContent = c.meta
+        if (c.wall && canHover) {
+          a.addEventListener('mouseenter', () => showWall(c.wall))
+          a.addEventListener('focus', () => showWall(c.wall))
+          a.addEventListener('mouseleave', hideWall)
+          a.addEventListener('blur', hideWall)
+        }
+        list.append(li)
+      })
+      document.getElementById('count').textContent = String(COMPONENTS.length).padStart(2, '0')
+    </script>
+  </body>
+</html>
