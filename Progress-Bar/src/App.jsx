@@ -882,10 +882,10 @@ export default function App() {
               <h2>{set.tone}</h2>
               <p>{set.desc}</p>
             </div>
-            {/* Figma draft for reference: small thumbnail, zooms in on hover / focus */}
-            <a className="draft-ref" href={`${import.meta.env.BASE_URL}drafts/${set.id}.png`} target="_blank" rel="noreferrer">
-              <img src={`${import.meta.env.BASE_URL}drafts/${set.id}.png`} alt={`${set.tone} draft sketches from Figma`} loading="lazy" />
-              <span>Draft</span>
+            {/* final Figma design for reference: small thumbnail, zooms in on hover / focus */}
+            <a className="draft-ref" href={`${import.meta.env.BASE_URL}final/${set.id}.png`} target="_blank" rel="noreferrer">
+              <img src={`${import.meta.env.BASE_URL}final/${set.id}.png`} alt={`${set.tone} final design from Figma`} loading="lazy" />
+              <span>Final</span>
             </a>
           </div>
           <div className="grid">
