@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Component as ReactComponent, useEffect, useRef, useState } from 'react'
 
 const STATES = ['zero', 'progress', 'complete']
 const LABELS = { zero: 'Zero', progress: 'Progress', complete: 'Complete' }
@@ -82,7 +82,8 @@ function useClock(active) {
     if (!active) return
     let raf
     const start = performance.now()
-    const loop = (now) => { setT((now - start) / 1000); raf = requestAnimationFrame(loop) }
+    // rAF's timestamp can be a hair earlier than performance.now(), so clamp at 0
+    const loop = (now) => { setT(Math.max(0, (now - start) / 1000)); raf = requestAnimationFrame(loop) }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
   }, [active])
@@ -294,8 +295,8 @@ const LOCKED = { x: 50, y: 50, s: 2, r: 0, blur: 0 }
 const FAR = { x: 18, y: 30, s: 0.75, r: -40, blur: 3.5 }
 
 function huntView(t, period = 5) {
-  const k = (t / period) % 1
-  const i = HUNT.findIndex((f, n) => n < HUNT.length - 1 && k >= f.at && k < HUNT[n + 1].at)
+  const k = (((t / period) % 1) + 1) % 1
+  const i = Math.max(0, HUNT.findIndex((f, n) => n < HUNT.length - 1 && k >= f.at && k < HUNT[n + 1].at))
   const a = HUNT[i], b = HUNT[i + 1]
   const e = ease((k - a.at) / (b.at - a.at))
   return { x: mix(a.x, b.x, e), y: mix(a.y, b.y, e), s: mix(a.s, b.s, e), r: mix(a.r, b.r, e), blur: mix(a.blur, b.blur, e) }
@@ -761,6 +762,14 @@ function PlaneIndeterminate({ state }) {
   )
 }
 
+/* ---------- Guard: if one indicator ever throws, only that one disappears ---------- */
+class Guard extends ReactComponent {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  componentDidCatch(error) { console.error('Indicator crashed:', error) }
+  render() { return this.state.failed ? null : this.props.children }
+}
+
 /* ---------- Card ---------- */
 function Card({ Component, determinate }) {
   const { state, setState, value } = useIndicator(determinate, Component.stepped)
@@ -768,7 +777,7 @@ function Card({ Component, determinate }) {
     <div className="card">
       <div className="card-label">{determinate ? 'Determinate' : 'Indeterminate'}</div>
       <div className="stage">
-        <Component state={state} value={value} />
+        <Guard><Component state={state} value={value} /></Guard>
       </div>
       <div className="controls">
         {STATES.map((s) => (
@@ -811,7 +820,7 @@ function Tile({ Component, determinate, delay }) {
   }, [state]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="card">
-      <div className="stage"><Component state={state} value={value} /></div>
+      <div className="stage"><Guard><Component state={state} value={value} /></Guard></div>
     </div>
   )
 }
