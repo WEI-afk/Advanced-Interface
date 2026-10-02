@@ -8,6 +8,7 @@ Live: https://wei-afk.github.io/Advanced-Interface/
 |---|---|
 | `home/` | Home page that links to every component |
 | `Progress-Bar/` | Week 1 · Progress indicators |
+| `Badges-Tooltips/` | Week 2 · Badges & tooltips |
 
 ## Adding a component (e.g. Button)
 
