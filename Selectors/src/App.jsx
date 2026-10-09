@@ -61,24 +61,6 @@ const glow = (e) => {
   el.style.setProperty('--my', `${e.clientY - r.top}px`)
 }
 
-// Halo: an element leans toward the pointer, a few px at most (independent X and Y springs)
-function useMagnet(on, max = 4) {
-  const [tgt, setTgt] = useState([0, 0])
-  const x = useSpring(tgt[0], { damping: 0.75, response: 0.4 }).value
-  const y = useSpring(tgt[1], { damping: 0.75, response: 0.4 }).value
-  const ref = useRef(null)
-  const move = (e) => {
-    if (!on || !ref.current) return
-    const r = ref.current.getBoundingClientRect()
-    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2)
-    const d = Math.hypot(dx, dy) || 1
-    const f = (max * Math.min(1, d / 90)) / d
-    setTgt([dx * f, dy * f])
-  }
-  const leave = () => on && setTgt([0, 0])
-  return { ref, x, y, move, leave }
-}
-
 const RowText = ({ label, detail }) => (
   <span className="row-text"><span className="label">{label}</span>{detail && <span className="detail">{detail}</span>}</span>
 )
@@ -88,7 +70,6 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
   const pos = useSpring(checked ? 1 : 0, t.spring)
   const [pressed, setPressed] = useState(false)
   const press = useSpring(pressed ? 1 : 0, { damping: 1, response: 0.2 })
-  const m = useMagnet(v === 'halo')
   const drag = useRef(null)
   const travel = t.swW - t.thW - 2 * t.inset
 
@@ -96,7 +77,6 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
     if (e.button !== 0) return
     e.currentTarget.setPointerCapture(e.pointerId)
     setPressed(true) // feedback on press, not on release
-    m.leave()
     drag.current = { x0: e.clientX, p0: pos.value, moved: false, hist: [[e.clientX, e.timeStamp]] }
   }
   const move = (e) => {
@@ -135,16 +115,16 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
   let transform = `translateX(${x}px)`
   if (fog) transform += ` scale(${1 + fog * 0.3}, ${1 - fog * 0.12})`
   return (
-    <li className="row row-switch" onPointerMove={(e) => { glow(e); if (!drag.current) m.move(e) }} onPointerLeave={m.leave}>
+    <li className="row row-switch" onPointerMove={glow}>
       {icon}
       <RowText label={label} detail={detail} />
       {tag && <span className="tag">{tag}</span>}
-      <button ref={m.ref} className="sw" role="switch" aria-checked={checked} aria-label={label}
+      <button className="sw" role="switch" aria-checked={checked} aria-label={label}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         onClick={(e) => { if (e.detail === 0) onChange(!checked) }} // keyboard (Space / Enter)
         style={{ '--p': p, '--k': k, '--tx': `${t.inset + x + w / 2}px` }}>
         <span className="sw-track" />
-        <span className="sw-thumb" style={{ transform, width: w, translate: `${m.x}px ${m.y}px`,
+        <span className="sw-thumb" style={{ transform, width: w,
           filter: fog > 0.01 ? `blur(${fog * 4}px)` : undefined, opacity: 1 - fog * 0.5 }} />
       </button>
     </li>
@@ -154,33 +134,18 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
 function Checkbox({ checked, onChange, label, detail, icon, tag, t }) {
   const v = t.variant
   const p = useSpring(checked ? 1 : 0, t.spring).value
-  const m = useMagnet(v === 'halo', 3)
-  // a one-shot flourish each time it turns on (Halo ring)
-  const [burst, setBurst] = useState(0)
-  const prev = useRef(checked)
-  useEffect(() => { if (checked && !prev.current) setBurst((b) => b + 1); prev.current = checked }, [checked])
-  const ring = v === 'halo'
   const draw = v === 'mist' ? 0 : 1 - clamp(p * 1.25 - 0.25) // Mist doesn't draw the check, it condenses
   const box = (
-    <span ref={m.ref} className={`cb ${ring ? 'cb-ring' : ''}`} style={{ '--p': clamp(p), '--s': p, translate: `${m.x}px ${m.y}px` }}>
-      {ring ? (
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <circle className="ring-track" cx="16" cy="16" r="13" />
-          <circle className="ring-fill" cx="16" cy="16" r="13" pathLength="1" style={{ strokeDashoffset: 1 - clamp(p / 0.7) }} />
-          <path d="M10.5 16.5l3.6 3.6 7.4-8" pathLength="1" style={{ strokeDashoffset: 1 - clamp((p - 0.55) / 0.45) }} />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6 12.5l4 4 8-9" pathLength="1" style={{ strokeDashoffset: draw }} />
-        </svg>
-      )}
-      {burst > 0 && v === 'halo' && <span key={burst} className="cb-halo" />}
+    <span className="cb" style={{ '--p': clamp(p), '--s': p }}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 12.5l4 4 8-9" pathLength="1" style={{ strokeDashoffset: draw }} />
+      </svg>
     </span>
   )
   return (
     <li className="row row-check">
       <button className="row-hit" role="checkbox" aria-checked={checked} onClick={() => onChange(!checked)}
-        onPointerMove={(e) => { glow(e); m.move(e) }} onPointerLeave={m.leave}>
+        onPointerMove={glow}>
         {icon}
         {!icon && box}
         <RowText label={label} detail={detail} />
@@ -191,10 +156,10 @@ function Checkbox({ checked, onChange, label, detail, icon, tag, t }) {
   )
 }
 
-function RadioRow({ option, on, onPick, onKey, onHover, btnRef, t }) {
+function RadioRow({ option, on, onPick, onKey, btnRef, t }) {
   const p = useSpring(on ? 1 : 0, t.spring).value
   return (
-    <li className="row row-radio" onPointerEnter={onHover}>
+    <li className="row row-radio">
       <button ref={btnRef} className="row-hit" role="radio" aria-checked={on} tabIndex={on ? 0 : -1}
         onClick={onPick} onKeyDown={onKey} onPointerMove={glow} style={{ '--p': clamp(p), '--s': p }}>
         <span className="rd"><span className="rd-dot" /></span>
@@ -205,17 +170,9 @@ function RadioRow({ option, on, onPick, onKey, onHover, btnRef, t }) {
 }
 
 function RadioGroup({ title, options, value, onChange, t }) {
-  const v = t.variant
   const idx = options.indexOf(value)
-  const [hover, setHover] = useState(null)
-  const ya = useSpring(idx, t.spring).value // the selection glides between rows, same path both ways
-  const yh = useSpring(hover ?? idx, { damping: 1, response: 0.3 }).value
+  const y = useSpring(idx, t.spring).value // the selection glides between rows, same path both ways
   const refs = useRef([])
-  let y = ya, h = 1
-  if (v === 'halo') { // the selection is pulled toward the option you're looking at
-    const pull = clamp((yh - ya) * 0.3, -0.3, 0.3)
-    y = ya + Math.min(0, pull); h = 1 + Math.abs(pull)
-  }
   const key = (e, i) => {
     const d = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key]
     if (!d) return
@@ -224,11 +181,11 @@ function RadioGroup({ title, options, value, onChange, t }) {
     onChange(options[n]); refs.current[n]?.focus()
   }
   return (
-    <ul className="list radio-list" role="radiogroup" aria-label={title} style={{ '--y': y, '--h': h }} onPointerLeave={() => setHover(null)}>
+    <ul className="list radio-list" role="radiogroup" aria-label={title} style={{ '--y': y }}>
       <span className="rd-glide" aria-hidden="true" />
       {options.map((o, i) => (
         <RadioRow key={o} option={o} on={o === value} t={t} btnRef={(el) => (refs.current[i] = el)}
-          onPick={() => onChange(o)} onKey={(e) => key(e, i)} onHover={() => setHover(i)} />
+          onPick={() => onChange(o)} onKey={(e) => key(e, i)} />
       ))}
     </ul>
   )
@@ -263,18 +220,6 @@ const SETS = [
     },
   },
   {
-    id: 'halo', concept: 'Attention Has Gravity', name: 'Halo', tone: 'Ethereal', platform: 'visionOS',
-    content: { topic: 'Presence', sw: ['Persona', '', true], cb: ['Eye Contact', '', false], radio: ['Window', ['Small', 'Medium', 'Large'], 'Medium'] },
-    t: {
-      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
-      dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
-      swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
-      cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      ink: '#2a2f45', muted: 'rgba(42,47,69,.55)', on: '#7d8bff', off: 'rgba(42,47,69,.12)', thumb: '#ffffff', accent: '#2a2f45',
-      spring: { damping: 0.85, response: 0.45 }, variant: 'halo',
-    },
-  },
-  {
     id: 'unfold', concept: 'Choices Unfold', name: 'Unfold', tone: 'Ethereal', platform: 'visionOS',
     content: { topic: 'Spaces' },
     t: {
@@ -284,6 +229,18 @@ const SETS = [
       cb: 24, cbR: 7, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
       ink: '#3a2a24', muted: 'rgba(58,42,36,.6)', on: '#2a2321', off: 'rgba(58,42,36,.14)', thumb: '#fffaf5', accent: '#2a2321',
       spring: { damping: 1, response: 0.4 }, variant: 'unfold',
+    },
+  },
+  {
+    id: 'morph', concept: 'Music Fits Any Space', name: 'Morph', tone: 'Ethereal', platform: 'visionOS',
+    content: { topic: 'Listening', sw: ['Playing', '', true], cb: ['Repeat', '', false], radio: ['Size', ['Orb', 'Small', 'Wide', 'Large'], 'Wide'] },
+    t: {
+      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
+      dfs: 13, dlh: 18, rowH: 50, padX: 16, gap: 12, listR: 28, divider: 0, listGap: 22,
+      swW: 50, swH: 30, thW: 26, thH: 26, inset: 2, swR: 15, thR: 13, stretch: 6, swStroke: 0,
+      cb: 24, cbR: 7, cbStroke: 1.5, checkStroke: 2.4, rd: 22, rdDot: 9, rdStroke: 1.5,
+      ink: '#f4f4ec', muted: 'rgba(244,244,236,.62)', on: '#e4d6fb', off: 'rgba(244,244,236,.2)', thumb: '#ffffff', accent: '#e4d6fb',
+      spring: { damping: 1, response: 0.4 }, variant: 'morph',
     },
   },
 ]
@@ -432,7 +389,119 @@ function UnfoldSet({ set, auto, offset = 0 }) {
   )
 }
 
-const SetBody = (props) => (props.set.id === 'unfold' ? <UnfoldSet {...props} /> : <SetList {...props} />)
+/* ================= Music Fits Any Space: one player that reshapes itself for the room it's given =================
+   a single spring runs along the sizes (0 = orb … 3 = large); every part of the layout is interpolated from it,
+   so a change of mind mid-morph simply bends the motion toward the new shape */
+const SIZES = ['Orb', 'Small', 'Wide', 'Large']
+const LAYOUT = [
+  // w, h, radius · wave icon · title (x, y, opacity) · repeat icon (x, y, opacity) · play (x, y, d) · bar (x1, x2, y) · nav, extras opacity
+  { w: 120, h: 120, r: 60, wx: 60, wy: 28, tx: 18, ty: 60, to: 0, rx: 96, ry: 24, ro: 0, px: 60, py: 60, pd: 34, b1: 36, b2: 84, by: 92, no: 0, eo: 0 },
+  { w: 150, h: 150, r: 26, wx: 24, wy: 24, tx: 18, ty: 58, to: 1, rx: 126, ry: 24, ro: 1, px: 116, py: 72, pd: 36, b1: 36, b2: 114, by: 124, no: 1, eo: 0 },
+  { w: 300, h: 134, r: 26, wx: 24, wy: 24, tx: 18, ty: 52, to: 1, rx: 276, ry: 24, ro: 1, px: 262, py: 64, pd: 38, b1: 36, b2: 206, by: 108, no: 1, eo: 1 },
+  { w: 360, h: 220, r: 28, wx: 24, wy: 24, tx: 18, ty: 140, to: 1, rx: 336, ry: 24, ro: 1, px: 314, py: 148, pd: 54, b1: 36, b2: 258, by: 196, no: 1, eo: 1 },
+]
+function layoutAt(s) {
+  const i = Math.min(2, Math.max(0, Math.floor(s))), f = s - i // f may run past 0..1 when the spring overshoots
+  const a = LAYOUT[i], b = LAYOUT[i + 1], out = {}
+  for (const k in a) out[k] = a[k] + (b[k] - a[k]) * f
+  return out
+}
+const NAV = {
+  prev: 'M-4 -5v10M5 -5L-1.5 0 5 5z', next: 'M4 -5v10M-5 -5L1.5 0-5 5z',
+  queue: 'M-6 -4h8M-6 0h8M-6 4h5M4 1.5v6M1 4.5h6',
+  heart: 'M0 5C-6 0.5-6.5-5-2.5-5-1-5 0-4 0-3 0-4 1-5 2.5-5 6.5-5 6 0.5 0 5z',
+}
+
+function MorphWidget({ size, playing, repeat }) {
+  const s = useSpring(SIZES.indexOf(size), { damping: 0.86, response: 0.55 }).value
+  const amp = useSpring(playing ? 1 : 0, { damping: 1, response: 0.45 }).value
+  const rp = useSpring(repeat ? 1 : 0, { damping: 1, response: 0.3 }).value
+  const [clock, setClock] = useState({ phase: 0, f: 0.34 })
+  useEffect(() => { // the wave travels and the track advances only while playing
+    if (!playing || reducedMotion()) return
+    let raf, last = performance.now()
+    const tick = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now
+      setClock((c) => ({ phase: c.phase + dt * 5, f: (c.f + dt * 0.012) % 1 }))
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [playing])
+  const L = layoutAt(s)
+  const op = (v) => clamp(v)
+  const xp = L.b1 + clock.f * (L.b2 - L.b1)
+  let wave = `M${L.b1} ${L.by}`
+  for (let x = L.b1 + 2; x <= xp; x += 2) wave += `L${x.toFixed(1)} ${(L.by + Math.sin((x - L.b1) * 0.42 - clock.phase) * 3 * amp).toFixed(2)}`
+  const at = (x, y) => ({ transform: `translate(${x}px, ${y}px) translate(-50%, -50%)` })
+  return (
+    <div className="morph-stage" aria-hidden="true">
+      <div className={`morph ${playing ? 'is-playing' : ''}`} style={{ width: L.w, height: L.h, borderRadius: L.r }}>
+        <span className="morph-eq" style={at(L.wx, L.wy)}><i /><i /><i /><i /></span>
+        <span className="morph-title" style={{ transform: `translate(${L.tx}px, ${L.ty}px)`, opacity: op(L.to) }}><b>Low Tide</b><small>Ambient</small></span>
+        <span className="morph-repeat" style={{ ...at(L.rx, L.ry), opacity: op(L.ro), '--rp': rp }}>
+          <svg viewBox="-8 -8 16 16"><path d="M-4.5 -0.5v-1.8h8.2M1.6-4.5l2.2 2.2-2.2 2.2M4.5 0.5v1.8h-8.2M-1.6 4.5l-2.2-2.2 2.2-2.2" /></svg>
+        </span>
+        <span className="morph-play" style={{ ...at(L.px, L.py), width: L.pd, height: L.pd }}>
+          <svg viewBox="-8 -8 16 16">
+            <path d="M-3.5-4.5v9M3.5-4.5v9" style={{ opacity: amp }} />
+            <path className="fill" d="M-2.5-5L5 0-2.5 5z" style={{ opacity: 1 - amp }} />
+          </svg>
+        </span>
+        <svg className="morph-bar" width={Math.max(1, L.w)} height={Math.max(1, L.h)}>
+          <path d={wave} className="played" />
+          <path d={`M${xp} ${L.by}H${L.b2}`} className="rest" />
+          <path d={`M${xp} ${L.by - 6}V${L.by + 6}`} className="thumb" />
+          <g style={{ opacity: op(L.no) }}>
+            <path transform={`translate(${L.b1 - 17} ${L.by})`} d={NAV.prev} className="fill" />
+            <path transform={`translate(${L.b2 + 17} ${L.by})`} d={NAV.next} className="fill" />
+          </g>
+          <g style={{ opacity: op(L.eo) }}>
+            <path transform={`translate(${L.b2 + 44} ${L.by})`} d={NAV.queue} />
+            <path transform={`translate(${L.b2 + 72} ${L.by})`} d={NAV.heart} />
+          </g>
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+function MorphSet({ set, auto, offset = 0 }) {
+  const { content: c, t } = set
+  const [sw, setSw] = useState(c.sw[2])
+  const [cb, setCb] = useState(c.cb[2])
+  const [rd, setRd] = useState(c.radio[2])
+  useEffect(() => {
+    if (!auto) return
+    let i = offset
+    const id = setInterval(() => {
+      const k = i++ % 6
+      if (k === 0) setCb((v) => !v)
+      else if (k === 5) setSw((v) => !v)
+      else setRd(SIZES[k - 1])
+    }, 1200)
+    return () => clearInterval(id)
+  }, [auto, offset])
+  return (
+    <>
+      <MorphWidget size={rd} playing={sw} repeat={cb} />
+      <div className="topic">
+        <h3 className="list-title">{c.topic}</h3>
+        <ul className="list">
+          <Switch label={c.sw[0]} t={t} checked={sw} onChange={setSw} />
+          <Checkbox label={c.cb[0]} t={t} checked={cb} onChange={setCb} />
+          <li className="row-group">
+            <span className="group-label">{c.radio[0]}</span>
+            <RadioGroup title={c.radio[0]} options={c.radio[1]} value={rd} onChange={setRd} t={t} />
+          </li>
+        </ul>
+      </div>
+    </>
+  )
+}
+
+const BODIES = { unfold: UnfoldSet, morph: MorphSet }
+const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <B {...props} /> }
 
 /* ================= wall (home page hover background) ================= */
 function Wall() {

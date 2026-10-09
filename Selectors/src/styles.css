@@ -132,21 +132,6 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .s-aurora .rd-dot { background: #e9fff8; box-shadow: 0 0 calc(var(--p) * 12px) calc(var(--p) * 2px) rgba(94,240,200,.8); }
 .s-aurora .row-radio .label { opacity: calc(.45 + .55 * var(--p)); }
 
-/* ---------- Attention Has Gravity: controls lean toward the pointer ---------- */
-.s-halo { --panel: rgba(255,255,255,.42); --light: rgba(255,255,255,.75);
-  background: radial-gradient(60% 50% at 25% 20%, #ffffff 0%, transparent 70%), radial-gradient(60% 60% at 80% 85%, #e6e0ff 0%, transparent 70%), linear-gradient(170deg, #eef1fb, #dfe4f6 60%, #f3eef8); }
-.s-halo .list { box-shadow: inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.6), 0 30px 60px -30px rgba(80,90,150,.4); }
-.s-halo .sw-thumb { box-shadow: 0 4px 12px rgba(80,90,150,.3), 0 0 0 calc(var(--k) * 4px) rgba(125,139,255,.18); }
-.s-halo .cb { border-radius: 50%; background: none; box-shadow: none; }
-.s-halo .cb svg { width: 100%; height: 100%; }
-.s-halo .ring-track { fill: rgba(255,255,255,.7); stroke: rgba(42,47,69,.22); stroke-width: 1.5; }
-.s-halo .ring-fill { fill: none; stroke: var(--on); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 1; transform: rotate(-90deg); transform-origin: center; }
-.s-halo .cb path { stroke: var(--on); stroke-width: 2.4; }
-.cb-halo { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 1.5px var(--on); animation: halo-out .9s cubic-bezier(.2,.8,.2,1) forwards; }
-@keyframes halo-out { from { transform: scale(1); opacity: .8; } to { transform: scale(2); opacity: 0; } }
-.s-halo .rd-glide { background: rgba(255,255,255,.6); box-shadow: inset 0 0 0 1.5px rgba(125,139,255,.45), 0 8px 22px -10px rgba(125,139,255,.6); }
-.s-halo .rd-dot { background: var(--on); box-shadow: none; }
-
 /* ---------- Choices Unfold: warm paper glass; the chosen tab unfolds its rows ---------- */
 .s-unfold { --panel: rgba(196,160,140,.3); --light: rgba(255,255,255,.4); --check: #fbf3ec; --cb-off: rgba(255,250,245,.6); --ring: rgba(58,42,36,.35);
   background: radial-gradient(55% 45% at 85% 8%, #f8d6d3 0%, transparent 70%), radial-gradient(65% 55% at 8% 92%, #fbe1c2 0%, transparent 70%), linear-gradient(170deg, #fdf3ea, #f8e7dd 60%, #fcf0e7); }
@@ -183,13 +168,44 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .unfold-tab:active { scale: .95; }
 .unfold-tab:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; }
 
+/* ---------- Music Fits Any Space: one player reshaping itself; soft lime dot grid ---------- */
+.s-morph { --panel: rgba(103,108,98,.94); --light: rgba(255,255,255,.14); --check: #3b3446; --cb-off: rgba(244,244,236,.12);
+  background: radial-gradient(circle, rgba(90,100,60,.35) 1px, transparent 1.6px) 0 0 / 22px 22px, #f3fadf; }
+.s-morph .set-head h2 { color: #3a3f31; }
+.s-morph .list-title { color: rgba(58,63,49,.6); }
+.s-morph .rd-dot { background: var(--on); box-shadow: none; }
+.morph-stage { display: grid; place-items: center; height: 250px; }
+/* the player takes the open left side, the controls stay on the right */
+.s-morph .set-head { grid-column: 1; grid-row: 1; }
+.s-morph .morph-stage { grid-column: 1; grid-row: 2; align-self: center; }
+.s-morph .topic { grid-column: 2; grid-row: 1 / span 2; }
+@media (max-width: 760px) { .s-morph .set-head, .s-morph .morph-stage, .s-morph .topic { grid-column: 1; grid-row: auto; } }
+.wall-tile.s-morph .morph-stage, .wall-tile.s-morph .topic { grid-column: 1; grid-row: auto; }
+.morph { position: relative; overflow: hidden; background: #676c62; color: #f4f4ec; font-family: var(--font);
+  box-shadow: 0 1px 0 rgba(255,255,255,.12) inset, 0 24px 40px -24px rgba(50,60,30,.6); will-change: width, height; }
+.morph > * { position: absolute; left: 0; top: 0; }
+.morph-eq { display: flex; align-items: center; gap: 2.5px; height: 18px; }
+.morph-eq i { display: block; width: 3px; height: 40%; border-radius: 2px; background: #b5e57c; animation: eq .9s ease-in-out infinite alternate; animation-play-state: paused; }
+.morph-eq i:nth-child(2) { height: 90%; animation-delay: -.3s; } .morph-eq i:nth-child(3) { height: 65%; animation-delay: -.6s; } .morph-eq i:nth-child(4) { height: 35%; animation-delay: -.15s; }
+.morph.is-playing .morph-eq i { animation-play-state: running; }
+@keyframes eq { to { transform: scaleY(.35); } }
+.morph-title { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
+.morph-title b { font-size: 13px; font-weight: 600; } .morph-title small { font-size: 11px; opacity: .7; }
+.morph-repeat { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  background: color-mix(in oklab, #b5e57c calc(var(--rp) * 100%), rgba(244,244,236,.14)); color: color-mix(in oklab, #2f3a1f calc(var(--rp) * 100%), #f4f4ec); }
+.morph-repeat svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.morph-play { display: grid; place-items: center; border-radius: 50%; background: #e4d6fb; color: #3b3446; }
+.morph-play svg { width: 42%; height: 42%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.morph svg .fill { fill: currentColor; }
+.morph-bar { overflow: visible; fill: none; stroke: #f4f4ec; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.morph-bar .played { stroke-width: 2.2; } .morph-bar .rest { opacity: .4; } .morph-bar .thumb { stroke-width: 2.6; }
+
 /* ================= accessibility preferences ================= */
 @media (prefers-reduced-transparency: reduce) {
   .vision .list { background: color-mix(in oklab, var(--panel, #445) 100%, #222); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .s-aurora::before, .s-mist::before, .unfold-content { animation: none !important; }
-  .cb-halo { display: none; }
+  .s-aurora::before, .s-mist::before, .unfold-content, .morph-eq i { animation: none !important; }
 }
 @media (prefers-contrast: more) {
   .list { outline: 2px solid var(--ink); }
