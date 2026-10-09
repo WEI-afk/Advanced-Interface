@@ -290,7 +290,6 @@ const GLYPH = {
   pen: <path d="M3 13l1-3.5 6.5-6.5a1.8 1.8 0 0 1 2.5 2.5L6.5 12 3 13zM9.5 4l2.5 2.5" />,
   photo: <><rect x="2.5" y="3.5" width="11" height="9" rx="2" /><circle cx="6" cy="7" r="1.2" /><path d="M13.5 10.5l-3-3-5 5" /></>,
   plus: <path d="M8 3v10M3 8h10" />,
-  search: <><circle cx="7.2" cy="7.2" r="4" /><path d="M10.2 10.2L13 13" /></>,
   flame: <path d="M8 2.5c1.8 2.2 3 3.8 3 6a3 3 0 0 1-6 0c0-1.3.6-2.2 1.4-3 .2 1.2.8 1.8 1.6 2-.6-1.8-.6-3.4 0-5z" />,
 }
 const Glyph = ({ name }) => <svg viewBox="0 0 16 16" aria-hidden="true">{GLYPH[name]}</svg>
@@ -452,12 +451,10 @@ function FrostSet({ auto, offset = 0 }) {
       {/* tapping the frosted room puts the tray away */}
       <div className="frost-veil" onClick={() => setOpen(false)} style={{ opacity: clamp(p * 0.7), pointerEvents: open ? 'auto' : 'none' }} />
       <div className="frost-dock">
-        <span className="frost-btn" aria-hidden="true"><Glyph name="search" /></span>
         {/* switch: the + knob slides up the track and turns into × */}
         <button className="frost-switch" role="switch" aria-checked={open} aria-label="Quick actions" onClick={() => setOpen((v) => !v)} style={{ '--p': clamp(p) }}>
           <span className="frost-knob" style={{ transform: `translateY(${-p * 30}px)` }}><Glyph name="plus" /></span>
         </button>
-        <span className="frost-avatar" aria-hidden="true" />
       </div>
       <div className="frost-tiles" aria-hidden={!open}>
         <div className="frost-tile-group" role="radiogroup" aria-label="Action">
