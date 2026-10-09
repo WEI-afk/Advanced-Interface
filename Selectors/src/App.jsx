@@ -189,12 +189,10 @@ function RadioGroup({ title, options, value, onChange, t }) {
 const SF = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif'
 const SETS = [
   {
-    id: 'glass', name: 'Liquid Glass', tone: 'Serene', platform: 'iOS',
+    id: 'glass', name: 'Glass', tone: 'Serene', platform: 'iOS',
     desc: 'An iOS Settings list in frosted glass. Hold a switch and its thumb turns into a clear glass lens; the selection is a checkmark that glides to its row.',
     content: {
-      switches: [['Airplane Mode', '', false], ['Wi-Fi', 'Home', true], ['Bluetooth', '', true]],
-      checks: [['Buy oat milk', '', false], ['Call Mom', 'Today, 6 PM', true], ['Water the plants', '', false]],
-      radio: ['Appearance', ['Light', 'Dark', 'Automatic'], 'Light'],
+      topic: 'Focus', sw: ['Do Not Disturb', 'Silence calls and alerts', true], cb: ['Share Focus Status', '', false], radio: ['Mode', ['Personal', 'Work', 'Sleep'], 'Personal'],
     },
     t: {
       font: SF, fontName: 'SF Pro Text Regular', fw: 400, fs: 17, lh: 22, ls: '-0.43px',
@@ -210,9 +208,7 @@ const SETS = [
     id: 'rings', name: 'Rings', tone: 'Energetic', platform: 'watchOS',
     desc: 'True black and Activity colors. Checking a goal sweeps its ring closed before the check pops in; choosing a workout sends out a ripple like a haptic tap.',
     content: {
-      switches: [['Wrist Detection', '', true], ['Always On', '', false], ['Silent Mode', '', false]],
-      checks: [['Move 500 cal', '', true], ['Exercise 30 min', '', false], ['Stand 12 hours', '', false]],
-      radio: ['Workout', ['Outdoor Run', 'Cycling', 'Yoga'], 'Outdoor Run'],
+      topic: 'Workout', sw: ['Auto-Pause', '', true], cb: ['Count Toward Rings', '', false], radio: ['Type', ['Run', 'Cycle', 'Yoga'], 'Run'],
     },
     t: {
       font: '-apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", Inter, system-ui, sans-serif', fontName: 'SF Pro Rounded Semibold', fw: 600, fs: 16, lh: 21, ls: '-0.2px',
@@ -228,9 +224,7 @@ const SETS = [
     id: 'spatial', name: 'Spatial', tone: 'Ethereal', platform: 'visionOS',
     desc: 'Glass panels floating in a soft landscape. A specular light follows your pointer across each row, and controls sink into depth when you press them.',
     content: {
-      switches: [['Spatial Audio', '', true], ['Look to Scroll', '', false], ['Dim Passthrough', '', false]],
-      checks: [['Show Environment', '', true], ['Persona', '', false], ['Guest Mode', '', false]],
-      radio: ['Environment', ['Yosemite', 'Mount Hood', 'Moon'], 'Yosemite'],
+      topic: 'Immersion', sw: ['Spatial Audio', '', true], cb: ['Show Hands', '', false], radio: ['Environment', ['Yosemite', 'Moon', 'Mount Hood'], 'Yosemite'],
     },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
@@ -246,9 +240,7 @@ const SETS = [
     id: 'aqua', name: 'Aqua', tone: 'Nostalgic', platform: 'Mac OS X',
     desc: 'Mac OS X circa 2001: pinstripes, Lucida Grande and lickable blue gel. Checked boxes throb like the default button; radio dots land as wobbling water drops.',
     content: {
-      switches: [['Magnification', '', true], ['Animate opening apps', '', true], ['Automatically hide the Dock', '', false]],
-      checks: [['Hard disks', '', true], ['CDs, DVDs and iPods', '', false], ['Connected servers', '', false]],
-      radio: ['Appearance', ['Blue', 'Graphite', 'Bondi'], 'Blue'],
+      topic: 'Dock', sw: ['Magnification', '', true], cb: ['Hide Automatically', '', false], radio: ['Position on screen', ['Left', 'Bottom', 'Right'], 'Bottom'],
     },
     t: {
       font: '"Lucida Grande", "Lucida Sans Unicode", Inter, system-ui, sans-serif', fontName: 'Lucida Grande', fw: 400, fs: 13, lh: 18, ls: '0',
@@ -271,69 +263,34 @@ const cssVars = (t) => ({
   '--ink': t.ink, '--muted': t.muted, '--on': t.on, '--off': t.off, '--thumb': t.thumb, '--accent': t.accent,
 })
 
-/* ================= spec (generated from the same tokens) ================= */
-function Spec({ t }) {
-  const rows = [
-    ['Typography', [['Font', t.fontName], ['Label size / line height', `${t.fs} / ${t.lh}px`], ['Label tracking', t.ls], ['Weight', t.fw], ['Detail size / line height', `${t.dfs} / ${t.dlh}px`]]],
-    ['List', [['Row height', `${t.rowH}px`], ['Horizontal padding', `${t.padX}px`], ['Control ↔ label gap', `${t.gap}px`], ['Corner radius', `${t.listR}px`], ['Divider', `${t.divider}px`], ['Space between lists', `${t.listGap}px`]]],
-    ['Switch', [['Track', `${t.swW} × ${t.swH}px, radius ${t.swR}px`], ['Thumb', `${t.thW} × ${t.thH}px, radius ${t.thR}px`], ['Inset', `${t.inset}px`], ['Press stretch', `${t.stretch}px`], ['Stroke', `${t.swStroke}px`]]],
-    ['Checkbox', [['Style', t.checkNote], ['Size', `${t.cb} × ${t.cb}px, radius ${t.cbR}px`], ['Stroke', `${t.cbStroke}px`], ['Check stroke', `${t.checkStroke}px`]]],
-    ['Radio', [['Style', t.radioNote], ...(t.rd ? [['Ring', `${t.rd} × ${t.rd}px, round`], ['Ring stroke', `${t.rdStroke}px`], ['Dot', `${t.rdDot}px`]] : [['Checkmark', '17 × 17px, stroke 2.4px, accent color']])]],
-    ['Color', [['Ink', t.ink], ['Secondary', t.muted], ['On', t.on], ['Off', t.off], ['Thumb', t.thumb], ['Accent', t.accent]]],
-    ['Motion', [['Spring damping', `${t.spring.damping}${t.spring.damping < 1 ? ' (bounces)' : ' (no overshoot)'}`], ['Spring response', `${t.spring.response}s`], ['Signature', t.signature], ['Drag', '1:1 tracking, rubber-band past the ends, flick direction decides'], ['Press', 'feedback on pointer-down']]],
-  ]
-  return (
-    <details className="spec" open>
-      <summary>Spec</summary>
-      <div className="spec-grid">
-        {rows.map(([group, items]) => (
-          <div key={group} className="spec-group">
-            <h4>{group}</h4>
-            <dl>{items.map(([k, v]) => (
-              <div key={k}><dt>{k}</dt><dd>{group === 'Color' ? <><i style={{ background: v }} />{v}</> : v}</dd></div>
-            ))}</dl>
-          </div>
-        ))}
-      </div>
-    </details>
-  )
-}
-
-/* ================= a set: three lists ================= */
-function SetLists({ set, auto, offset = 0 }) {
+/* ================= a set: one list, one topic, all three controls ================= */
+function SetList({ set, auto, offset = 0 }) {
   const { content: c, t } = set
-  const [sw, setSw] = useState(c.switches.map((s) => s[2]))
-  const [cb, setCb] = useState(c.checks.map((s) => s[2]))
+  const [sw, setSw] = useState(c.sw[2])
+  const [cb, setCb] = useState(c.cb[2])
   const [rd, setRd] = useState(c.radio[2])
   useEffect(() => {
     if (!auto) return
     let i = offset
     const id = setInterval(() => {
-      const k = i++ % 9, j = k % 3
-      if (k < 3) setSw((a) => a.map((v, n) => (n === j ? !v : v)))
-      else if (k < 6) setCb((a) => a.map((v, n) => (n === j ? !v : v)))
-      else setRd(c.radio[1][j])
-    }, 900)
+      const k = i++ % 5
+      if (k === 0) setSw((v) => !v)
+      else if (k === 1) setCb((v) => !v)
+      else setRd(c.radio[1][(k - 2) % c.radio[1].length])
+    }, 1000)
     return () => clearInterval(id)
   }, [auto, offset, c])
   return (
-    <div className="lists">
-      <div className="list-block">
-        <h3 className="list-title">Switch</h3>
-        <ul className="list">{c.switches.map(([l, d], i) => (
-          <Switch key={l} label={l} detail={d} t={t} checked={sw[i]} onChange={(v) => setSw((a) => a.map((x, n) => (n === i ? v : x)))} />
-        ))}</ul>
-      </div>
-      <div className="list-block">
-        <h3 className="list-title">Checkbox</h3>
-        <ul className="list">{c.checks.map(([l, d], i) => (
-          <Checkbox key={l} label={l} detail={d} t={t} checked={cb[i]} onChange={(v) => setCb((a) => a.map((x, n) => (n === i ? v : x)))} />
-        ))}</ul>
-      </div>
-      <div className="list-block">
-        <h3 className="list-title">Radio · {c.radio[0]}</h3>
-        <RadioGroup title={c.radio[0]} options={c.radio[1]} value={rd} onChange={setRd} t={t} />
-      </div>
+    <div className="topic">
+      <h3 className="list-title">{c.topic}</h3>
+      <ul className="list">
+        <Switch label={c.sw[0]} detail={c.sw[1]} t={t} checked={sw} onChange={setSw} />
+        <Checkbox label={c.cb[0]} detail={c.cb[1]} t={t} checked={cb} onChange={setCb} />
+        <li className="row-group">
+          <span className="group-label">{c.radio[0]}</span>
+          <RadioGroup title={c.radio[0]} options={c.radio[1]} value={rd} onChange={setRd} t={t} />
+        </li>
+      </ul>
     </div>
   )
 }
@@ -353,14 +310,14 @@ function Wall() {
     window.parent.postMessage('wall:ready', window.location.origin)
     return () => window.removeEventListener('message', onMessage)
   }, [embedded])
-  const [layout] = useState(() => ({ cols: Math.max(1, Math.round(window.innerWidth / 380)), rows: Math.ceil(window.innerHeight / 500) + 1 }))
+  const [layout] = useState(() => ({ cols: Math.max(1, Math.round(window.innerWidth / 380)), rows: Math.ceil(window.innerHeight / 330) + 1 }))
   return (
     <div className="wall" aria-hidden="true">
       {active && Array.from({ length: layout.cols }, (_, c) => (
         <div key={c} className="wall-col">
           {Array.from({ length: layout.rows }, (_, r) => {
             const set = SETS[(c + r * 3) % SETS.length]
-            return <div key={r} className={`wall-tile set s-${set.id}`} style={cssVars(set.t)}><SetLists set={set} auto offset={c * 4 + r * 2} /></div>
+            return <div key={r} className={`wall-tile set s-${set.id}`} style={cssVars(set.t)}><SetList set={set} auto offset={c * 2 + r} /></div>
           })}
         </div>
       ))}
@@ -376,7 +333,7 @@ export default function App() {
       <header className="page-head">
         <a className="back" href="../">← Advanced Interface</a>
         <h1>Selectors</h1>
-        <p>Week 3 · four Apple-style sets, each its own platform, look and motion · switch, checkbox and radio in labeled lists · off ↔ on · spec below each set. Switches can be tapped or dragged.</p>
+        <p>Week 3 · four Apple-style sets, each its own look and motion · one list per set with a switch, a checkbox and radio options · switches can be tapped or dragged.</p>
       </header>
       {SETS.map((set, i) => (
         <section key={set.id} className={`set s-${set.id}`} style={cssVars(set.t)}>
@@ -386,15 +343,14 @@ export default function App() {
               <h2>{set.name}</h2>
               <p>{set.desc}</p>
             </div>
-            {/* Figma line drawing + redline spec: small thumbnail, zooms in on hover / focus */}
+            {/* Figma line drawing: small thumbnail, zooms in on hover / focus */}
             <a className="draft-ref" href={`${import.meta.env.BASE_URL}final/${set.id}.png`} target="_blank" rel="noreferrer">
-              <img src={`${import.meta.env.BASE_URL}final/${set.id}.png`} alt={`${set.name} drawing and spec from Figma`} loading="lazy"
+              <img src={`${import.meta.env.BASE_URL}final/${set.id}.png`} alt={`${set.name} drawing from Figma`} loading="lazy"
                 onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
               <span>Figma</span>
             </a>
           </div>
-          <SetLists set={set} />
-          <Spec t={set.t} />
+          <SetList set={set} />
         </section>
       ))}
     </main>
