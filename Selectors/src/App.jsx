@@ -221,7 +221,7 @@ const SETS = [
   },
   {
     id: 'morph', concept: 'Music Fits Any Space', name: 'Morph', tone: 'Ethereal', platform: 'visionOS',
-    content: { topic: 'Listening', sw: ['Playing', '', true], cb: ['Repeat', '', false], radio: ['Size', ['Orb', 'Small', 'Wide', 'Large'], 'Wide'] },
+    content: {},
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
       dfs: 13, dlh: 18, rowH: 50, padX: 16, gap: 12, listR: 28, divider: 0, listGap: 22,
@@ -233,7 +233,7 @@ const SETS = [
   },
   {
     id: 'frost', concept: 'Action Clears the Room', name: 'Frost', tone: 'Ethereal', platform: 'visionOS',
-    content: { topic: 'Create', sw: ['Quick Actions', '', false], cb: ['Frost Background', '', true], radio: ['Action', ['Note', 'Photo', 'Voice', 'Space'], 'Note'] },
+    content: {},
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
       dfs: 13, dlh: 18, rowH: 50, padX: 16, gap: 12, listR: 28, divider: 0, listGap: 22,
@@ -416,11 +416,37 @@ const NAV = {
   heart: 'M0 5C-6 0.5-6.5-5-2.5-5-1-5 0-4 0-3 0-4 1-5 2.5-5 6.5-5 6 0.5 0 5z',
 }
 
-function MorphWidget({ size, playing, repeat }) {
-  const s = useSpring(SIZES.indexOf(size), { damping: 0.86, response: 0.55 }).value
+// where a dragged box (w, h) sits along the chain of sizes, as a continuous index 0…3
+function sizeFromBox(w, h) {
+  let best = { d: Infinity, s: 0 }
+  for (let i = 0; i < 3; i++) {
+    const a = LAYOUT[i], b = LAYOUT[i + 1], dx = b.w - a.w, dy = b.h - a.h
+    const t = ((w - a.w) * dx + (h - a.h) * dy) / (dx * dx + dy * dy), tc = clamp(t)
+    const d = Math.hypot(a.w + dx * tc - w, a.h + dy * tc - h)
+    if (d < best.d) best = { d, s: i + (i === 0 && t < 0 ? t : i === 2 && t > 1 ? t : tc) }
+  }
+  // soft ends: past the smallest / largest size it resists instead of stopping dead
+  if (best.s < 0) return -rubber(-best.s, 1, 0.35)
+  if (best.s > 3) return 3 + rubber(best.s - 3, 1, 0.35)
+  return best.s
+}
+
+/* the switch, checkbox and radio are the player itself:
+   play/pause is the switch · repeat + love are checkboxes · its size is the radio (drag the corner, or the dots) */
+function MorphSet({ auto, offset = 0 }) {
+  const [playing, setPlaying] = useState(true)
+  const [repeat, setRepeat] = useState(false)
+  const [loved, setLoved] = useState(false)
+  const [size, setSize] = useState(2)
+  const sz = useSpring(size, { damping: 0.86, response: 0.55 })
   const amp = useSpring(playing ? 1 : 0, { damping: 1, response: 0.45 }).value
   const rp = useSpring(repeat ? 1 : 0, { damping: 1, response: 0.3 }).value
+  const lv = useSpring(loved ? 1 : 0, { damping: 0.6, response: 0.35 }).value
   const [clock, setClock] = useState({ phase: 0, f: 0.34 })
+  const drag = useRef(null)
+  const [dragging, setDragging] = useState(false)
+  const dots = useRef([])
+
   useEffect(() => { // the wave travels and the track advances only while playing
     if (!playing || reducedMotion()) return
     let raf, last = performance.now()
@@ -432,74 +458,98 @@ function MorphWidget({ size, playing, repeat }) {
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
   }, [playing])
-  const L = layoutAt(s)
+  useEffect(() => {
+    if (!auto) return
+    let i = offset
+    const id = setInterval(() => {
+      const k = i++ % 7
+      if (k < 4) setSize(k)
+      else if (k === 4) setRepeat((v) => !v)
+      else if (k === 5) setLoved((v) => !v)
+      else setPlaying((v) => !v)
+    }, 1200)
+    return () => clearInterval(id)
+  }, [auto, offset])
+
+  // resize by the corner: 1:1 while held, then it snaps to the size the flick was heading for
+  const down = (e) => {
+    if (e.button !== 0) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const L = layoutAt(sz.value)
+    drag.current = { x0: e.clientX, y0: e.clientY, w0: L.w, h0: L.h, hist: [[sz.value, e.timeStamp]] }
+    setDragging(true)
+  }
+  const move = (e) => {
+    const d = drag.current
+    if (!d) return
+    const s = sizeFromBox(d.w0 + 2 * (e.clientX - d.x0), d.h0 + 2 * (e.clientY - d.y0)) // centred, so the corner moves half as far
+    sz.hold(s)
+    d.hist.push([s, e.timeStamp]); if (d.hist.length > 5) d.hist.shift()
+  }
+  const up = () => {
+    const d = drag.current
+    drag.current = null; setDragging(false)
+    if (!d) return
+    const [a, b] = [d.hist[0], d.hist[d.hist.length - 1]]
+    const v = b[1] > a[1] ? (b[0] - a[0]) / ((b[1] - a[1]) / 1000) : 0 // sizes per second
+    setSize(clamp(Math.round(sz.value + v * 0.15), 0, 3))
+    sz.release(clamp(v, -8, 8))
+  }
+  const sizeKey = (e) => {
+    const k = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
+    if (!k) return
+    e.preventDefault()
+    const n = clamp(size + k, 0, 3); setSize(n); dots.current[n]?.focus()
+  }
+
+  const L = layoutAt(sz.value)
   const op = (v) => clamp(v)
   const xp = L.b1 + clock.f * (L.b2 - L.b1)
   let wave = `M${L.b1} ${L.by}`
   for (let x = L.b1 + 2; x <= xp; x += 2) wave += `L${x.toFixed(1)} ${(L.by + Math.sin((x - L.b1) * 0.42 - clock.phase) * 3 * amp).toFixed(2)}`
   const at = (x, y) => ({ transform: `translate(${x}px, ${y}px) translate(-50%, -50%)` })
   return (
-    <div className="morph-stage" aria-hidden="true">
-      <div className={`morph ${playing ? 'is-playing' : ''}`} style={{ width: L.w, height: L.h, borderRadius: L.r }}>
-        <span className="morph-eq" style={at(L.wx, L.wy)}><i /><i /><i /><i /></span>
-        <span className="morph-title" style={{ transform: `translate(${L.tx}px, ${L.ty}px)`, opacity: op(L.to) }}><b>Low Tide</b><small>Ambient</small></span>
-        <span className="morph-repeat" style={{ ...at(L.rx, L.ry), opacity: op(L.ro), '--rp': rp }}>
-          <svg viewBox="-8 -8 16 16"><path d="M-4.5 -0.5v-1.8h8.2M1.6-4.5l2.2 2.2-2.2 2.2M4.5 0.5v1.8h-8.2M-1.6 4.5l-2.2-2.2 2.2-2.2" /></svg>
-        </span>
-        <span className="morph-play" style={{ ...at(L.px, L.py), width: L.pd, height: L.pd }}>
-          <svg viewBox="-8 -8 16 16">
-            <path d="M-3.5-4.5v9M3.5-4.5v9" style={{ opacity: amp }} />
-            <path className="fill" d="M-2.5-5L5 0-2.5 5z" style={{ opacity: 1 - amp }} />
-          </svg>
-        </span>
-        <svg className="morph-bar" width={Math.max(1, L.w)} height={Math.max(1, L.h)}>
-          <path d={wave} className="played" />
-          <path d={`M${xp} ${L.by}H${L.b2}`} className="rest" />
-          <path d={`M${xp} ${L.by - 6}V${L.by + 6}`} className="thumb" />
-          <g style={{ opacity: op(L.no) }}>
-            <path transform={`translate(${L.b1 - 17} ${L.by})`} d={NAV.prev} className="fill" />
-            <path transform={`translate(${L.b2 + 17} ${L.by})`} d={NAV.next} className="fill" />
-          </g>
-          <g style={{ opacity: op(L.eo) }}>
-            <path transform={`translate(${L.b2 + 44} ${L.by})`} d={NAV.queue} />
-            <path transform={`translate(${L.b2 + 72} ${L.by})`} d={NAV.heart} />
-          </g>
-        </svg>
-      </div>
-    </div>
-  )
-}
-
-function MorphSet({ set, auto, offset = 0 }) {
-  const { content: c, t } = set
-  const [sw, setSw] = useState(c.sw[2])
-  const [cb, setCb] = useState(c.cb[2])
-  const [rd, setRd] = useState(c.radio[2])
-  useEffect(() => {
-    if (!auto) return
-    let i = offset
-    const id = setInterval(() => {
-      const k = i++ % 6
-      if (k === 0) setCb((v) => !v)
-      else if (k === 5) setSw((v) => !v)
-      else setRd(SIZES[k - 1])
-    }, 1200)
-    return () => clearInterval(id)
-  }, [auto, offset])
-  return (
     <div className="screen morph-screen">
       <div className="screen-bar" aria-hidden="true"><b>9:41</b><span><i /><i /><i /></span></div>
-      <MorphWidget size={rd} playing={sw} repeat={cb} />
-      <div className="topic sheet">
-        <h3 className="list-title">{c.topic}</h3>
-        <ul className="list">
-          <Switch label={c.sw[0]} t={t} checked={sw} onChange={setSw} />
-          <Checkbox label={c.cb[0]} t={t} checked={cb} onChange={setCb} />
-          <li className="row-group">
-            <span className="group-label">{c.radio[0]}</span>
-            <RadioGroup title={c.radio[0]} options={c.radio[1]} value={rd} onChange={setRd} t={t} />
-          </li>
-        </ul>
+      <div className={`morph-stage ${dragging ? 'is-dragging' : ''}`}>
+        <div className={`morph ${playing ? 'is-playing' : ''}`} style={{ width: L.w, height: L.h, borderRadius: L.r }}>
+          <span className="morph-eq" style={at(L.wx, L.wy)} aria-hidden="true"><i /><i /><i /><i /></span>
+          <span className="morph-title" style={{ transform: `translate(${L.tx}px, ${L.ty}px)`, opacity: op(L.to) }}><b>Low Tide</b><small>Ambient</small></span>
+          <button className="morph-repeat" role="checkbox" aria-checked={repeat} aria-label="Repeat" onClick={() => setRepeat((v) => !v)}
+            tabIndex={L.ro > 0.5 ? 0 : -1} style={{ ...at(L.rx, L.ry), opacity: op(L.ro), pointerEvents: L.ro > 0.5 ? 'auto' : 'none', '--rp': rp }}>
+            <svg viewBox="-8 -8 16 16"><path d="M-4.5 -0.5v-1.8h8.2M1.6-4.5l2.2 2.2-2.2 2.2M4.5 0.5v1.8h-8.2M-1.6 4.5l-2.2-2.2 2.2-2.2" /></svg>
+          </button>
+          <button className="morph-play" role="switch" aria-checked={playing} aria-label="Playing" onClick={() => setPlaying((v) => !v)}
+            style={{ ...at(L.px, L.py), width: L.pd, height: L.pd }}>
+            <svg viewBox="-8 -8 16 16">
+              <path d="M-3.5-4.5v9M3.5-4.5v9" style={{ opacity: amp }} />
+              <path className="fill" d="M-2.5-5L5 0-2.5 5z" style={{ opacity: 1 - amp }} />
+            </svg>
+          </button>
+          <svg className="morph-bar" width={Math.max(1, L.w)} height={Math.max(1, L.h)} aria-hidden="true">
+            <path d={wave} className="played" />
+            <path d={`M${xp} ${L.by}H${L.b2}`} className="rest" />
+            <path d={`M${xp} ${L.by - 6}V${L.by + 6}`} className="thumb" />
+            <g style={{ opacity: op(L.no) }}>
+              <path transform={`translate(${L.b1 - 17} ${L.by})`} d={NAV.prev} className="fill" />
+              <path transform={`translate(${L.b2 + 17} ${L.by})`} d={NAV.next} className="fill" />
+            </g>
+            <path style={{ opacity: op(L.eo) }} transform={`translate(${L.b2 + 44} ${L.by})`} d={NAV.queue} />
+          </svg>
+          <button className="morph-love" role="checkbox" aria-checked={loved} aria-label="Love" onClick={() => setLoved((v) => !v)}
+            tabIndex={L.eo > 0.5 ? 0 : -1} style={{ ...at(L.b2 + 72, L.by), opacity: op(L.eo), pointerEvents: L.eo > 0.5 ? 'auto' : 'none', '--lv': clamp(lv), '--ls': lv }}>
+            <svg viewBox="-8 -8 16 16"><path d={NAV.heart} /></svg>
+          </button>
+        </div>
+        <span className="morph-handle" aria-hidden="true" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+          style={{ left: `calc(50% + ${L.w / 2}px)`, top: `calc(50% + ${L.h / 2}px)` }} />
+      </div>
+      <div className="morph-sizes" role="radiogroup" aria-label="Widget size">
+        {SIZES.map((n, i) => (
+          <button key={n} ref={(el) => (dots.current[i] = el)} role="radio" aria-checked={size === i} aria-label={n}
+            tabIndex={size === i ? 0 : -1} onClick={() => setSize(i)} onKeyDown={sizeKey} />
+        ))}
+        <span className="morph-size-name" key={size}>{SIZES[size]}</span>
       </div>
     </div>
   )
@@ -510,67 +560,77 @@ function MorphSet({ set, auto, offset = 0 }) {
    and sink back in reverse — and a change of mind mid-way just turns the whole sequence around */
 const ACTIONS = { Note: 'pen', Photo: 'photo', Voice: 'wave', Space: 'room' }
 
-function FrostSet({ set, auto, offset = 0 }) {
-  const { content: c, t } = set
-  const [sw, setSw] = useState(c.sw[2])
-  const [cb, setCb] = useState(c.cb[2])
-  const [rd, setRd] = useState(c.radio[2])
-  const pick = (v) => { setRd(v); setSw(true) } // choosing an action opens the tray
+function TaskRow({ title, time, done, onToggle }) {
+  const q = useSpring(done ? 1 : 0, { damping: 1, response: 0.35 }).value
+  return (
+    <button className="frost-row" role="checkbox" aria-checked={done} onClick={onToggle}>
+      <span className="task-check" style={{ '--q': clamp(q), '--qs': q }}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12.5l3.2 3.2L17 9" pathLength="1" style={{ strokeDashoffset: 1 - clamp(q * 1.3 - 0.3) }} /></svg>
+      </span>
+      <span className="task-text" style={{ '--q': clamp(q) }}><b>{title}</b><small>{time}</small></span>
+    </button>
+  )
+}
+
+/* the switch, checkbox and radio are the app itself:
+   + / × is the switch · the action tiles are the radio · the day's tasks are checkboxes */
+const TASKS = [['Deep Work', '9:00 – 11:30'], ['Slow Reading', '14:00 – 15:00'], ['Evening Walk', '18:30']]
+function FrostSet({ auto, offset = 0 }) {
+  const names = Object.keys(ACTIONS)
+  const [open, setOpen] = useState(false)
+  const [action, setAction] = useState(names[0])
+  const [done, setDone] = useState({ 'Deep Work': true })
+  const tiles = useRef([])
+  const p = useSpring(open ? 1 : 0, { damping: 0.9, response: 0.5 }).value
   useEffect(() => {
     if (!auto) return
     let i = offset
-    const names = c.radio[1]
     const id = setInterval(() => {
       const k = i++ % 6
-      if (k === 0) setSw(true)
-      else if (k < 4) setRd(names[k])
-      else if (k === 4) { setSw(false); setRd(names[0]) }
-      else setCb((v) => !v)
+      if (k === 0) setOpen(true)
+      else if (k < 4) setAction(names[k])
+      else if (k === 4) { setOpen(false); setAction(names[0]) }
+      else setDone((d) => ({ ...d, 'Slow Reading': !d['Slow Reading'] }))
     }, 1100)
     return () => clearInterval(id)
-  }, [auto, offset, c])
-  const p = useSpring(sw ? 1 : 0, { damping: 0.9, response: 0.5 }).value
-  const f = useSpring(sw && cb ? 1 : 0, { damping: 1, response: 0.5 }).value
+  }, [auto, offset]) // eslint-disable-line react-hooks/exhaustive-deps
+  const tileKey = (e, i) => {
+    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
+    if (e.key === 'Escape') { setOpen(false); return }
+    if (!d) return
+    e.preventDefault()
+    const n = (i + d + names.length) % names.length
+    setAction(names[n]); tiles.current[n]?.focus()
+  }
   return (
     <div className="screen frost-screen">
-      <div className="frost-page" style={{ filter: f > 0.005 ? `blur(${f * 8}px)` : undefined, scale: `${1 - f * 0.012}` }} inert={sw ? '' : undefined}>
+      <div className="frost-page" style={{ filter: p > 0.005 ? `blur(${clamp(p) * 8}px)` : undefined, scale: `${1 - clamp(p) * 0.012}` }} inert={open ? '' : undefined}>
         <nav className="frost-side" aria-hidden="true"><span className="win-dots"><i /><i /><i /></span><span className="on">Today</span><span>Week</span><span>Journal</span></nav>
         <div className="frost-main">
           <header aria-hidden="true"><span className="frost-sun"><Glyph name="sun" /></span><h4>Good Morning</h4></header>
-          <div className="frost-grid">
-            <div className="frost-col" aria-hidden="true">
-              <div className="frost-card"><small>Focus today</small><b>3h 20m</b><span>Details</span></div>
-              <div className="frost-row"><span className="frost-dot" /><span><b>Deep Work</b><small>9:00 – 11:30</small></span></div>
-              <div className="frost-row"><span className="frost-dot light" /><span><b>Slow Reading</b><small>14:00 – 15:00</small></span></div>
-            </div>
-            <div className="topic">
-              <h3 className="list-title">{c.topic}</h3>
-              <ul className="list">
-                <Switch label={c.sw[0]} t={t} checked={sw} onChange={setSw} />
-                <Checkbox label={c.cb[0]} t={t} checked={cb} onChange={setCb} />
-                <li className="row-group">
-                  <span className="group-label">{c.radio[0]}</span>
-                  <RadioGroup title={c.radio[0]} options={c.radio[1]} value={rd} onChange={pick} t={t} />
-                </li>
-              </ul>
-            </div>
+          <div className="frost-card" aria-hidden="true"><small>Focus today</small><b>3h 20m</b><span>Details</span></div>
+          <div className="frost-tasks">
+            {TASKS.map(([title, time]) => (
+              <TaskRow key={title} title={title} time={time} done={!!done[title]} onToggle={() => setDone((d) => ({ ...d, [title]: !d[title] }))} />
+            ))}
           </div>
         </div>
       </div>
       {/* tapping the frosted room puts the tray away */}
-      <div className="frost-veil" onClick={() => setSw(false)} style={{ opacity: clamp(f * 0.62 + p * 0.08), pointerEvents: sw ? 'auto' : 'none' }} />
+      <div className="frost-veil" onClick={() => setOpen(false)} style={{ opacity: clamp(p * 0.7), pointerEvents: open ? 'auto' : 'none' }} />
       <div className="frost-dock">
         <span className="frost-btn" aria-hidden="true"><Glyph name="search" /></span>
-        <button className="frost-btn frost-plus" aria-label={sw ? 'Close actions' : 'Open actions'} aria-expanded={sw} onClick={() => setSw((v) => !v)} style={{ '--p': clamp(p) }}><Glyph name="plus" /></button>
+        <button className="frost-btn frost-plus" role="switch" aria-checked={open} aria-label="Quick actions" onClick={() => setOpen((v) => !v)} style={{ '--p': clamp(p) }}><Glyph name="plus" /></button>
         <span className="frost-avatar" aria-hidden="true" />
       </div>
-      <div className="frost-tiles">
-        {Object.entries(ACTIONS).map(([name, g], i) => {
+      <div className="frost-tiles" role="radiogroup" aria-label="Action" aria-hidden={!open}>
+        {names.map((name, i) => {
           const q = clamp((p - i * 0.08) / 0.76) // same spring, read a little later per tile
           return (
-            <button key={name} tabIndex={sw ? 0 : -1} aria-hidden={!sw} className={`frost-tile ${rd === name ? 'on' : ''}`} onClick={() => setRd(name)}
-              style={{ opacity: q, transform: `translateY(${(1 - q) * 34}px) scale(${0.94 + 0.06 * q})`, pointerEvents: sw ? 'auto' : 'none' }}>
-              <Glyph name={g} /><span>{name}</span>
+            <button key={name} ref={(el) => (tiles.current[i] = el)} role="radio" aria-checked={action === name} tabIndex={open && action === name ? 0 : -1}
+              className={`frost-tile ${action === name ? 'on' : ''}`} onClick={() => setAction(name)} onKeyDown={(e) => tileKey(e, i)}
+              style={{ opacity: q, transform: `translateY(${(1 - q) * 34}px) scale(${0.94 + 0.06 * q})`, pointerEvents: open ? 'auto' : 'none' }}>
+              <Glyph name={ACTIONS[name]} /><span>{name}</span>
             </button>
           )
         })}
