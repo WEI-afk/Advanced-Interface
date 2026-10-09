@@ -399,10 +399,10 @@ function UnfoldSet({ set, auto, offset = 0 }) {
 const SIZES = ['Orb', 'Small', 'Wide', 'Large']
 const LAYOUT = [
   // w, h, radius · wave icon · title (x, y, opacity) · repeat icon (x, y, opacity) · play (x, y, d) · bar (x1, x2, y) · nav, extras opacity
-  { w: 120, h: 120, r: 60, wx: 60, wy: 28, tx: 18, ty: 60, to: 0, rx: 96, ry: 24, ro: 0, px: 60, py: 60, pd: 34, b1: 36, b2: 84, by: 92, no: 0, eo: 0 },
-  { w: 150, h: 150, r: 26, wx: 24, wy: 24, tx: 18, ty: 58, to: 1, rx: 126, ry: 24, ro: 1, px: 116, py: 72, pd: 36, b1: 36, b2: 114, by: 124, no: 1, eo: 0 },
-  { w: 300, h: 134, r: 26, wx: 24, wy: 24, tx: 18, ty: 52, to: 1, rx: 276, ry: 24, ro: 1, px: 262, py: 64, pd: 38, b1: 36, b2: 206, by: 108, no: 1, eo: 1 },
-  { w: 360, h: 220, r: 28, wx: 24, wy: 24, tx: 18, ty: 140, to: 1, rx: 336, ry: 24, ro: 1, px: 314, py: 148, pd: 54, b1: 36, b2: 258, by: 196, no: 1, eo: 1 },
+  { w: 120, h: 120, r: 60, wx: 44, wy: 30, tx: 18, ty: 60, to: 0, rx: 86, ry: 30, ro: 1, px: 60, py: 60, pd: 34, b1: 36, b2: 84, by: 92, no: 0, eo: 0 },
+  { w: 150, h: 150, r: 26, wx: 24, wy: 24, tx: 18, ty: 58, to: 1, rx: 138, ry: 24, ro: 1, px: 116, py: 72, pd: 36, b1: 36, b2: 114, by: 124, no: 1, eo: 0 },
+  { w: 300, h: 134, r: 26, wx: 24, wy: 24, tx: 18, ty: 52, to: 1, rx: 288, ry: 24, ro: 1, px: 262, py: 64, pd: 38, b1: 36, b2: 206, by: 108, no: 1, eo: 1 },
+  { w: 360, h: 220, r: 28, wx: 24, wy: 24, tx: 18, ty: 140, to: 1, rx: 348, ry: 24, ro: 1, px: 304, py: 148, pd: 54, b1: 36, b2: 258, by: 196, no: 1, eo: 1 },
 ]
 function layoutAt(s) {
   const i = Math.min(2, Math.max(0, Math.floor(s))), f = s - i // f may run past 0..1 when the spring overshoots
@@ -440,7 +440,7 @@ function MorphSet({ auto, offset = 0 }) {
   const [size, setSize] = useState(2)
   const sz = useSpring(size, { damping: 0.86, response: 0.55 })
   const amp = useSpring(playing ? 1 : 0, { damping: 1, response: 0.45 }).value
-  const rp = useSpring(repeat ? 1 : 0, { damping: 1, response: 0.3 }).value
+  const rpS = useSpring(repeat ? 1 : 0, { damping: 0.6, response: 0.3 }).value, rp = clamp(rpS)
   const lv = useSpring(loved ? 1 : 0, { damping: 0.6, response: 0.35 }).value
   const [clock, setClock] = useState({ phase: 0, f: 0.34 })
   const drag = useRef(null)
@@ -515,16 +515,21 @@ function MorphSet({ auto, offset = 0 }) {
         <div className={`morph ${playing ? 'is-playing' : ''}`} style={{ width: L.w, height: L.h, borderRadius: L.r }}>
           <span className="morph-eq" style={at(L.wx, L.wy)} aria-hidden="true"><i /><i /><i /><i /></span>
           <span className="morph-title" style={{ transform: `translate(${L.tx}px, ${L.ty}px)`, opacity: op(L.to) }}><b>Low Tide</b><small>Ambient</small></span>
-          <button className="morph-repeat" role="checkbox" aria-checked={repeat} aria-label="Repeat" onClick={() => setRepeat((v) => !v)}
-            tabIndex={L.ro > 0.5 ? 0 : -1} style={{ ...at(L.rx, L.ry), opacity: op(L.ro), pointerEvents: L.ro > 0.5 ? 'auto' : 'none', '--rp': rp }}>
-            <svg viewBox="-8 -8 16 16"><path d="M-4.5 -0.5v-1.8h8.2M1.6-4.5l2.2 2.2-2.2 2.2M4.5 0.5v1.8h-8.2M-1.6 4.5l-2.2-2.2 2.2-2.2" /></svg>
+          {/* checkbox: Repeat */}
+          <button className="morph-repeat" role="checkbox" aria-checked={repeat} onClick={() => setRepeat((v) => !v)}
+            style={{ transform: `translate(${L.rx}px, ${L.ry}px) translate(-100%, -50%)`, '--rp': rp, '--rs': rpS }}>
+            <span className="morph-repeat-label" style={{ opacity: op(L.to), maxWidth: op(L.to) * 60 }}>Repeat</span>
+            <span className="morph-box"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8.4l2.6 2.6L12 5.4" pathLength="1" style={{ strokeDashoffset: 1 - clamp(rp * 1.3 - 0.3) }} /></svg></span>
           </button>
+          {/* switch: play — the thumb slides across to start the music */}
           <button className="morph-play" role="switch" aria-checked={playing} aria-label="Playing" onClick={() => setPlaying((v) => !v)}
-            style={{ ...at(L.px, L.py), width: L.pd, height: L.pd }}>
-            <svg viewBox="-8 -8 16 16">
-              <path d="M-3.5-4.5v9M3.5-4.5v9" style={{ opacity: amp }} />
-              <path className="fill" d="M-2.5-5L5 0-2.5 5z" style={{ opacity: 1 - amp }} />
-            </svg>
+            style={{ ...at(L.px, L.py), width: L.pd * 0.86 * 1.75, height: L.pd * 0.86, '--a': clamp(amp) }}>
+            <span className="morph-play-thumb" style={{ width: L.pd * 0.86 - 6, height: L.pd * 0.86 - 6, transform: `translateX(${amp * (L.pd * 0.86 * 0.75)}px)` }}>
+              <svg viewBox="-8 -8 16 16" aria-hidden="true">
+                <path d="M-3.2-4.5v9M3.2-4.5v9" style={{ opacity: amp }} />
+                <path className="fill" d="M-2.5-5L5 0-2.5 5z" style={{ opacity: 1 - amp }} />
+              </svg>
+            </span>
           </button>
           <svg className="morph-bar" width={Math.max(1, L.w)} height={Math.max(1, L.h)} aria-hidden="true">
             <path d={wave} className="played" />
@@ -544,12 +549,14 @@ function MorphSet({ auto, offset = 0 }) {
         <span className="morph-handle" aria-hidden="true" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
           style={{ left: `calc(50% + ${L.w / 2}px)`, top: `calc(50% + ${L.h / 2}px)` }} />
       </div>
+      {/* radio: widget size (or drag the corner) */}
       <div className="morph-sizes" role="radiogroup" aria-label="Widget size">
         {SIZES.map((n, i) => (
-          <button key={n} ref={(el) => (dots.current[i] = el)} role="radio" aria-checked={size === i} aria-label={n}
-            tabIndex={size === i ? 0 : -1} onClick={() => setSize(i)} onKeyDown={sizeKey} />
+          <button key={n} ref={(el) => (dots.current[i] = el)} role="radio" aria-checked={size === i}
+            tabIndex={size === i ? 0 : -1} onClick={() => setSize(i)} onKeyDown={sizeKey}>
+            <span className="morph-radio" />{n}
+          </button>
         ))}
-        <span className="morph-size-name" key={size}>{SIZES[size]}</span>
       </div>
     </div>
   )
@@ -577,11 +584,13 @@ function TaskRow({ title, time, done, onToggle }) {
 const TASKS = [['Deep Work', '9:00 – 11:30'], ['Slow Reading', '14:00 – 15:00'], ['Evening Walk', '18:30']]
 function FrostSet({ auto, offset = 0 }) {
   const names = Object.keys(ACTIONS)
-  const [open, setOpen] = useState(false)
-  const [action, setAction] = useState(names[0])
+  const [open, setOpen] = useState(true) // starts open so the tiles (radio) are on show
+  const [action, setAction] = useState(names[1])
+  const [pin, setPin] = useState(true)
   const [done, setDone] = useState({ 'Deep Work': true })
   const tiles = useRef([])
   const p = useSpring(open ? 1 : 0, { damping: 0.9, response: 0.5 }).value
+  const pq = useSpring(pin ? 1 : 0, { damping: 0.6, response: 0.3 }).value
   useEffect(() => {
     if (!auto) return
     let i = offset
@@ -590,7 +599,7 @@ function FrostSet({ auto, offset = 0 }) {
       if (k === 0) setOpen(true)
       else if (k < 4) setAction(names[k])
       else if (k === 4) { setOpen(false); setAction(names[0]) }
-      else setDone((d) => ({ ...d, 'Slow Reading': !d['Slow Reading'] }))
+      else { setDone((d) => ({ ...d, 'Slow Reading': !d['Slow Reading'] })); setPin((v) => !v) }
     }, 1100)
     return () => clearInterval(id)
   }, [auto, offset]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -620,20 +629,36 @@ function FrostSet({ auto, offset = 0 }) {
       <div className="frost-veil" onClick={() => setOpen(false)} style={{ opacity: clamp(p * 0.7), pointerEvents: open ? 'auto' : 'none' }} />
       <div className="frost-dock">
         <span className="frost-btn" aria-hidden="true"><Glyph name="search" /></span>
-        <button className="frost-btn frost-plus" role="switch" aria-checked={open} aria-label="Quick actions" onClick={() => setOpen((v) => !v)} style={{ '--p': clamp(p) }}><Glyph name="plus" /></button>
+        {/* switch: the + knob slides up the track and turns into × */}
+        <button className="frost-switch" role="switch" aria-checked={open} aria-label="Quick actions" onClick={() => setOpen((v) => !v)} style={{ '--p': clamp(p) }}>
+          <span className="frost-knob" style={{ transform: `translateY(${-p * 30}px)` }}><Glyph name="plus" /></span>
+        </button>
         <span className="frost-avatar" aria-hidden="true" />
       </div>
-      <div className="frost-tiles" role="radiogroup" aria-label="Action" aria-hidden={!open}>
+      <div className="frost-tiles" aria-hidden={!open}>
+        <div className="frost-tile-group" role="radiogroup" aria-label="Action">
         {names.map((name, i) => {
           const q = clamp((p - i * 0.08) / 0.76) // same spring, read a little later per tile
           return (
             <button key={name} ref={(el) => (tiles.current[i] = el)} role="radio" aria-checked={action === name} tabIndex={open && action === name ? 0 : -1}
               className={`frost-tile ${action === name ? 'on' : ''}`} onClick={() => setAction(name)} onKeyDown={(e) => tileKey(e, i)}
               style={{ opacity: q, transform: `translateY(${(1 - q) * 34}px) scale(${0.94 + 0.06 * q})`, pointerEvents: open ? 'auto' : 'none' }}>
-              <Glyph name={ACTIONS[name]} /><span>{name}</span>
+              <span className="tile-top"><Glyph name={ACTIONS[name]} /><span className="tile-radio" /></span><span>{name}</span>
             </button>
           )
         })}
+        </div>
+        {/* checkbox: keep what you make on today's page */}
+        {(() => {
+          const q = clamp((p - 4 * 0.08) / 0.76)
+          return (
+            <button className="frost-pin" role="checkbox" aria-checked={pin} tabIndex={open ? 0 : -1} onClick={() => setPin((v) => !v)}
+              style={{ opacity: q, transform: `translateY(${(1 - q) * 34}px)`, pointerEvents: open ? 'auto' : 'none', '--q': clamp(pq), '--qs': pq }}>
+              <span className="pin-box"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8.4l2.6 2.6L12 5.4" pathLength="1" style={{ strokeDashoffset: 1 - clamp(pq * 1.3 - 0.3) }} /></svg></span>
+              Add to Today
+            </button>
+          )
+        })()}
       </div>
     </div>
   )
