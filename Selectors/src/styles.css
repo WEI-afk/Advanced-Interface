@@ -253,3 +253,8 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 .wall-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .wall-tile { flex: none; margin: 0; padding: 20px; }
 .wall-tile .topic { max-width: none; }
+
+/* full-width screen sets: Figma draft sits to the right of the title */
+.s-frost .set-head, .s-invert .set-head { flex-direction: row; justify-content: space-between; align-items: flex-start; }
+.s-frost .set-head .draft-ref, .s-invert .set-head .draft-ref { align-items: flex-end; }
+.s-frost .set-head .draft-ref img, .s-invert .set-head .draft-ref img { transform-origin: top right; }

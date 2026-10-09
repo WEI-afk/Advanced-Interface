@@ -196,7 +196,7 @@ function RadioGroup({ title, options, value, onChange, t }) {
 const SF = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif'
 const SETS = [
   {
-    id: 'mist', concept: 'Mist Takes Shape', name: 'Mist', tone: 'Ethereal', platform: 'visionOS',
+    id: 'mist', figma: '13-2', concept: 'Mist Takes Shape', name: 'Mist', tone: 'Ethereal', platform: 'visionOS',
     content: { topic: 'Immersion', sw: ['Spatial Audio', '', true], cb: ['Show Hands', '', false], radio: ['Environment', ['Yosemite', 'Mount Hood', 'Moon'], 'Yosemite'] },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
@@ -208,7 +208,7 @@ const SETS = [
     },
   },
   {
-    id: 'unfold', concept: 'Choices Unfold', name: 'Unfold', tone: 'Ethereal', platform: 'visionOS',
+    id: 'unfold', figma: '21-2', concept: 'Choices Unfold', name: 'Unfold', tone: 'Cozy', platform: 'visionOS',
     content: { topic: 'Spaces' },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
@@ -220,7 +220,7 @@ const SETS = [
     },
   },
   {
-    id: 'frost', concept: 'Action Clears the Room', name: 'Frost', tone: 'Ethereal', platform: 'visionOS',
+    id: 'frost', figma: '21-49', concept: 'Action Clears the Room', name: 'Frost', tone: 'Serene', platform: 'visionOS',
     content: {},
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
@@ -232,7 +232,7 @@ const SETS = [
     },
   },
   {
-    id: 'invert', concept: 'Light and Dark Trade Places', name: 'Invert', tone: 'Ethereal', platform: 'visionOS',
+    id: 'invert', figma: '21-90', concept: 'Light and Dark Trade Places', name: 'Invert', tone: 'Bold', platform: 'visionOS',
     content: {},
     t: { font: '"Barlow Condensed", "SF Pro Display", Inter, sans-serif', ink: '#1d1d1d', muted: 'rgba(29,29,29,.5)', on: '#1d1d1d', off: '#cccccc' },
   },
@@ -595,18 +595,18 @@ export default function App() {
     <main>
       <header className="page-head">
         <a className="back" href="../">← Advanced Interface</a>
-        <h1>Ethereal</h1>
-        <p>Selectors · Week 3 · visionOS</p>
+        <h1>Selectors</h1>
+        <p>Week 3 · Advanced Interface</p>
       </header>
       {SETS.map((set) => (
         <section key={set.id} className={`set vision s-${set.id}`} style={cssVars(set.t)}>
           <div className="set-head">
-            <h2>{set.concept}</h2>
-            {/* Figma line drawing: small thumbnail, zooms in on hover / focus */}
-            <a className="draft-ref" href={`${import.meta.env.BASE_URL}final/${set.id}.png`} target="_blank" rel="noreferrer">
-              <img src={`${import.meta.env.BASE_URL}final/${set.id}.png`} alt={`${set.concept} drawing from Figma`} loading="lazy"
+            <h2>{set.tone}, {set.concept}</h2>
+            {/* Figma draft: small thumbnail (zooms on hover / focus), opens the frame in Figma */}
+            <a className="draft-ref" href={`https://www.figma.com/design/kBC8kZvJsU43A2kTrtOxyM/Selectors?node-id=${set.figma}`} target="_blank" rel="noreferrer">
+              <img src={`${import.meta.env.BASE_URL}final/${set.id}.png`} alt={`${set.tone}, ${set.concept} — Figma draft`} loading="lazy"
                 onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
-              <span>Figma</span>
+              <span>Figma draft</span>
             </a>
           </div>
           <SetBody set={set} />
