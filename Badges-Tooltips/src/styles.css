@@ -239,6 +239,73 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .t-mist .rich-action.acted { filter: saturate(.6) brightness(1.08); }
 .t-mist .draft-ref img { border-color: rgba(255,255,255,.9); }
 
+/* ================= 06 · ORBIT · Monumental ================= */
+.t-orbit { --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --rock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018 .03' numOctaves='5' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .7 -.18'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23r)'/%3E%3C/svg%3E");
+  background: #d6d6d6 var(--noise); color: #141414; }
+.t-orbit h2 { font-weight: 300; font-size: 44px; letter-spacing: -0.03em; }
+.t-orbit .card { background: #ececec var(--noise); border-radius: 26px; box-shadow: 0 30px 60px -40px rgba(0,0,0,.6); }
+.t-orbit .controls button { border-color: rgba(20,20,20,.3); }
+.t-orbit .controls button.active { background: #0d0d0d; color: #f2f2f2; border-color: #0d0d0d; }
+.stage-orbit { min-height: 470px; padding: 0; }
+.stage-orbit > * { width: 100%; }
+
+/* two giant textured spheres meeting in the middle */
+.orbit-scene { position: relative; height: 470px; overflow: hidden; border-radius: 18px; display: grid; place-items: center start; padding-left: 12%;
+  background: #cfcfcf var(--noise); transition: background-color 1s ease; }
+.orbit-scene.dark { background-color: #161616; }
+.sphere { position: absolute; left: 50%; width: 150%; aspect-ratio: 1; border-radius: 50%; transform: translateX(-50%);
+  background: var(--rock), radial-gradient(circle at 38% 32%, #6b6b6b 0%, #2a2a2a 30%, #0c0c0c 58%, #050505 75%);
+  background-size: 100% 100%, auto; background-repeat: no-repeat; /* one stretched texture: no tile seams */
+  background-blend-mode: soft-light, normal; box-shadow: inset -30px -40px 80px rgba(0,0,0,.6); transition: filter 1s ease; }
+.sphere.top { bottom: 50%; }
+.sphere.bottom { top: 50%; background: var(--rock), radial-gradient(circle at 62% 30%, #5e5e5e 0%, #262626 28%, #0b0b0b 56%, #050505 75%); }
+.orbit-scene.dark .sphere { filter: brightness(1.35) contrast(1.1); }
+
+/* frosted glass toolbar */
+.orbit-bar { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,.22) 45%, rgba(255,255,255,.35));
+  backdrop-filter: blur(16px) saturate(1.1); -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.55); box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 30px 50px -24px rgba(0,0,0,.7); }
+.orbit-switch { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(255,255,255,.3); }
+.orbit-switch button { position: relative; z-index: 1; width: 46px; height: 46px; border: 0; border-radius: 50%; background: none; color: #fff; display: grid; place-items: center; cursor: pointer;
+  transition: color .6s cubic-bezier(.16,1,.3,1); }
+.orbit-switch button[aria-checked='true'] { color: #111; }
+.orbit-switch .knob { position: absolute; left: 4px; top: 4px; width: 46px; height: 46px; border-radius: 50%; background: #f4f4f4; box-shadow: 0 6px 14px -6px rgba(0,0,0,.5);
+  transition: transform .7s cubic-bezier(.16,1,.3,1); }
+.orbit-switch.is-dark .knob { transform: translateY(50px); }
+.orbit-rule { width: 60%; height: 1px; background: rgba(255,255,255,.55); margin: 4px 0; }
+.orbit-slot { position: relative; }
+.orbit-tool { position: relative; width: 50px; height: 50px; border: 0; border-radius: 50%; background: transparent; color: #fff; display: grid; place-items: center; cursor: pointer;
+  transition: background .6s cubic-bezier(.16,1,.3,1), color .6s; }
+.orbit-tool:hover, .orbit-tool.hot { background: rgba(255,255,255,.32); }
+.orbit-tool.active { background: #0b0b0b; color: #f4f4f4; }
+.t-orbit .icon { stroke-width: 1.5; }
+
+/* badges: white pills that surface slowly out of a soft blur */
+.t-orbit .badge { top: -2px; right: -8px; background: #f4f4f4; color: #111; box-shadow: 0 6px 14px -6px rgba(0,0,0,.55);
+  filter: blur(4px); transform: scale(.55); transition: transform .9s cubic-bezier(.16,1,.3,1), filter .7s ease, opacity .6s ease; }
+.t-orbit .badge.on { filter: blur(0); transform: scale(1); }
+.t-orbit .badge-count, .t-orbit .badge-text { height: 19px; font-size: 10.5px; font-weight: 600; }
+.t-orbit .badge-dot { top: 4px; right: 4px; width: 9px; height: 9px; background: #fff; box-shadow: 0 0 10px 2px rgba(255,255,255,.75); }
+.t-orbit .badge-icon { background: #f4f4f4; color: #111; }
+
+/* tooltips slide out to the right, like the "render" pill */
+.t-orbit .tip { left: calc(100% + 18px); top: 50%; bottom: auto; transform-origin: left center; transform: translate(-10px, -50%) scale(.96);
+  transition: transform .8s cubic-bezier(.16,1,.3,1), opacity .5s ease; }
+.t-orbit .tip.open { transform: translate(0, -50%) scale(1); }
+.t-orbit .tip-plain { background: #ececec; color: #111; padding: 9px 20px; border-radius: 999px; font-size: 16px; box-shadow: 0 14px 30px -16px rgba(0,0,0,.7); }
+.t-orbit .tip-rich { width: 184px; padding: 16px; border-radius: 22px; color: #111;
+  background: linear-gradient(180deg, rgba(255,255,255,.82), rgba(236,236,236,.72)); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,.7); box-shadow: 0 24px 50px -24px rgba(0,0,0,.75); }
+.t-orbit .tip-rich::before { left: -20px; right: auto; top: 0; bottom: 0; width: 20px; height: auto; }
+.t-orbit .rich-title { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+.t-orbit .rich-text { color: #555; }
+.t-orbit .rich-action { padding: 8px 16px; border: 0; border-radius: 999px; background: #0b0b0b; color: #f4f4f4; font-size: 13px; transition: background .5s; }
+.t-orbit .rich-action:hover { background: #2a2a2a; }
+.t-orbit .rich-action.acted { background: #555; }
+.wall-tile.t-orbit .stage-orbit, .wall-tile.t-orbit .orbit-scene { min-height: 0; height: 420px; }
+
 /* ================= WALL (Badges-Tooltips/?wall) ================= */
 body:has(.wall) { overflow: hidden; background: #f3efe7; }
 .wall { height: 100vh; overflow: hidden; padding: 12px; display: flex; gap: 12px; }

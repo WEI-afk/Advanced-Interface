@@ -9,6 +9,7 @@ Live: https://wei-afk.github.io/Advanced-Interface/
 | `home/` | Home page that links to every component |
 | `Progress-Bar/` | Week 1 · Progress indicators |
 | `Badges-Tooltips/` | Week 2 · Badges & tooltips |
+| `Selectors/` | Week 3 · Switches, checkboxes & radio buttons |
 
 ## Adding a component (e.g. Button)
 

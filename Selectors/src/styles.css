@@ -1,0 +1,130 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #f4f4f2; color: #1b1b1b; -webkit-font-smoothing: antialiased; }
+main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
+.back { display: inline-block; margin-bottom: 14px; font-size: 14px; font-weight: 600; color: #666; text-decoration: none; }
+.back:hover { color: #1b1b1b; }
+.page-head h1 { margin: 0 0 6px; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; }
+.page-head p { margin: 0 0 40px; color: #666; line-height: 1.5; }
+
+/* ================= SHARED (everything sized by the set's tokens) ================= */
+.set { font-family: var(--font); color: var(--ink); border-radius: 24px; padding: 32px; margin-bottom: 32px; }
+.set-tone { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; opacity: .6; }
+.set-head h2 { margin: 4px 0 0; font-size: 40px; line-height: 1.05; letter-spacing: -0.02em; }
+.set-head p { margin: 8px 0 28px; max-width: 580px; line-height: 1.5; color: var(--muted); }
+
+.lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: var(--list-gap); align-items: start; }
+.list-title { margin: 0 0 8px var(--pad-x); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.list { position: relative; list-style: none; margin: 0; padding: 0; border-radius: var(--list-r); overflow: hidden; }
+.row { position: relative; display: flex; align-items: center; gap: var(--gap); min-height: var(--row-h); padding: 0 var(--pad-x); }
+.row + .row::before { content: ''; position: absolute; top: 0; left: var(--pad-x); right: 0; height: var(--divider); background: var(--rule); }
+.row-check, .row-radio { padding: 0; }
+.row-text { flex: 1; min-width: 0; }
+.label { display: block; font-weight: var(--fw); font-size: var(--fs); line-height: var(--lh); letter-spacing: var(--ls); }
+.detail { display: block; font-size: var(--dfs); line-height: var(--dlh); color: var(--muted); }
+
+/* whole row is the hit target for checkbox / radio */
+.row-hit { all: unset; position: relative; z-index: 1; display: flex; align-items: center; gap: var(--gap); width: 100%; min-height: var(--row-h); padding: 0 var(--pad-x); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.row-hit:focus-visible, .sw:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; border-radius: 6px; }
+/* feedback on press, instantly */
+.cb, .rd { transition: scale 100ms ease-out; }
+.row-hit:active .cb, .row-hit:active .rd { scale: .9; }
+
+/* switch: position, colour and press-stretch all come from springs (JS), not CSS transitions */
+.sw { position: relative; flex: none; width: var(--sw-w); height: var(--sw-h); padding: 0; border: 0; background: none; border-radius: var(--sw-r); cursor: pointer; touch-action: none; -webkit-tap-highlight-color: transparent; }
+.sw-track { position: absolute; inset: 0; border-radius: var(--sw-r);
+  background: color-mix(in oklab, var(--on) clamp(0%, calc(var(--p) * 100%), 100%), var(--off));
+  box-shadow: inset 0 0 0 var(--sw-stroke) var(--ink); }
+.sw-thumb { position: absolute; left: var(--inset); top: calc((var(--sw-h) - var(--th-h)) / 2); height: var(--th-h); border-radius: var(--th-r); background: var(--thumb);
+  box-shadow: 0 3px 8px rgba(0,0,0,.15), 0 3px 1px rgba(0,0,0,.06); will-change: transform; }
+.sw-led { display: none; }
+
+/* checkbox: fill and checkmark are driven by the spring value --p; overshoot (--s > 1) pops the box */
+.cb { position: relative; flex: none; display: grid; place-items: center; width: var(--cb); height: var(--cb); border-radius: var(--cb-r);
+  background: color-mix(in oklab, var(--on) calc(var(--p) * 100%), var(--cb-off, transparent));
+  box-shadow: inset 0 0 0 var(--cb-stroke) color-mix(in oklab, var(--on) calc(var(--p) * 100%), var(--ring));
+  transform: scale(calc(1 + (var(--s) - var(--p)) * .8)); }
+.cb svg { width: 78%; height: 78%; overflow: visible; }
+.cb path { fill: none; stroke: var(--check, #fff); stroke-width: var(--check-stroke); stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; }
+.cb-led { display: none; }
+
+/* radio: ring tints and the dot scales with its own spring */
+.rd { flex: none; display: grid; place-items: center; width: var(--rd); height: var(--rd); border-radius: 50%;
+  box-shadow: inset 0 0 0 var(--rd-stroke) color-mix(in oklab, var(--on) calc(var(--p) * 100%), var(--ring)); }
+.rd-dot { width: var(--rd-dot); height: var(--rd-dot); border-radius: 50%; background: var(--on); transform: scale(var(--s)); }
+/* the selection glides between rows (same path in both directions) */
+.rd-glide { position: absolute; left: 0; right: 0; top: 0; height: var(--row-h); transform: translateY(calc(var(--y) * var(--row-h))); background: var(--glide, transparent); pointer-events: none; }
+
+/* spec */
+.spec { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--rule); font-family: Inter, system-ui, sans-serif; }
+.spec summary { cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); list-style: none; }
+.spec summary::before { content: '— '; }
+.spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px 28px; margin-top: 16px; }
+.spec h4 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.spec dl { margin: 0; }
+.spec dl div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid color-mix(in oklab, var(--rule) 50%, transparent); font-size: 12.5px; line-height: 1.35; }
+.spec dt { color: var(--muted); }
+.spec dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.spec dd i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+
+/* ================= 01 · GLASS · Serene ================= */
+.s-glass { --rule: rgba(60,60,67,.18); --ring: rgba(60,60,67,.32); --glide: rgba(90,200,200,.12);
+  background: linear-gradient(160deg, #dbe7f2 0%, #ece4f0 55%, #f6eee5 100%); }
+.s-glass .list { background: rgba(255,255,255,.55); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.75), 0 14px 34px -22px rgba(40,60,80,.45); }
+.s-glass .set-head h2 { font-weight: 600; }
+
+/* ================= 02 · STONE · Monumental ================= */
+.s-stone { --rule: #0d0d0d; --ring: #0d0d0d; --glide: rgba(0,0,0,.05); background: #e4e4e4; border-radius: 4px; }
+.s-stone .set-head h2 { font-size: 56px; font-weight: 300; letter-spacing: -0.04em; }
+.s-stone .list { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.s-stone .row + .row::before { left: 0; }
+.s-stone .list-title { margin-left: 0; color: var(--ink); }
+.s-stone .sw-thumb { background: radial-gradient(circle at 35% 30%, #ffffff, #d4d4d4 70%); box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+
+/* ================= 03 · JELLY · Playful ================= */
+.s-jelly { --rule: rgba(61,44,94,.18); --ring: #3d2c5e; --glide: #fff0f6; --cb-off: #fff; background: #fff4e6; }
+.s-jelly .set-head h2 { color: #ff6b9d; font-weight: 700; }
+.s-jelly .list { background: #fff; border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); }
+.s-jelly .sw-thumb { border: 3px solid var(--ink); top: calc((var(--sw-h) - var(--th-h)) / 2); box-shadow: none; }
+.s-jelly .rd-dot { box-shadow: inset 0 0 0 2.5px var(--ink); }
+
+/* ================= 04 · HI-FI · Nostalgic ================= */
+.s-hifi { --rule: rgba(0,0,0,.18); --ring: #1d1a16; --glide: rgba(0,0,0,.06); border-radius: 10px;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, transparent 1px 3px), linear-gradient(180deg, #dcd9d2, #b9b5ac);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 -2px 0 rgba(0,0,0,.25); }
+.s-hifi .set-head h2 { text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
+.s-hifi .label { text-transform: uppercase; text-shadow: 0 1px 0 rgba(255,255,255,.55); }
+.s-hifi .list { background: linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.02)); box-shadow: inset 0 1px 2px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.7); }
+.s-hifi .row + .row::after { content: ''; position: absolute; top: 1px; left: var(--pad-x); right: 0; height: 1px; background: rgba(255,255,255,.45); }
+/* slide switch: a dark slot with a ribbed metal knob, and an amber pilot lamp beside it */
+.s-hifi .sw { margin-left: 22px; }
+.s-hifi .sw-track { background: #1f1c18; box-shadow: inset 0 2px 3px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.6); }
+.s-hifi .sw-thumb { background: repeating-linear-gradient(90deg, #f2f0ea 0 2px, #9d998f 2px 4px); box-shadow: 0 2px 2px rgba(0,0,0,.6), inset 0 1px 0 #fff; }
+.s-hifi .sw-led { display: block; position: absolute; right: calc(100% + 12px); top: 50%; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
+  background: color-mix(in oklab, #ffcf6b calc(var(--p) * 100%), #4a3d27);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.5), 0 0 calc(var(--p) * 12px) calc(var(--p) * 2px) rgba(255,176,46,.75); }
+/* checkbox → latching push button with a lamp */
+.s-hifi .cb { background: linear-gradient(180deg, #f1efe9, #b6b2a8); box-shadow: 0 calc((1 - var(--p)) * 3px) 0 #6f6a60, 0 calc((1 - var(--p)) * 3px + 2px) 3px rgba(0,0,0,.4), inset 0 1px 0 #fff;
+  transform: translateY(calc(var(--p) * 2px)); }
+.s-hifi .cb svg { display: none; }
+.s-hifi .cb-led { display: block; width: 8px; height: 8px; border-radius: 50%; background: color-mix(in oklab, #ffcf6b calc(var(--p) * 100%), #5a4b30);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.45), 0 0 calc(var(--p) * 10px) calc(var(--p) * 2px) rgba(255,176,46,.8); }
+/* radio → selector lamps */
+.s-hifi .rd { background: #2a2620; box-shadow: inset 0 1px 2px #000, 0 1px 0 rgba(255,255,255,.6); }
+.s-hifi .rd-dot { background: #ffcf6b; box-shadow: 0 0 10px 2px rgba(255,176,46,.8); }
+
+/* ================= accessibility preferences ================= */
+@media (prefers-reduced-transparency: reduce) {
+  .s-glass .list { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+  .list { outline: 2px solid var(--ink); }
+  .set { --rule: var(--ink); --ring: var(--ink); }
+}
+
+/* ================= WALL (Selectors/?wall) ================= */
+body:has(.wall) { overflow: hidden; background: #ece8e1; }
+.wall { height: 100vh; overflow: hidden; padding: 12px; display: flex; gap: 12px; }
+.wall-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.wall-tile { flex: none; margin: 0; padding: 20px; }
+.wall-tile .lists { grid-template-columns: 1fr; }
