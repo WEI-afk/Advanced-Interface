@@ -390,27 +390,13 @@ function UnfoldSet({ set, auto, offset = 0 }) {
    and sink back in reverse — and a change of mind mid-way just turns the whole sequence around */
 const ACTIONS = { Note: 'pen', Photo: 'photo', Voice: 'wave', Space: 'room' }
 
-function TaskRow({ title, time, done, onToggle }) {
-  const q = useSpring(done ? 1 : 0, { damping: 1, response: 0.35 }).value
-  return (
-    <button className="frost-row" role="checkbox" aria-checked={done} onClick={onToggle}>
-      <span className="task-check" style={{ '--q': clamp(q), '--qs': q }}>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12.5l3.2 3.2L17 9" pathLength="1" style={{ strokeDashoffset: 1 - clamp(q * 1.3 - 0.3) }} /></svg>
-      </span>
-      <span className="task-text" style={{ '--q': clamp(q) }}><b>{title}</b><small>{time}</small></span>
-    </button>
-  )
-}
-
 /* the switch, checkbox and radio are the app itself:
-   + / × is the switch · the action tiles are the radio · the day's tasks are checkboxes */
-const TASKS = [['Deep Work', '9:00 – 11:30'], ['Slow Reading', '14:00 – 15:00'], ['Evening Walk', '18:30']]
+   + / × is the switch · the action tiles are the radio · Add to Today is the checkbox */
 function FrostSet({ auto, offset = 0 }) {
   const names = Object.keys(ACTIONS)
   const [open, setOpen] = useState(true) // starts open so the tiles (radio) are on show
   const [action, setAction] = useState(names[1])
   const [pin, setPin] = useState(true)
-  const [done, setDone] = useState({ 'Deep Work': true })
   const tiles = useRef([])
   const p = useSpring(open ? 1 : 0, { damping: 0.9, response: 0.5 }).value
   const pq = useSpring(pin ? 1 : 0, { damping: 0.6, response: 0.3 }).value
@@ -422,7 +408,7 @@ function FrostSet({ auto, offset = 0 }) {
       if (k === 0) setOpen(true)
       else if (k < 4) setAction(names[k])
       else if (k === 4) { setOpen(false); setAction(names[0]) }
-      else { setDone((d) => ({ ...d, 'Slow Reading': !d['Slow Reading'] })); setPin((v) => !v) }
+      else setPin((v) => !v)
     }, 1100)
     return () => clearInterval(id)
   }, [auto, offset]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -436,18 +422,6 @@ function FrostSet({ auto, offset = 0 }) {
   }
   return (
     <div className="screen frost-screen">
-      <div className="frost-page" style={{ filter: p > 0.005 ? `blur(${clamp(p) * 8}px)` : undefined, scale: `${1 - clamp(p) * 0.012}` }} inert={open ? '' : undefined}>
-        <nav className="frost-side" aria-hidden="true"><span className="win-dots"><i /><i /><i /></span><span className="on">Today</span><span>Week</span><span>Journal</span></nav>
-        <div className="frost-main">
-          <header aria-hidden="true"><span className="frost-sun"><Glyph name="sun" /></span><h4>Good Morning</h4></header>
-          <div className="frost-card" aria-hidden="true"><small>Focus today</small><b>3h 20m</b><span>Details</span></div>
-          <div className="frost-tasks">
-            {TASKS.map(([title, time]) => (
-              <TaskRow key={title} title={title} time={time} done={!!done[title]} onToggle={() => setDone((d) => ({ ...d, [title]: !d[title] }))} />
-            ))}
-          </div>
-        </div>
-      </div>
       {/* tapping the frosted room puts the tray away */}
       <div className="frost-veil" onClick={() => setOpen(false)} style={{ opacity: clamp(p * 0.7), pointerEvents: open ? 'auto' : 'none' }} />
       <div className="frost-dock">
