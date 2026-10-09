@@ -220,18 +220,6 @@ const SETS = [
     },
   },
   {
-    id: 'morph', concept: 'Music Fits Any Space', name: 'Morph', tone: 'Ethereal', platform: 'visionOS',
-    content: {},
-    t: {
-      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
-      dfs: 13, dlh: 18, rowH: 50, padX: 16, gap: 12, listR: 28, divider: 0, listGap: 22,
-      swW: 50, swH: 30, thW: 26, thH: 26, inset: 2, swR: 15, thR: 13, stretch: 6, swStroke: 0,
-      cb: 24, cbR: 7, cbStroke: 1.5, checkStroke: 2.4, rd: 22, rdDot: 9, rdStroke: 1.5,
-      ink: '#f4f4ec', muted: 'rgba(244,244,236,.62)', on: '#e4d6fb', off: 'rgba(244,244,236,.2)', thumb: '#ffffff', accent: '#e4d6fb',
-      spring: { damping: 1, response: 0.4 }, variant: 'morph',
-    },
-  },
-  {
     id: 'frost', concept: 'Action Clears the Room', name: 'Frost', tone: 'Ethereal', platform: 'visionOS',
     content: {},
     t: {
@@ -393,175 +381,6 @@ function UnfoldSet({ set, auto, offset = 0 }) {
             </button>
           ))}
         </div>
-      </div>
-    </div>
-  )
-}
-
-/* ================= Music Fits Any Space: one player that reshapes itself for the room it's given =================
-   a single spring runs along the sizes (0 = orb … 3 = large); every part of the layout is interpolated from it,
-   so a change of mind mid-morph simply bends the motion toward the new shape */
-const SIZES = ['Orb', 'Small', 'Wide', 'Large']
-const LAYOUT = [
-  // w, h, radius · wave icon · title (x, y, opacity) · repeat icon (x, y, opacity) · play (x, y, d) · bar (x1, x2, y) · nav, extras opacity
-  { w: 120, h: 120, r: 60, wx: 44, wy: 30, tx: 18, ty: 60, to: 0, rx: 86, ry: 30, ro: 1, px: 60, py: 60, pd: 34, b1: 36, b2: 84, by: 92, no: 0, eo: 0 },
-  { w: 150, h: 150, r: 26, wx: 24, wy: 24, tx: 18, ty: 58, to: 1, rx: 138, ry: 24, ro: 1, px: 116, py: 72, pd: 36, b1: 36, b2: 114, by: 124, no: 1, eo: 0 },
-  { w: 300, h: 134, r: 26, wx: 24, wy: 24, tx: 18, ty: 52, to: 1, rx: 288, ry: 24, ro: 1, px: 262, py: 64, pd: 38, b1: 36, b2: 206, by: 108, no: 1, eo: 1 },
-  { w: 360, h: 220, r: 28, wx: 24, wy: 24, tx: 18, ty: 140, to: 1, rx: 348, ry: 24, ro: 1, px: 304, py: 148, pd: 54, b1: 36, b2: 258, by: 196, no: 1, eo: 1 },
-]
-function layoutAt(s) {
-  const i = Math.min(2, Math.max(0, Math.floor(s))), f = s - i // f may run past 0..1 when the spring overshoots
-  const a = LAYOUT[i], b = LAYOUT[i + 1], out = {}
-  for (const k in a) out[k] = a[k] + (b[k] - a[k]) * f
-  return out
-}
-const NAV = {
-  prev: 'M-4 -5v10M5 -5L-1.5 0 5 5z', next: 'M4 -5v10M-5 -5L1.5 0-5 5z',
-  queue: 'M-6 -4h8M-6 0h8M-6 4h5M4 1.5v6M1 4.5h6',
-  heart: 'M0 5C-6 0.5-6.5-5-2.5-5-1-5 0-4 0-3 0-4 1-5 2.5-5 6.5-5 6 0.5 0 5z',
-}
-
-// where a dragged box (w, h) sits along the chain of sizes, as a continuous index 0…3
-function sizeFromBox(w, h) {
-  let best = { d: Infinity, s: 0 }
-  for (let i = 0; i < 3; i++) {
-    const a = LAYOUT[i], b = LAYOUT[i + 1], dx = b.w - a.w, dy = b.h - a.h
-    const t = ((w - a.w) * dx + (h - a.h) * dy) / (dx * dx + dy * dy), tc = clamp(t)
-    const d = Math.hypot(a.w + dx * tc - w, a.h + dy * tc - h)
-    if (d < best.d) best = { d, s: i + (i === 0 && t < 0 ? t : i === 2 && t > 1 ? t : tc) }
-  }
-  // soft ends: past the smallest / largest size it resists instead of stopping dead
-  if (best.s < 0) return -rubber(-best.s, 1, 0.35)
-  if (best.s > 3) return 3 + rubber(best.s - 3, 1, 0.35)
-  return best.s
-}
-
-/* the switch, checkbox and radio are the player itself:
-   play/pause is the switch · repeat + love are checkboxes · its size is the radio (drag the corner, or the dots) */
-function MorphSet({ auto, offset = 0 }) {
-  const [playing, setPlaying] = useState(true)
-  const [repeat, setRepeat] = useState(false)
-  const [loved, setLoved] = useState(false)
-  const [size, setSize] = useState(2)
-  const sz = useSpring(size, { damping: 0.86, response: 0.55 })
-  const amp = useSpring(playing ? 1 : 0, { damping: 1, response: 0.45 }).value
-  const rpS = useSpring(repeat ? 1 : 0, { damping: 0.6, response: 0.3 }).value, rp = clamp(rpS)
-  const lv = useSpring(loved ? 1 : 0, { damping: 0.6, response: 0.35 }).value
-  const [clock, setClock] = useState({ phase: 0, f: 0.34 })
-  const drag = useRef(null)
-  const [dragging, setDragging] = useState(false)
-  const dots = useRef([])
-
-  useEffect(() => { // the wave travels and the track advances only while playing
-    if (!playing || reducedMotion()) return
-    let raf, last = performance.now()
-    const tick = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000); last = now
-      setClock((c) => ({ phase: c.phase + dt * 5, f: (c.f + dt * 0.012) % 1 }))
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [playing])
-  useEffect(() => {
-    if (!auto) return
-    let i = offset
-    const id = setInterval(() => {
-      const k = i++ % 7
-      if (k < 4) setSize(k)
-      else if (k === 4) setRepeat((v) => !v)
-      else if (k === 5) setLoved((v) => !v)
-      else setPlaying((v) => !v)
-    }, 1200)
-    return () => clearInterval(id)
-  }, [auto, offset])
-
-  // resize by the corner: 1:1 while held, then it snaps to the size the flick was heading for
-  const down = (e) => {
-    if (e.button !== 0) return
-    e.currentTarget.setPointerCapture(e.pointerId)
-    const L = layoutAt(sz.value)
-    drag.current = { x0: e.clientX, y0: e.clientY, w0: L.w, h0: L.h, hist: [[sz.value, e.timeStamp]] }
-    setDragging(true)
-  }
-  const move = (e) => {
-    const d = drag.current
-    if (!d) return
-    const s = sizeFromBox(d.w0 + 2 * (e.clientX - d.x0), d.h0 + 2 * (e.clientY - d.y0)) // centred, so the corner moves half as far
-    sz.hold(s)
-    d.hist.push([s, e.timeStamp]); if (d.hist.length > 5) d.hist.shift()
-  }
-  const up = () => {
-    const d = drag.current
-    drag.current = null; setDragging(false)
-    if (!d) return
-    const [a, b] = [d.hist[0], d.hist[d.hist.length - 1]]
-    const v = b[1] > a[1] ? (b[0] - a[0]) / ((b[1] - a[1]) / 1000) : 0 // sizes per second
-    setSize(clamp(Math.round(sz.value + v * 0.15), 0, 3))
-    sz.release(clamp(v, -8, 8))
-  }
-  const sizeKey = (e) => {
-    const k = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
-    if (!k) return
-    e.preventDefault()
-    const n = clamp(size + k, 0, 3); setSize(n); dots.current[n]?.focus()
-  }
-
-  const L = layoutAt(sz.value)
-  const op = (v) => clamp(v)
-  const xp = L.b1 + clock.f * (L.b2 - L.b1)
-  let wave = `M${L.b1} ${L.by}`
-  for (let x = L.b1 + 2; x <= xp; x += 2) wave += `L${x.toFixed(1)} ${(L.by + Math.sin((x - L.b1) * 0.42 - clock.phase) * 3 * amp).toFixed(2)}`
-  const at = (x, y) => ({ transform: `translate(${x}px, ${y}px) translate(-50%, -50%)` })
-  return (
-    <div className="screen morph-screen">
-      <div className="screen-bar" aria-hidden="true"><b>9:41</b><span><i /><i /><i /></span></div>
-      <div className={`morph-stage ${dragging ? 'is-dragging' : ''}`}>
-        <div className={`morph ${playing ? 'is-playing' : ''}`} style={{ width: L.w, height: L.h, borderRadius: L.r }}>
-          <span className="morph-eq" style={at(L.wx, L.wy)} aria-hidden="true"><i /><i /><i /><i /></span>
-          <span className="morph-title" style={{ transform: `translate(${L.tx}px, ${L.ty}px)`, opacity: op(L.to) }}><b>Low Tide</b><small>Ambient</small></span>
-          {/* checkbox: Repeat */}
-          <button className="morph-repeat" role="checkbox" aria-checked={repeat} onClick={() => setRepeat((v) => !v)}
-            style={{ transform: `translate(${L.rx}px, ${L.ry}px) translate(-100%, -50%)`, '--rp': rp, '--rs': rpS }}>
-            <span className="morph-repeat-label" style={{ opacity: op(L.to), maxWidth: op(L.to) * 60 }}>Repeat</span>
-            <span className="morph-box"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8.4l2.6 2.6L12 5.4" pathLength="1" style={{ strokeDashoffset: 1 - clamp(rp * 1.3 - 0.3) }} /></svg></span>
-          </button>
-          {/* switch: play — the thumb slides across to start the music */}
-          <button className="morph-play" role="switch" aria-checked={playing} aria-label="Playing" onClick={() => setPlaying((v) => !v)}
-            style={{ ...at(L.px, L.py), width: L.pd * 0.86 * 1.75, height: L.pd * 0.86, '--a': clamp(amp) }}>
-            <span className="morph-play-thumb" style={{ width: L.pd * 0.86 - 6, height: L.pd * 0.86 - 6, transform: `translateX(${amp * (L.pd * 0.86 * 0.75)}px)` }}>
-              <svg viewBox="-8 -8 16 16" aria-hidden="true">
-                <path d="M-3.2-4.5v9M3.2-4.5v9" style={{ opacity: amp }} />
-                <path className="fill" d="M-2.5-5L5 0-2.5 5z" style={{ opacity: 1 - amp }} />
-              </svg>
-            </span>
-          </button>
-          <svg className="morph-bar" width={Math.max(1, L.w)} height={Math.max(1, L.h)} aria-hidden="true">
-            <path d={wave} className="played" />
-            <path d={`M${xp} ${L.by}H${L.b2}`} className="rest" />
-            <path d={`M${xp} ${L.by - 6}V${L.by + 6}`} className="thumb" />
-            <g style={{ opacity: op(L.no) }}>
-              <path transform={`translate(${L.b1 - 17} ${L.by})`} d={NAV.prev} className="fill" />
-              <path transform={`translate(${L.b2 + 17} ${L.by})`} d={NAV.next} className="fill" />
-            </g>
-            <path style={{ opacity: op(L.eo) }} transform={`translate(${L.b2 + 44} ${L.by})`} d={NAV.queue} />
-          </svg>
-          <button className="morph-love" role="checkbox" aria-checked={loved} aria-label="Love" onClick={() => setLoved((v) => !v)}
-            tabIndex={L.eo > 0.5 ? 0 : -1} style={{ ...at(L.b2 + 72, L.by), opacity: op(L.eo), pointerEvents: L.eo > 0.5 ? 'auto' : 'none', '--lv': clamp(lv), '--ls': lv }}>
-            <svg viewBox="-8 -8 16 16"><path d={NAV.heart} /></svg>
-          </button>
-        </div>
-        <span className="morph-handle" aria-hidden="true" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-          style={{ left: `calc(50% + ${L.w / 2}px)`, top: `calc(50% + ${L.h / 2}px)` }} />
-      </div>
-      {/* radio: widget size (or drag the corner) */}
-      <div className="morph-sizes" role="radiogroup" aria-label="Widget size">
-        {SIZES.map((n, i) => (
-          <button key={n} ref={(el) => (dots.current[i] = el)} role="radio" aria-checked={size === i}
-            tabIndex={size === i ? 0 : -1} onClick={() => setSize(i)} onKeyDown={sizeKey}>
-            <span className="morph-radio" />{n}
-          </button>
-        ))}
       </div>
     </div>
   )
@@ -765,7 +584,7 @@ function InvertSet({ auto, offset = 0 }) {
   )
 }
 
-const BODIES = { unfold: UnfoldSet, morph: MorphSet, frost: FrostSet, invert: InvertSet }
+const BODIES = { unfold: UnfoldSet, frost: FrostSet, invert: InvertSet }
 const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <B {...props} /> }
 
 /* ================= wall (home page hover background) ================= */

@@ -149,65 +149,10 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .unfold-tab:active { scale: .95; }
 .unfold-tab:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; }
 
-/* ---------- Music Fits Any Space: one player reshaping itself; soft lime dot grid ---------- */
-.s-morph { --panel: rgba(103,108,98,.94); --light: rgba(255,255,255,.14); --check: #3b3446; --cb-off: rgba(244,244,236,.12);
-  background: radial-gradient(70% 60% at 80% 10%, #f6fbe6 0%, transparent 70%), linear-gradient(170deg, #e7efcd, #dfe8c2); }
-.s-morph .set-head h2 { color: #3a3f31; }
-.s-morph .list-title { color: rgba(58,63,49,.6); }
-.s-morph .rd-dot { background: var(--on); box-shadow: none; }
 /* one screen holds everything: the title above, the screen spanning the whole set */
-.s-morph .set-head, .s-frost .set-head { grid-column: 1 / -1; }
-.s-morph .set-head h2, .s-frost .set-head h2 { margin-bottom: 4px; }
+.s-frost .set-head { grid-column: 1 / -1; }
+.s-frost .set-head h2 { margin-bottom: 4px; }
 .screen { grid-column: 1 / -1; position: relative; container: screen / inline-size; overflow: hidden; border-radius: 34px; }
-.morph-screen { display: flex; flex-direction: column; padding: 14px 24px 22px;
-  background: radial-gradient(circle, rgba(90,100,60,.32) 1px, transparent 1.6px) 0 0 / 22px 22px, #f3fadf;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.7), 0 0 0 8px #2f3329, 0 40px 70px -30px rgba(40,50,20,.55); margin: 8px; }
-.screen-bar { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; padding: 0 8px 10px; color: #2f3329; font: 600 14px/1 var(--font); }
-.screen-bar span { display: flex; gap: 4px; } .screen-bar i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .7; }
-.morph-stage { position: relative; display: grid; place-items: center; height: 300px; }
-/* resize grip at the widget's corner — drag to change size (the radio) */
-.morph-handle { position: absolute; width: 30px; height: 30px; margin: -22px 0 0 -22px; cursor: nwse-resize; touch-action: none; border-radius: 0 0 14px 0; opacity: .35; transition: opacity .3s; }
-.morph-handle::after { content: ''; position: absolute; inset: 8px; border: solid #3a3f31; border-width: 0 2.5px 2.5px 0; border-radius: 0 0 9px 0; }
-.morph-stage:hover .morph-handle, .morph-stage.is-dragging .morph-handle { opacity: .85; }
-.morph-sizes { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; padding-top: 4px; }
-.morph-sizes button { all: unset; display: flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; cursor: pointer;
-  font: 500 13px/1 var(--font); color: rgba(58,63,49,.7); transition: background-color .3s, color .3s, scale 100ms ease-out; }
-.morph-sizes button:hover { background: rgba(58,63,49,.06); }
-.morph-sizes button:active { scale: .95; }
-.morph-sizes button[aria-checked="true"] { color: #2f3329; background: rgba(255,255,255,.7); box-shadow: 0 4px 12px -6px rgba(40,50,20,.4); }
-.morph-sizes button:focus-visible { outline: 2px solid #3a3f31; outline-offset: 2px; }
-.morph-radio { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(58,63,49,.45); display: grid; place-items: center; transition: box-shadow .3s; }
-.morph-radio::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #3a3f31; transform: scale(0); transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
-.morph-sizes button[aria-checked="true"] .morph-radio { box-shadow: inset 0 0 0 1.5px #3a3f31; }
-.morph-sizes button[aria-checked="true"] .morph-radio::after { transform: scale(1); }
-@container screen (max-width: 640px) { .morph-stage { height: 260px; } }
-.morph { position: relative; overflow: hidden; background: #676c62; color: #f4f4ec; font-family: var(--font);
-  box-shadow: 0 1px 0 rgba(255,255,255,.12) inset, 0 24px 40px -24px rgba(50,60,30,.6); will-change: width, height; }
-.morph > * { position: absolute; left: 0; top: 0; }
-.morph-eq { display: flex; align-items: center; gap: 2.5px; height: 18px; }
-.morph-eq i { display: block; width: 3px; height: 40%; border-radius: 2px; background: #b5e57c; animation: eq .9s ease-in-out infinite alternate; animation-play-state: paused; }
-.morph-eq i:nth-child(2) { height: 90%; animation-delay: -.3s; } .morph-eq i:nth-child(3) { height: 65%; animation-delay: -.6s; } .morph-eq i:nth-child(4) { height: 35%; animation-delay: -.15s; }
-.morph.is-playing .morph-eq i { animation-play-state: running; }
-@keyframes eq { to { transform: scaleY(.35); } }
-.morph-title { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
-.morph-title b { font-size: 13px; font-weight: 600; } .morph-title small { font-size: 11px; opacity: .7; }
-.morph-repeat { all: unset; position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 11px; font-weight: 600; color: #f4f4ec; white-space: nowrap; }
-.morph-repeat-label { overflow: hidden; }
-.morph-box { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 5px;
-  background: color-mix(in oklab, #b5e57c calc(var(--rp) * 100%), transparent); box-shadow: inset 0 0 0 1.5px color-mix(in oklab, #b5e57c calc(var(--rp) * 100%), rgba(244,244,236,.6));
-  transform: scale(calc(1 + (var(--rs) - var(--rp)) * .8)); }
-.morph-box svg { width: 14px; height: 14px; fill: none; stroke: #2f3a1f; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; }
-.morph-play { all: unset; position: absolute; left: 0; top: 0; display: flex; align-items: center; padding: 3px; box-sizing: border-box; border-radius: 999px; cursor: pointer; transition: scale 100ms ease-out;
-  background: color-mix(in oklab, #e4d6fb calc(var(--a) * 100%), rgba(244,244,236,.2)); }
-.morph-play-thumb { display: grid; place-items: center; border-radius: 50%; background: #fff; color: #3b3446; box-shadow: 0 2px 6px rgba(30,30,25,.3); }
-.morph-play-thumb svg { width: 46%; height: 46%; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
-.morph-play:active, .morph-repeat:active, .morph-love:active { scale: .9; }
-.morph button:focus-visible { outline: 2px solid #e4d6fb; outline-offset: 2px; }
-.morph-love { all: unset; position: absolute; left: 0; top: 0; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; color: #f4f4ec; }
-.morph-love svg { width: 16px; height: 16px; overflow: visible; fill: color-mix(in oklab, #e4d6fb calc(var(--lv) * 100%), transparent); stroke: color-mix(in oklab, #e4d6fb calc(var(--lv) * 100%), #f4f4ec); stroke-width: 1.4; stroke-linejoin: round; transform: scale(calc(1 + (var(--ls) - var(--lv)) * .9)); }
-.morph svg .fill { fill: currentColor; }
-.morph-bar { overflow: visible; fill: none; stroke: #f4f4ec; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.morph-bar .played { stroke-width: 2.2; } .morph-bar .rest { opacity: .4; } .morph-bar .thumb { stroke-width: 2.6; }
 
 /* ---------- Action Clears the Room: warm frosted screen; the tray rises and the room fades ---------- */
 .s-frost { --panel: rgba(255,250,246,.55); --light: rgba(255,255,255,.5); --check: #fff; --cb-off: rgba(255,255,255,.5); --ring: rgba(43,36,32,.35);
@@ -322,7 +267,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
   .vision .list { background: color-mix(in oklab, var(--panel, #445) 100%, #222); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .s-mist::before, .unfold-content, .morph-eq i { animation: none !important; }
+  .s-mist::before, .unfold-content { animation: none !important; }
 }
 @media (prefers-contrast: more) {
   .list { outline: 2px solid var(--ink); }
