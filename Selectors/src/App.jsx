@@ -243,6 +243,11 @@ const SETS = [
       spring: { damping: 1, response: 0.4 }, variant: 'frost',
     },
   },
+  {
+    id: 'invert', concept: 'Light and Dark Trade Places', name: 'Invert', tone: 'Ethereal', platform: 'visionOS',
+    content: {},
+    t: { font: '"Barlow Condensed", "SF Pro Display", Inter, sans-serif', ink: '#1d1d1d', muted: 'rgba(29,29,29,.5)', on: '#1d1d1d', off: '#cccccc' },
+  },
 ]
 
 const cssVars = (t) => ({
@@ -664,7 +669,103 @@ function FrostSet({ auto, offset = 0 }) {
   )
 }
 
-const BODIES = { unfold: UnfoldSet, morph: MorphSet, frost: FrostSet }
+/* ================= Light and Dark Trade Places: every state change is an inversion =================
+   switch: the thumb slides and track/thumb swap tones · checkbox: white floods in from where you pressed ·
+   radio: the white pill slides, its leading edge reaching ahead toward the new choice */
+const TONES = { Amber: '#ffb35c', Moon: '#dfe6ff', Dawn: '#ffc4b8' }
+const INV = { damping: 0.8, response: 0.45 }
+
+function InvertSwitch({ on, onChange }) {
+  const p = useSpring(on ? 1 : 0, INV).value // 1 = ON (thumb left, dark track)
+  const c = clamp(p)
+  return (
+    <button className="inv-switch" role="switch" aria-checked={on} aria-label="Power" onClick={() => onChange(!on)}
+      style={{ '--c': c, '--x': 1 - p }}>
+      <span className="inv-thumb" />
+      <span className="inv-label left" style={{ color: `color-mix(in oklab, #1d1d1d ${c * 100}%, #9a9a9a)` }}>On</span>
+      <span className="inv-label right" style={{ color: `color-mix(in oklab, #6f6f6f ${c * 100}%, #1d1d1d)` }}>Off</span>
+    </button>
+  )
+}
+
+function FloodCheckbox({ checked, onChange, label }) {
+  const p = useSpring(checked ? 1 : 0, { damping: 1, response: 0.55 }).value
+  const [origin, setOrigin] = useState(0) // the flood starts where you pressed
+  const content = (
+    <>
+      <span className="flood-text">{label}</span>
+      <span className="flood-box"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l2.8 2.8L12.5 5" /></svg></span>
+    </>
+  )
+  return (
+    <button className="flood" role="checkbox" aria-checked={checked}
+      onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); if (e.detail) setOrigin(e.clientX - r.left); onChange(!checked) }}>
+      <span className="flood-layer base">{content}</span>
+      <span className="flood-layer top" aria-hidden="true" style={{ clipPath: `circle(${Math.max(0, p) * 340}px at ${origin}px 50%)` }}>{content}</span>
+    </button>
+  )
+}
+
+function InvertRadio({ value, onChange }) {
+  const names = Object.keys(TONES)
+  const idx = names.indexOf(value)
+  const x = useSpring(idx, INV).value
+  const refs = useRef([])
+  const lag = idx - x // how far the pill still has to travel — its leading edge reaches ahead toward the choice
+  const key = (e, i) => {
+    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
+    if (!d) return
+    e.preventDefault()
+    const n = (i + d + names.length) % names.length
+    onChange(names[n]); refs.current[n]?.focus()
+  }
+  return (
+    <div className="inv-radio" role="radiogroup" aria-label="Tone" style={{ '--n': names.length }}>
+      <span className="inv-radio-pill" style={{ left: `calc(${(x - Math.max(0, -lag) * 0.35) / names.length * 100}% + 6px)`,
+        width: `calc(${(1 + Math.abs(lag) * 0.35) / names.length * 100}% - 12px)` }} />
+      {names.map((n, i) => (
+        <button key={n} ref={(el) => (refs.current[i] = el)} role="radio" aria-checked={value === n} tabIndex={value === n ? 0 : -1}
+          onClick={() => onChange(n)} onKeyDown={(e) => key(e, i)}
+          style={{ color: `color-mix(in oklab, #1d1d1d ${clamp(1 - Math.abs(x - i)) * 100}%, #8a8a8a)` }}>{n}</button>
+      ))}
+    </div>
+  )
+}
+
+function InvertSet({ auto, offset = 0 }) {
+  const [on, setOn] = useState(true)
+  const [dim, setDim] = useState(false)
+  const [tone, setTone] = useState('Amber')
+  const lit = useSpring(on ? 1 : 0, { damping: 1, response: 0.6 }).value
+  const dm = useSpring(dim ? 1 : 0, { damping: 1, response: 0.6 }).value
+  useEffect(() => {
+    if (!auto) return
+    let i = offset
+    const names = Object.keys(TONES)
+    const id = setInterval(() => {
+      const k = i++ % 5
+      if (k < 2) setTone(names[k + 1])
+      else if (k === 2) { setDim((v) => !v); setTone(names[0]) }
+      else setOn((v) => !v)
+    }, 1100)
+    return () => clearInterval(id)
+  }, [auto, offset])
+  const glow = clamp(lit) * (1 - dm * 0.55)
+  return (
+    <div className="screen inv-screen">
+      <div className="inv-head" aria-hidden="true"><b>Night Light</b><span>01</span></div>
+      {/* the lamp answers all three controls */}
+      <div className="inv-lamp" aria-hidden="true" style={{ '--g': glow, '--tone': TONES[tone] }}><span /></div>
+      <div className="inv-controls">
+        <div className="inv-field"><span className="inv-cap">Power</span><InvertSwitch on={on} onChange={setOn} /></div>
+        <div className="inv-field"><span className="inv-cap">Auto</span><FloodCheckbox checked={dim} onChange={setDim} label="Dim at Dusk" /></div>
+        <div className="inv-field"><span className="inv-cap">Tone</span><InvertRadio value={tone} onChange={setTone} /></div>
+      </div>
+    </div>
+  )
+}
+
+const BODIES = { unfold: UnfoldSet, morph: MorphSet, frost: FrostSet, invert: InvertSet }
 const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <B {...props} /> }
 
 /* ================= wall (home page hover background) ================= */

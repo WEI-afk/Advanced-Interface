@@ -275,6 +275,48 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
   .frost-tiles { flex-direction: column; align-items: stretch; } .frost-pin { align-self: flex-start; }
 }
 
+/* ---------- Light and Dark Trade Places: monochrome, every change is an inversion ---------- */
+.s-invert { background: linear-gradient(170deg, #e6e6e6, #d6d6d6); }
+.s-invert .set-head { grid-column: 1 / -1; }
+.s-invert .set-head h2 { color: #1d1d1d; margin-bottom: 4px; }
+.inv-screen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); grid-template-rows: auto 1fr; gap: 18px 36px; padding: 26px 30px 32px;
+  background: #cccccc; font-family: "Barlow Condensed", "SF Pro Display", Inter, sans-serif; color: #1d1d1d; text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 30px 60px -30px rgba(0,0,0,.4); }
+.inv-head { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; }
+.inv-head b { font-size: 44px; font-weight: 700; letter-spacing: .5px; line-height: 1; } .inv-head span { font-size: 18px; font-weight: 600; color: #8a8a8a; }
+.inv-lamp { display: grid; place-items: center; min-height: 260px; }
+.inv-lamp span { width: 200px; height: 200px; border-radius: 50%;
+  background: color-mix(in oklab, var(--tone) calc(var(--g) * 100%), #1d1d1d);
+  box-shadow: 0 0 calc(var(--g) * 80px) calc(var(--g) * 14px) color-mix(in oklab, var(--tone) 70%, transparent), inset 0 -10px 30px rgba(0,0,0,calc(.25 - var(--g) * .15));
+  transition: background-color .5s, box-shadow .5s; }
+.inv-controls { display: flex; flex-direction: column; gap: 18px; align-self: center; }
+.inv-field { display: flex; flex-direction: column; gap: 8px; }
+.inv-cap { font-size: 15px; font-weight: 600; letter-spacing: 1.5px; color: #7a7a7a; }
+.inv-switch, .flood, .inv-radio button { all: unset; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.inv-switch:focus-visible, .flood:focus-visible, .inv-radio button:focus-visible { outline: 2px solid #1d1d1d; outline-offset: 3px; }
+/* switch */
+.inv-switch { position: relative; display: block; height: 72px; border-radius: 36px; transition: scale 120ms ease-out;
+  background: color-mix(in oklab, #1f1f1f calc(var(--c) * 100%), #ffffff); }
+.inv-switch:active { scale: .97; }
+.inv-thumb { position: absolute; top: 9px; left: 9px; width: 46%; height: 54px; border-radius: 27px;
+  background: color-mix(in oklab, #ffffff calc(var(--c) * 100%), #cfcfcf); transform: translateX(calc(var(--x) * (117.39% - 18px))); /* track = thumb / .46; travel = track − thumb − 2×9px */ }
+.inv-label { position: absolute; top: 50%; translate: 0 -50%; font-size: 26px; font-weight: 700; letter-spacing: .5px; pointer-events: none; }
+.inv-label.left { left: 30px; } .inv-label.right { right: 30px; }
+/* checkbox: the inverted copy is revealed by a circle growing from the press point */
+.flood { position: relative; display: block; height: 72px; border-radius: 36px; overflow: hidden; transition: scale 120ms ease-out; }
+.flood:active { scale: .97; }
+.flood-layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 22px 0 30px; font-size: 26px; font-weight: 700; letter-spacing: .5px; }
+.flood-layer.base { background: #1f1f1f; color: #fff; } .flood-layer.top { background: #fff; color: #1d1d1d; }
+.flood-box { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; box-shadow: inset 0 0 0 2px currentColor; }
+.flood-box svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.flood-layer.top .flood-box { background: #1d1d1d; } .flood-layer.top .flood-box svg { opacity: 1; }
+/* radio */
+.inv-radio { position: relative; display: grid; grid-template-columns: repeat(var(--n), 1fr); height: 72px; border-radius: 36px; background: #1f1f1f; }
+.inv-radio-pill { position: absolute; top: 9px; height: 54px; border-radius: 27px; background: #fff; }
+.inv-radio button { position: relative; display: grid; place-items: center; font-size: 22px; font-weight: 700; letter-spacing: .5px; transition: scale 120ms ease-out; }
+.inv-radio button:active { scale: .94; }
+@container screen (max-width: 640px) { .inv-screen { grid-template-columns: 1fr; } .inv-lamp { min-height: 200px; } .inv-lamp span { width: 150px; height: 150px; } }
+
 /* ================= accessibility preferences ================= */
 @media (prefers-reduced-transparency: reduce) {
   .vision .list { background: color-mix(in oklab, var(--panel, #445) 100%, #222); backdrop-filter: none; -webkit-backdrop-filter: none; }
