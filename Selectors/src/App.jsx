@@ -487,9 +487,10 @@ function MorphSet({ set, auto, offset = 0 }) {
     return () => clearInterval(id)
   }, [auto, offset])
   return (
-    <>
+    <div className="screen morph-screen">
+      <div className="screen-bar" aria-hidden="true"><b>9:41</b><span><i /><i /><i /></span></div>
       <MorphWidget size={rd} playing={sw} repeat={cb} />
-      <div className="topic">
+      <div className="topic sheet">
         <h3 className="list-title">{c.topic}</h3>
         <ul className="list">
           <Switch label={c.sw[0]} t={t} checked={sw} onChange={setSw} />
@@ -500,7 +501,7 @@ function MorphSet({ set, auto, offset = 0 }) {
           </li>
         </ul>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -508,43 +509,6 @@ function MorphSet({ set, auto, offset = 0 }) {
    one spring opens the tray; each tile reads the same spring a little later, so they rise in sequence
    and sink back in reverse — and a change of mind mid-way just turns the whole sequence around */
 const ACTIONS = { Note: 'pen', Photo: 'photo', Voice: 'wave', Space: 'room' }
-
-function FrostWidget({ open, frost, action, onToggle, onPick }) {
-  const p = useSpring(open ? 1 : 0, { damping: 0.9, response: 0.5 }).value
-  const f = useSpring(open && frost ? 1 : 0, { damping: 1, response: 0.5 }).value
-  return (
-    <div className="frost-stage" aria-hidden="true">
-      <div className="frost-win">
-        <div className="frost-page" style={{ filter: f > 0.005 ? `blur(${f * 7}px)` : undefined, scale: `${1 - f * 0.015}` }}>
-          <nav className="frost-side"><span className="on">Today</span><span>Week</span></nav>
-          <div className="frost-main">
-            <span className="frost-sun"><Glyph name="sun" /></span>
-            <h4>Good Morning</h4>
-            <div className="frost-card"><small>Focus today</small><b>3h 20m</b><span>Details</span></div>
-            <div className="frost-row"><span className="frost-dot" /><span><b>Deep Work</b><small>9:00 – 11:30</small></span></div>
-          </div>
-        </div>
-        <div className="frost-veil" style={{ opacity: clamp(f * 0.62 + p * 0.08) }} />
-        <div className="frost-dock">
-          <span className="frost-btn"><Glyph name="search" /></span>
-          <button tabIndex={-1} className="frost-btn frost-plus" onClick={onToggle} style={{ '--p': clamp(p) }}><Glyph name="plus" /></button>
-          <span className="frost-avatar" />
-        </div>
-        <div className="frost-tiles">
-          {Object.entries(ACTIONS).map(([name, g], i) => {
-            const q = clamp((p - i * 0.08) / 0.76)
-            return (
-              <button key={name} tabIndex={-1} className={`frost-tile ${action === name ? 'on' : ''}`} onClick={() => onPick(name)}
-                style={{ opacity: q, transform: `translateY(${(1 - q) * 30}px) scale(${0.94 + 0.06 * q})`, pointerEvents: open ? 'auto' : 'none' }}>
-                <Glyph name={g} /><span>{name}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function FrostSet({ set, auto, offset = 0 }) {
   const { content: c, t } = set
@@ -565,21 +529,53 @@ function FrostSet({ set, auto, offset = 0 }) {
     }, 1100)
     return () => clearInterval(id)
   }, [auto, offset, c])
+  const p = useSpring(sw ? 1 : 0, { damping: 0.9, response: 0.5 }).value
+  const f = useSpring(sw && cb ? 1 : 0, { damping: 1, response: 0.5 }).value
   return (
-    <>
-      <FrostWidget open={sw} frost={cb} action={rd} onToggle={() => setSw((v) => !v)} onPick={pick} />
-      <div className="topic">
-        <h3 className="list-title">{c.topic}</h3>
-        <ul className="list">
-          <Switch label={c.sw[0]} t={t} checked={sw} onChange={setSw} />
-          <Checkbox label={c.cb[0]} t={t} checked={cb} onChange={setCb} />
-          <li className="row-group">
-            <span className="group-label">{c.radio[0]}</span>
-            <RadioGroup title={c.radio[0]} options={c.radio[1]} value={rd} onChange={pick} t={t} />
-          </li>
-        </ul>
+    <div className="screen frost-screen">
+      <div className="frost-page" style={{ filter: f > 0.005 ? `blur(${f * 8}px)` : undefined, scale: `${1 - f * 0.012}` }} inert={sw ? '' : undefined}>
+        <nav className="frost-side" aria-hidden="true"><span className="win-dots"><i /><i /><i /></span><span className="on">Today</span><span>Week</span><span>Journal</span></nav>
+        <div className="frost-main">
+          <header aria-hidden="true"><span className="frost-sun"><Glyph name="sun" /></span><h4>Good Morning</h4></header>
+          <div className="frost-grid">
+            <div className="frost-col" aria-hidden="true">
+              <div className="frost-card"><small>Focus today</small><b>3h 20m</b><span>Details</span></div>
+              <div className="frost-row"><span className="frost-dot" /><span><b>Deep Work</b><small>9:00 – 11:30</small></span></div>
+              <div className="frost-row"><span className="frost-dot light" /><span><b>Slow Reading</b><small>14:00 – 15:00</small></span></div>
+            </div>
+            <div className="topic">
+              <h3 className="list-title">{c.topic}</h3>
+              <ul className="list">
+                <Switch label={c.sw[0]} t={t} checked={sw} onChange={setSw} />
+                <Checkbox label={c.cb[0]} t={t} checked={cb} onChange={setCb} />
+                <li className="row-group">
+                  <span className="group-label">{c.radio[0]}</span>
+                  <RadioGroup title={c.radio[0]} options={c.radio[1]} value={rd} onChange={pick} t={t} />
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
-    </>
+      {/* tapping the frosted room puts the tray away */}
+      <div className="frost-veil" onClick={() => setSw(false)} style={{ opacity: clamp(f * 0.62 + p * 0.08), pointerEvents: sw ? 'auto' : 'none' }} />
+      <div className="frost-dock">
+        <span className="frost-btn" aria-hidden="true"><Glyph name="search" /></span>
+        <button className="frost-btn frost-plus" aria-label={sw ? 'Close actions' : 'Open actions'} aria-expanded={sw} onClick={() => setSw((v) => !v)} style={{ '--p': clamp(p) }}><Glyph name="plus" /></button>
+        <span className="frost-avatar" aria-hidden="true" />
+      </div>
+      <div className="frost-tiles">
+        {Object.entries(ACTIONS).map(([name, g], i) => {
+          const q = clamp((p - i * 0.08) / 0.76) // same spring, read a little later per tile
+          return (
+            <button key={name} tabIndex={sw ? 0 : -1} aria-hidden={!sw} className={`frost-tile ${rd === name ? 'on' : ''}`} onClick={() => setRd(name)}
+              style={{ opacity: q, transform: `translateY(${(1 - q) * 34}px) scale(${0.94 + 0.06 * q})`, pointerEvents: sw ? 'auto' : 'none' }}>
+              <Glyph name={g} /><span>{name}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
