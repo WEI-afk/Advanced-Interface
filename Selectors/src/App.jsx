@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 /* ================= spring physics =================
    Apple-style springs described by damping ratio + response (seconds), not duration.
@@ -79,7 +79,11 @@ function useMagnet(on, max = 4) {
   return { ref, x, y, move, leave }
 }
 
-function Switch({ checked, onChange, label, t }) {
+const RowText = ({ label, detail }) => (
+  <span className="row-text"><span className="label">{label}</span>{detail && <span className="detail">{detail}</span>}</span>
+)
+
+function Switch({ checked, onChange, label, detail, icon, tag, t }) {
   const v = t.variant
   const pos = useSpring(checked ? 1 : 0, t.spring)
   const [pressed, setPressed] = useState(false)
@@ -132,7 +136,9 @@ function Switch({ checked, onChange, label, t }) {
   if (fog) transform += ` scale(${1 + fog * 0.3}, ${1 - fog * 0.12})`
   return (
     <li className="row row-switch" onPointerMove={(e) => { glow(e); if (!drag.current) m.move(e) }} onPointerLeave={m.leave}>
-      <span className="row-text"><span className="label">{label}</span></span>
+      {icon}
+      <RowText label={label} detail={detail} />
+      {tag && <span className="tag">{tag}</span>}
       <button ref={m.ref} className="sw" role="switch" aria-checked={checked} aria-label={label}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         onClick={(e) => { if (e.detail === 0) onChange(!checked) }} // keyboard (Space / Enter)
@@ -145,36 +151,41 @@ function Switch({ checked, onChange, label, t }) {
   )
 }
 
-function Checkbox({ checked, onChange, label, t }) {
+function Checkbox({ checked, onChange, label, detail, icon, tag, t }) {
   const v = t.variant
   const p = useSpring(checked ? 1 : 0, t.spring).value
   const m = useMagnet(v === 'halo', 3)
-  // a one-shot flourish each time it turns on (Halo ring, Drift bubbles)
+  // a one-shot flourish each time it turns on (Halo ring)
   const [burst, setBurst] = useState(0)
   const prev = useRef(checked)
   useEffect(() => { if (checked && !prev.current) setBurst((b) => b + 1); prev.current = checked }, [checked])
   const ring = v === 'halo'
   const draw = v === 'mist' ? 0 : 1 - clamp(p * 1.25 - 0.25) // Mist doesn't draw the check, it condenses
+  const box = (
+    <span ref={m.ref} className={`cb ${ring ? 'cb-ring' : ''}`} style={{ '--p': clamp(p), '--s': p, translate: `${m.x}px ${m.y}px` }}>
+      {ring ? (
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <circle className="ring-track" cx="16" cy="16" r="13" />
+          <circle className="ring-fill" cx="16" cy="16" r="13" pathLength="1" style={{ strokeDashoffset: 1 - clamp(p / 0.7) }} />
+          <path d="M10.5 16.5l3.6 3.6 7.4-8" pathLength="1" style={{ strokeDashoffset: 1 - clamp((p - 0.55) / 0.45) }} />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 12.5l4 4 8-9" pathLength="1" style={{ strokeDashoffset: draw }} />
+        </svg>
+      )}
+      {burst > 0 && v === 'halo' && <span key={burst} className="cb-halo" />}
+    </span>
+  )
   return (
     <li className="row row-check">
       <button className="row-hit" role="checkbox" aria-checked={checked} onClick={() => onChange(!checked)}
         onPointerMove={(e) => { glow(e); m.move(e) }} onPointerLeave={m.leave}>
-        <span ref={m.ref} className={`cb ${ring ? 'cb-ring' : ''}`} style={{ '--p': clamp(p), '--s': p, translate: `${m.x}px ${m.y}px` }}>
-          {ring ? (
-            <svg viewBox="0 0 32 32" aria-hidden="true">
-              <circle className="ring-track" cx="16" cy="16" r="13" />
-              <circle className="ring-fill" cx="16" cy="16" r="13" pathLength="1" style={{ strokeDashoffset: 1 - clamp(p / 0.7) }} />
-              <path d="M10.5 16.5l3.6 3.6 7.4-8" pathLength="1" style={{ strokeDashoffset: 1 - clamp((p - 0.55) / 0.45) }} />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 12.5l4 4 8-9" pathLength="1" style={{ strokeDashoffset: draw }} />
-            </svg>
-          )}
-          {burst > 0 && v === 'halo' && <span key={burst} className="cb-halo" />}
-          {burst > 0 && v === 'drift' && <span key={burst} className="bubbles"><i /><i /><i /></span>}
-        </span>
-        <span className="row-text"><span className="label">{label}</span></span>
+        {icon}
+        {!icon && box}
+        <RowText label={label} detail={detail} />
+        {tag && <span className="tag">{tag}</span>}
+        {icon && box}
       </button>
     </li>
   )
@@ -200,12 +211,11 @@ function RadioGroup({ title, options, value, onChange, t }) {
   const ya = useSpring(idx, t.spring).value // the selection glides between rows, same path both ways
   const yh = useSpring(hover ?? idx, { damping: 1, response: 0.3 }).value
   const refs = useRef([])
-  let y = ya, h = 1, sx = 0
+  let y = ya, h = 1
   if (v === 'halo') { // the selection is pulled toward the option you're looking at
     const pull = clamp((yh - ya) * 0.3, -0.3, 0.3)
     y = ya + Math.min(0, pull); h = 1 + Math.abs(pull)
   }
-  if (v === 'drift') sx = Math.sin(Math.PI * (ya - Math.floor(ya))) * 10 // sways as it floats across
   const key = (e, i) => {
     const d = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key]
     if (!d) return
@@ -214,7 +224,7 @@ function RadioGroup({ title, options, value, onChange, t }) {
     onChange(options[n]); refs.current[n]?.focus()
   }
   return (
-    <ul className="list radio-list" role="radiogroup" aria-label={title} style={{ '--y': y, '--h': h, '--sx': sx }} onPointerLeave={() => setHover(null)}>
+    <ul className="list radio-list" role="radiogroup" aria-label={title} style={{ '--y': y, '--h': h }} onPointerLeave={() => setHover(null)}>
       <span className="rd-glide" aria-hidden="true" />
       {options.map((o, i) => (
         <RadioRow key={o} option={o} on={o === value} t={t} btnRef={(el) => (refs.current[i] = el)}
@@ -265,15 +275,15 @@ const SETS = [
     },
   },
   {
-    id: 'drift', concept: 'Everything Floats', name: 'Drift', tone: 'Ethereal', platform: 'visionOS',
-    content: { topic: 'Depth', sw: ['Ambient Sound', '', true], cb: ['Particles', '', false], radio: ['Mood', ['Calm', 'Deep', 'Glow'], 'Calm'] },
+    id: 'unfold', concept: 'Choices Unfold', name: 'Unfold', tone: 'Ethereal', platform: 'visionOS',
+    content: { topic: 'Studio' },
     t: {
-      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
-      dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
-      swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
-      cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      ink: '#eafcff', muted: 'rgba(200,240,250,.6)', on: '#4fd1e8', off: 'rgba(255,255,255,.16)', thumb: '#ffffff', accent: '#eafcff',
-      spring: { damping: 0.7, response: 0.8 }, variant: 'drift',
+      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
+      dfs: 13, dlh: 18, rowH: 62, padX: 14, gap: 12, listR: 28, divider: 0, listGap: 22,
+      swW: 50, swH: 30, thW: 26, thH: 26, inset: 2, swR: 15, thR: 13, stretch: 6, swStroke: 0,
+      cb: 24, cbR: 7, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
+      ink: '#3a2a24', muted: 'rgba(58,42,36,.6)', on: '#2a2321', off: 'rgba(58,42,36,.14)', thumb: '#fffaf5', accent: '#2a2321',
+      spring: { damping: 1, response: 0.4 }, variant: 'unfold',
     },
   },
 ]
@@ -319,6 +329,108 @@ function SetList({ set, auto, offset = 0 }) {
   )
 }
 
+/* ================= Choices Unfold: the tabs are the radio; the chosen tab unfolds its rows ================= */
+const GLYPH = {
+  apps: <><rect x="2.5" y="3" width="11" height="10" rx="2" /><path d="M2.5 6.2h11" /></>,
+  code: <path d="M6 4.5L2.5 8 6 11.5M10 4.5L13.5 8 10 11.5" />,
+  link: <path d="M7 9.2a2.8 2.8 0 0 0 4 0l1.8-1.8a2.8 2.8 0 0 0-4-4l-.7.7M9 6.8a2.8 2.8 0 0 0-4 0L3.2 8.6a2.8 2.8 0 0 0 4 4l.7-.7" />,
+  pen: <path d="M3 13l1-3.5 6.5-6.5a1.8 1.8 0 0 1 2.5 2.5L6.5 12 3 13zM9.5 4l2.5 2.5" />,
+}
+const Glyph = ({ name }) => <svg viewBox="0 0 16 16" aria-hidden="true">{GLYPH[name]}</svg>
+const Tile = ({ dark, letter, glyph }) => <span className={`tile ${dark ? 'tile-dark' : ''}`} aria-hidden="true">{letter ?? <Glyph name={glyph} />}</span>
+
+const UNFOLD = [
+  { id: 'Apps', glyph: 'apps', rows: [
+    ['sw', { dark: true, letter: 'C' }, 'Clack', 'Soft key sounds', 'Mac', true],
+    ['cb', { glyph: 'pen' }, 'Inkwell', 'Pages and docs', 'Web', false],
+  ] },
+  { id: 'Components', glyph: 'code', rows: [
+    ['sw', { glyph: 'code' }, 'Action Bar', 'Dynamic', '06 · 24', true],
+    ['cb', { glyph: 'code' }, 'Image Expand', 'Overlay', '05 · 24', true],
+  ] },
+  { id: 'Notes', glyph: 'link', rows: [
+    ['sw', { glyph: 'link' }, 'Reading List', 'Synced across devices', 'iCloud', false],
+    ['cb', { glyph: 'link' }, 'Pinned Notes', 'Kept on top', '3', false],
+  ] },
+]
+
+function UnfoldSet({ set, auto, offset = 0 }) {
+  const { t, content: c } = set
+  const [tab, setTab] = useState('Apps') // null = folded away to just the tab bar
+  const [vals, setVals] = useState(() => Object.fromEntries(UNFOLD.flatMap((g) => g.rows.map((r, i) => [`${g.id}:${i}`, r[5]]))))
+  const last = useRef(tab); if (tab) last.current = tab
+  const shown = UNFOLD.find((g) => g.id === last.current)
+  const tabsRef = useRef(null), bodyRef = useRef(null), measured = useRef(false)
+  const [m, setM] = useState({ x: 0, w: 0, h: 0 })
+  const x = useSpring(m.x, t.spring), w = useSpring(m.w, t.spring), o = useSpring(tab ? 1 : 0, t.spring)
+  const h = useSpring(tab ? m.h : 0, t.spring) // the panel grows / folds to fit what the tab holds
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const btn = tabsRef.current?.querySelector(`[data-tab="${last.current}"]`)
+      if (!btn || !bodyRef.current) return
+      const next = { x: btn.offsetLeft, w: btn.offsetWidth, h: bodyRef.current.offsetHeight }
+      if (!measured.current) { measured.current = true; x.hold(next.x); w.hold(next.w); h.hold(next.h) } // no slide-in on load
+      setM(next)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    document.fonts?.ready.then(measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!auto) return
+    let i = offset
+    const id = setInterval(() => {
+      const k = i++ % 4
+      if (k < 2) { const key = `${last.current}:${k}`; setVals((v) => ({ ...v, [key]: !v[key] })) }
+      else if (k === 2) setTab((cur) => UNFOLD[(UNFOLD.findIndex((g) => g.id === (cur ?? last.current)) + 1) % UNFOLD.length].id)
+    }, 1100)
+    return () => clearInterval(id)
+  }, [auto, offset])
+
+  const pick = (id) => setTab((cur) => (cur === id ? null : id)) // choosing the open tab again folds it away
+  const key = (e, i) => {
+    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
+    if (!d) return
+    e.preventDefault()
+    const n = (i + d + UNFOLD.length) % UNFOLD.length
+    setTab(UNFOLD[n].id); tabsRef.current.children[n + 1]?.focus()
+  }
+  return (
+    <div className="topic">
+      <h3 className="list-title">{c.topic}</h3>
+      <div className="list unfold">
+        <div className="unfold-body" style={{ height: Math.max(0, h.value) }} aria-hidden={!tab}>
+          <div ref={bodyRef} key={shown.id} className={`unfold-content ${tab ? '' : 'folding'}`}>
+            <ul className="unfold-rows">
+              {shown.rows.map(([kind, tile, label, detail, tag], i) => {
+                const k = `${shown.id}:${i}`
+                const C = kind === 'sw' ? Switch : Checkbox
+                return <C key={k} t={t} icon={<Tile {...tile} />} label={label} detail={detail} tag={tag}
+                  checked={vals[k]} onChange={(v) => setVals((s) => ({ ...s, [k]: v }))} />
+              })}
+            </ul>
+            <div className="unfold-rule" />
+          </div>
+        </div>
+        <div ref={tabsRef} className="unfold-tabs" role="radiogroup" aria-label={c.topic}>
+          <span className="unfold-pill" aria-hidden="true" style={{ transform: `translateX(${x.value}px)`, width: w.value, opacity: clamp(o.value) }} />
+          {UNFOLD.map((g, i) => (
+            <button key={g.id} data-tab={g.id} className="unfold-tab" role="radio" aria-checked={tab === g.id}
+              tabIndex={(tab ?? last.current) === g.id ? 0 : -1} onClick={() => pick(g.id)} onKeyDown={(e) => key(e, i)}>
+              <Glyph name={g.glyph} />{g.id}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const SetBody = (props) => (props.set.id === 'unfold' ? <UnfoldSet {...props} /> : <SetList {...props} />)
+
 /* ================= wall (home page hover background) ================= */
 function Wall() {
   const embedded = window.parent !== window
@@ -341,7 +453,7 @@ function Wall() {
         <div key={c} className="wall-col">
           {Array.from({ length: layout.rows }, (_, r) => {
             const set = SETS[(c + r * 3) % SETS.length]
-            return <div key={r} className={`wall-tile set vision s-${set.id}`} style={cssVars(set.t)}><SetList set={set} auto offset={c * 2 + r} /></div>
+            return <div key={r} className={`wall-tile set vision s-${set.id}`} style={cssVars(set.t)}><SetBody set={set} auto offset={c * 2 + r} /></div>
           })}
         </div>
       ))}
@@ -370,7 +482,7 @@ export default function App() {
               <span>Figma</span>
             </a>
           </div>
-          <SetList set={set} />
+          <SetBody set={set} />
         </section>
       ))}
     </main>
