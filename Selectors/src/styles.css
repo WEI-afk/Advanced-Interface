@@ -14,9 +14,13 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .draft-ref img { position: relative; z-index: 1; display: block; width: 100%; border-radius: 10px; background: #fff; transform-origin: top right; cursor: zoom-in;
   box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 6px 16px -10px rgba(0,0,0,.4); transition: transform .5s cubic-bezier(.32,.72,0,1), box-shadow .5s; }
 .draft-ref span { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; opacity: .55; transition: opacity .3s; }
-.draft-ref:hover img, .draft-ref:focus-visible img { z-index: 20; transform: scale(4.4); box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 30px 70px -20px rgba(0,0,0,.45); }
-.draft-ref:hover span, .draft-ref:focus-visible span { opacity: 0; }
-@media (max-width: 640px) { .draft-ref { width: 88px; } .draft-ref:hover img, .draft-ref:focus-visible img { transform: scale(3.6); } }
+.draft-ref:hover span, .draft-ref:focus-visible span { opacity: .9; }
+/* the enlarged draft lives above the page */
+.draft-zoom { position: fixed; z-index: 1000; pointer-events: none; display: block; border-radius: 14px; background: #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 40px 80px -24px rgba(0,0,0,.45);
+  transition: transform .5s cubic-bezier(.32,.72,0,1), opacity .25s ease; }
+@media (prefers-reduced-motion: reduce) { .draft-zoom { transition: opacity .2s ease; } }
+@media (max-width: 640px) { .draft-ref { width: 88px; } }
 .set-tone { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; opacity: .6; }
 .set-head h2 { margin: 4px 0 0; font-size: 40px; line-height: 1.05; letter-spacing: -0.02em; }
 .set-head p { margin: 8px 0 28px; max-width: 580px; line-height: 1.5; color: var(--muted); }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 /* ================= spring physics =================
    Apple-style springs described by damping ratio + response (seconds), not duration.
@@ -196,7 +197,7 @@ function RadioGroup({ title, options, value, onChange, t }) {
 const SF = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif'
 const SETS = [
   {
-    id: 'mist', figma: '13-2', concept: 'Mist Takes Shape', name: 'Mist', tone: 'Ethereal', platform: 'visionOS',
+    id: 'mist', figma: '23-2', concept: 'Mist Takes Shape', name: 'Mist', tone: 'Ethereal', platform: 'visionOS',
     content: { topic: 'Immersion', sw: ['Spatial Audio', '', true], cb: ['Show Hands', '', false], radio: ['Environment', ['Yosemite', 'Mount Hood', 'Moon'], 'Yosemite'] },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
@@ -208,7 +209,7 @@ const SETS = [
     },
   },
   {
-    id: 'unfold', figma: '21-2', concept: 'Choices Unfold', name: 'Unfold', tone: 'Cozy', platform: 'visionOS',
+    id: 'unfold', figma: '23-37', concept: 'Choices Unfold', name: 'Unfold', tone: 'Cozy', platform: 'visionOS',
     content: { topic: 'Spaces' },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
@@ -220,7 +221,7 @@ const SETS = [
     },
   },
   {
-    id: 'frost', figma: '21-49', concept: 'Action Clears the Room', name: 'Frost', tone: 'Serene', platform: 'visionOS',
+    id: 'frost', figma: '23-79', concept: 'Action Clears the Room', name: 'Frost', tone: 'Serene', platform: 'visionOS',
     content: {},
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
@@ -232,7 +233,7 @@ const SETS = [
     },
   },
   {
-    id: 'invert', figma: '21-90', concept: 'Light and Dark Trade Places', name: 'Invert', tone: 'Bold', platform: 'visionOS',
+    id: 'invert', figma: '23-113', concept: 'Light and Dark Trade Places', name: 'Invert', tone: 'Bold', platform: 'visionOS',
     content: {},
     t: { font: '"Barlow Condensed", "SF Pro Display", Inter, sans-serif', ink: '#1d1d1d', muted: 'rgba(29,29,29,.5)', on: '#1d1d1d', off: '#cccccc' },
   },
@@ -558,6 +559,46 @@ function InvertSet({ auto, offset = 0 }) {
 const BODIES = { unfold: UnfoldSet, frost: FrostSet, invert: InvertSet }
 const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <B {...props} /> }
 
+/* ================= Figma draft thumbnail =================
+   the enlarged draft is drawn in a layer above the page (so no section can clip or cover it),
+   growing out of the thumbnail and shrinking back into it */
+function DraftThumb({ set }) {
+  const ref = useRef(null)
+  const [box, setBox] = useState(null)
+  const [open, setOpen] = useState(false)
+  const src = `${import.meta.env.BASE_URL}final/${set.id}.png`
+  const show = () => {
+    const r = ref.current.querySelector('img').getBoundingClientRect()
+    const W = Math.min(680, window.innerWidth - 32), H = W * 504 / 900
+    const right = r.left > window.innerWidth / 2 // grow toward the open side of the page
+    const left = clamp(right ? r.right - W : r.left, 16, window.innerWidth - W - 16)
+    const top = clamp(r.top, 16, window.innerHeight - H - 16)
+    setBox({ left, top, W, s: r.width / W, ox: r.left - left, oy: r.top - top })
+    requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)))
+  }
+  const hide = () => setOpen(false)
+  useEffect(() => {
+    if (!box) return
+    window.addEventListener('scroll', hide, { passive: true })
+    return () => window.removeEventListener('scroll', hide)
+  }, [box])
+  return (
+    <>
+      <a ref={ref} className="draft-ref" href={`https://www.figma.com/design/kBC8kZvJsU43A2kTrtOxyM/Selectors?node-id=${set.figma}`} target="_blank" rel="noreferrer"
+        onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
+        <img src={src} alt={`${set.tone}, ${set.concept} — Figma draft`} loading="lazy" onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
+        <span>Figma draft</span>
+      </a>
+      {box && createPortal(
+        <img className="draft-zoom" src={src} alt="" aria-hidden="true"
+          onTransitionEnd={() => { if (!open) setBox(null) }}
+          style={{ left: box.left, top: box.top, width: box.W, transformOrigin: `${box.ox}px ${box.oy}px`,
+            transform: open ? 'none' : `scale(${box.s})`, opacity: open ? 1 : 0 }} />,
+        document.body)}
+    </>
+  )
+}
+
 /* ================= wall (home page hover background) ================= */
 function Wall() {
   const embedded = window.parent !== window
@@ -602,12 +643,7 @@ export default function App() {
         <section key={set.id} className={`set vision s-${set.id}`} style={cssVars(set.t)}>
           <div className="set-head">
             <h2>{set.tone}, {set.concept}</h2>
-            {/* Figma draft: small thumbnail (zooms on hover / focus), opens the frame in Figma */}
-            <a className="draft-ref" href={`https://www.figma.com/design/kBC8kZvJsU43A2kTrtOxyM/Selectors?node-id=${set.figma}`} target="_blank" rel="noreferrer">
-              <img src={`${import.meta.env.BASE_URL}final/${set.id}.png`} alt={`${set.tone}, ${set.concept} — Figma draft`} loading="lazy"
-                onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
-              <span>Figma draft</span>
-            </a>
+            <DraftThumb set={set} />
           </div>
           <SetBody set={set} />
         </section>
