@@ -208,18 +208,6 @@ const SETS = [
     },
   },
   {
-    id: 'aurora', concept: 'Light Pours In', name: 'Aurora', tone: 'Ethereal', platform: 'visionOS',
-    content: { topic: 'Night', sw: ['Aurora Alerts', '', true], cb: ['Show Stars', '', false], radio: ['Sky', ['Iceland', 'Lapland', 'Yukon'], 'Lapland'] },
-    t: {
-      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
-      dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
-      swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
-      cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      ink: '#ffffff', muted: 'rgba(225,240,255,.6)', on: '#5ef0c8', off: 'rgba(255,255,255,.16)', thumb: '#ffffff', accent: '#5ef0c8',
-      spring: { damping: 1, response: 0.5 }, variant: 'aurora',
-    },
-  },
-  {
     id: 'unfold', concept: 'Choices Unfold', name: 'Unfold', tone: 'Ethereal', platform: 'visionOS',
     content: { topic: 'Spaces' },
     t: {
@@ -241,6 +229,18 @@ const SETS = [
       cb: 24, cbR: 7, cbStroke: 1.5, checkStroke: 2.4, rd: 22, rdDot: 9, rdStroke: 1.5,
       ink: '#f4f4ec', muted: 'rgba(244,244,236,.62)', on: '#e4d6fb', off: 'rgba(244,244,236,.2)', thumb: '#ffffff', accent: '#e4d6fb',
       spring: { damping: 1, response: 0.4 }, variant: 'morph',
+    },
+  },
+  {
+    id: 'frost', concept: 'Action Clears the Room', name: 'Frost', tone: 'Ethereal', platform: 'visionOS',
+    content: { topic: 'Create', sw: ['Quick Actions', '', false], cb: ['Frost Background', '', true], radio: ['Action', ['Note', 'Photo', 'Voice', 'Space'], 'Note'] },
+    t: {
+      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
+      dfs: 13, dlh: 18, rowH: 50, padX: 16, gap: 12, listR: 28, divider: 0, listGap: 22,
+      swW: 50, swH: 30, thW: 26, thH: 26, inset: 2, swR: 15, thR: 13, stretch: 6, swStroke: 0,
+      cb: 24, cbR: 7, cbStroke: 1.5, checkStroke: 2.4, rd: 22, rdDot: 9, rdStroke: 1.5,
+      ink: '#2b2420', muted: 'rgba(43,36,32,.6)', on: '#2b2420', off: 'rgba(43,36,32,.16)', thumb: '#ffffff', accent: '#2b2420',
+      spring: { damping: 1, response: 0.4 }, variant: 'frost',
     },
   },
 ]
@@ -294,6 +294,10 @@ const GLYPH = {
   book: <path d="M8 4.5C6.5 3.5 4.5 3 2.5 3.3v9.2c2-.3 4 .2 5.5 1.2 1.5-1 3.5-1.5 5.5-1.2V3.3C11.5 3 9.5 3.5 8 4.5zM8 4.5v9.2" />,
   drop: <path d="M8 2.5S4 7 4 9.8a4 4 0 0 0 8 0C12 7 8 2.5 8 2.5z" />,
   sunset: <path d="M2 11.5h12M4.5 11.5a3.5 3.5 0 0 1 7 0M8 3.5v2M3.8 6.3l1.1 1.1M12.2 6.3l-1.1 1.1" />,
+  pen: <path d="M3 13l1-3.5 6.5-6.5a1.8 1.8 0 0 1 2.5 2.5L6.5 12 3 13zM9.5 4l2.5 2.5" />,
+  photo: <><rect x="2.5" y="3.5" width="11" height="9" rx="2" /><circle cx="6" cy="7" r="1.2" /><path d="M13.5 10.5l-3-3-5 5" /></>,
+  plus: <path d="M8 3v10M3 8h10" />,
+  search: <><circle cx="7.2" cy="7.2" r="4" /><path d="M10.2 10.2L13 13" /></>,
   flame: <path d="M8 2.5c1.8 2.2 3 3.8 3 6a3 3 0 0 1-6 0c0-1.3.6-2.2 1.4-3 .2 1.2.8 1.8 1.6 2-.6-1.8-.6-3.4 0-5z" />,
 }
 const Glyph = ({ name }) => <svg viewBox="0 0 16 16" aria-hidden="true">{GLYPH[name]}</svg>
@@ -500,7 +504,86 @@ function MorphSet({ set, auto, offset = 0 }) {
   )
 }
 
-const BODIES = { unfold: UnfoldSet, morph: MorphSet }
+/* ================= Action Clears the Room: reaching for an action frosts everything else away =================
+   one spring opens the tray; each tile reads the same spring a little later, so they rise in sequence
+   and sink back in reverse — and a change of mind mid-way just turns the whole sequence around */
+const ACTIONS = { Note: 'pen', Photo: 'photo', Voice: 'wave', Space: 'room' }
+
+function FrostWidget({ open, frost, action, onToggle, onPick }) {
+  const p = useSpring(open ? 1 : 0, { damping: 0.9, response: 0.5 }).value
+  const f = useSpring(open && frost ? 1 : 0, { damping: 1, response: 0.5 }).value
+  return (
+    <div className="frost-stage" aria-hidden="true">
+      <div className="frost-win">
+        <div className="frost-page" style={{ filter: f > 0.005 ? `blur(${f * 7}px)` : undefined, scale: `${1 - f * 0.015}` }}>
+          <nav className="frost-side"><span className="on">Today</span><span>Week</span></nav>
+          <div className="frost-main">
+            <span className="frost-sun"><Glyph name="sun" /></span>
+            <h4>Good Morning</h4>
+            <div className="frost-card"><small>Focus today</small><b>3h 20m</b><span>Details</span></div>
+            <div className="frost-row"><span className="frost-dot" /><span><b>Deep Work</b><small>9:00 – 11:30</small></span></div>
+          </div>
+        </div>
+        <div className="frost-veil" style={{ opacity: clamp(f * 0.62 + p * 0.08) }} />
+        <div className="frost-dock">
+          <span className="frost-btn"><Glyph name="search" /></span>
+          <button tabIndex={-1} className="frost-btn frost-plus" onClick={onToggle} style={{ '--p': clamp(p) }}><Glyph name="plus" /></button>
+          <span className="frost-avatar" />
+        </div>
+        <div className="frost-tiles">
+          {Object.entries(ACTIONS).map(([name, g], i) => {
+            const q = clamp((p - i * 0.08) / 0.76)
+            return (
+              <button key={name} tabIndex={-1} className={`frost-tile ${action === name ? 'on' : ''}`} onClick={() => onPick(name)}
+                style={{ opacity: q, transform: `translateY(${(1 - q) * 30}px) scale(${0.94 + 0.06 * q})`, pointerEvents: open ? 'auto' : 'none' }}>
+                <Glyph name={g} /><span>{name}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FrostSet({ set, auto, offset = 0 }) {
+  const { content: c, t } = set
+  const [sw, setSw] = useState(c.sw[2])
+  const [cb, setCb] = useState(c.cb[2])
+  const [rd, setRd] = useState(c.radio[2])
+  const pick = (v) => { setRd(v); setSw(true) } // choosing an action opens the tray
+  useEffect(() => {
+    if (!auto) return
+    let i = offset
+    const names = c.radio[1]
+    const id = setInterval(() => {
+      const k = i++ % 6
+      if (k === 0) setSw(true)
+      else if (k < 4) setRd(names[k])
+      else if (k === 4) { setSw(false); setRd(names[0]) }
+      else setCb((v) => !v)
+    }, 1100)
+    return () => clearInterval(id)
+  }, [auto, offset, c])
+  return (
+    <>
+      <FrostWidget open={sw} frost={cb} action={rd} onToggle={() => setSw((v) => !v)} onPick={pick} />
+      <div className="topic">
+        <h3 className="list-title">{c.topic}</h3>
+        <ul className="list">
+          <Switch label={c.sw[0]} t={t} checked={sw} onChange={setSw} />
+          <Checkbox label={c.cb[0]} t={t} checked={cb} onChange={setCb} />
+          <li className="row-group">
+            <span className="group-label">{c.radio[0]}</span>
+            <RadioGroup title={c.radio[0]} options={c.radio[1]} value={rd} onChange={pick} t={t} />
+          </li>
+        </ul>
+      </div>
+    </>
+  )
+}
+
+const BODIES = { unfold: UnfoldSet, morph: MorphSet, frost: FrostSet }
 const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <B {...props} /> }
 
 /* ================= wall (home page hover background) ================= */
