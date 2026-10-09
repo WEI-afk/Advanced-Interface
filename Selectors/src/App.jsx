@@ -276,7 +276,7 @@ const SETS = [
   },
   {
     id: 'unfold', concept: 'Choices Unfold', name: 'Unfold', tone: 'Ethereal', platform: 'visionOS',
-    content: { topic: 'Studio' },
+    content: { topic: 'Spaces' },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
       dfs: 13, dlh: 18, rowH: 62, padX: 14, gap: 12, listR: 28, divider: 0, listGap: 22,
@@ -331,32 +331,35 @@ function SetList({ set, auto, offset = 0 }) {
 
 /* ================= Choices Unfold: the tabs are the radio; the chosen tab unfolds its rows ================= */
 const GLYPH = {
-  apps: <><rect x="2.5" y="3" width="11" height="10" rx="2" /><path d="M2.5 6.2h11" /></>,
-  code: <path d="M6 4.5L2.5 8 6 11.5M10 4.5L13.5 8 10 11.5" />,
-  link: <path d="M7 9.2a2.8 2.8 0 0 0 4 0l1.8-1.8a2.8 2.8 0 0 0-4-4l-.7.7M9 6.8a2.8 2.8 0 0 0-4 0L3.2 8.6a2.8 2.8 0 0 0 4 4l.7-.7" />,
-  pen: <path d="M3 13l1-3.5 6.5-6.5a1.8 1.8 0 0 1 2.5 2.5L6.5 12 3 13zM9.5 4l2.5 2.5" />,
+  room: <path d="M2.5 13.5V7L8 2.5 13.5 7v6.5zM6.5 13.5v-4h3v4" />,
+  wave: <path d="M2 8h1M5 5.5v5M8 3v10M11 5.5v5M14 8h-1" />,
+  sun: <><circle cx="8" cy="8" r="2.8" /><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" /></>,
+  book: <path d="M8 4.5C6.5 3.5 4.5 3 2.5 3.3v9.2c2-.3 4 .2 5.5 1.2 1.5-1 3.5-1.5 5.5-1.2V3.3C11.5 3 9.5 3.5 8 4.5zM8 4.5v9.2" />,
+  drop: <path d="M8 2.5S4 7 4 9.8a4 4 0 0 0 8 0C12 7 8 2.5 8 2.5z" />,
+  sunset: <path d="M2 11.5h12M4.5 11.5a3.5 3.5 0 0 1 7 0M8 3.5v2M3.8 6.3l1.1 1.1M12.2 6.3l-1.1 1.1" />,
+  flame: <path d="M8 2.5c1.8 2.2 3 3.8 3 6a3 3 0 0 1-6 0c0-1.3.6-2.2 1.4-3 .2 1.2.8 1.8 1.6 2-.6-1.8-.6-3.4 0-5z" />,
 }
 const Glyph = ({ name }) => <svg viewBox="0 0 16 16" aria-hidden="true">{GLYPH[name]}</svg>
 const Tile = ({ dark, letter, glyph }) => <span className={`tile ${dark ? 'tile-dark' : ''}`} aria-hidden="true">{letter ?? <Glyph name={glyph} />}</span>
 
 const UNFOLD = [
-  { id: 'Apps', glyph: 'apps', rows: [
-    ['sw', { dark: true, letter: 'C' }, 'Clack', 'Soft key sounds', 'Mac', true],
-    ['cb', { glyph: 'pen' }, 'Inkwell', 'Pages and docs', 'Web', false],
+  { id: 'Rooms', glyph: 'room', rows: [
+    ['sw', { dark: true, glyph: 'sun' }, 'Sunroom', 'Warm morning light', 'Open', true],
+    ['cb', { glyph: 'book' }, 'Reading Nook', 'Quiet, soft focus', 'Calm', false],
   ] },
-  { id: 'Components', glyph: 'code', rows: [
-    ['sw', { glyph: 'code' }, 'Action Bar', 'Dynamic', '06 · 24', true],
-    ['cb', { glyph: 'code' }, 'Image Expand', 'Overlay', '05 · 24', true],
+  { id: 'Sounds', glyph: 'wave', rows: [
+    ['sw', { dark: true, glyph: 'drop' }, 'Rainfall', 'Soft on the glass', 'Loop', true],
+    ['cb', { glyph: 'wave' }, 'Wind Chimes', 'Drifting, far off', 'Air', true],
   ] },
-  { id: 'Notes', glyph: 'link', rows: [
-    ['sw', { glyph: 'link' }, 'Reading List', 'Synced across devices', 'iCloud', false],
-    ['cb', { glyph: 'link' }, 'Pinned Notes', 'Kept on top', '3', false],
+  { id: 'Light', glyph: 'sun', rows: [
+    ['sw', { dark: true, glyph: 'sunset' }, 'Golden Hour', 'Low amber glow', '6:40', false],
+    ['cb', { glyph: 'flame' }, 'Candlelight', 'A gentle flicker', 'Dim', false],
   ] },
 ]
 
 function UnfoldSet({ set, auto, offset = 0 }) {
   const { t, content: c } = set
-  const [tab, setTab] = useState('Apps') // null = folded away to just the tab bar
+  const [tab, setTab] = useState('Rooms') // null = folded away to just the tab bar
   const [vals, setVals] = useState(() => Object.fromEntries(UNFOLD.flatMap((g) => g.rows.map((r, i) => [`${g.id}:${i}`, r[5]]))))
   const last = useRef(tab); if (tab) last.current = tab
   const shown = UNFOLD.find((g) => g.id === last.current)
