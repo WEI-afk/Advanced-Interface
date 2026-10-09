@@ -59,14 +59,32 @@ const glow = (e) => {
   const el = e.currentTarget, r = el.getBoundingClientRect()
   el.style.setProperty('--mx', `${e.clientX - r.left}px`)
   el.style.setProperty('--my', `${e.clientY - r.top}px`)
-  el.style.setProperty('--nx', ((e.clientX - r.left) / r.width * 2 - 1).toFixed(3))
-  el.style.setProperty('--ny', ((e.clientY - r.top) / r.height * 2 - 1).toFixed(3))
 }
 
-function Switch({ checked, onChange, label, detail, t }) {
+// Halo: an element leans toward the pointer, a few px at most (independent X and Y springs)
+function useMagnet(on, max = 4) {
+  const [tgt, setTgt] = useState([0, 0])
+  const x = useSpring(tgt[0], { damping: 0.75, response: 0.4 }).value
+  const y = useSpring(tgt[1], { damping: 0.75, response: 0.4 }).value
+  const ref = useRef(null)
+  const move = (e) => {
+    if (!on || !ref.current) return
+    const r = ref.current.getBoundingClientRect()
+    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2)
+    const d = Math.hypot(dx, dy) || 1
+    const f = (max * Math.min(1, d / 90)) / d
+    setTgt([dx * f, dy * f])
+  }
+  const leave = () => on && setTgt([0, 0])
+  return { ref, x, y, move, leave }
+}
+
+function Switch({ checked, onChange, label, t }) {
+  const v = t.variant
   const pos = useSpring(checked ? 1 : 0, t.spring)
   const [pressed, setPressed] = useState(false)
   const press = useSpring(pressed ? 1 : 0, { damping: 1, response: 0.2 })
+  const m = useMagnet(v === 'halo')
   const drag = useRef(null)
   const travel = t.swW - t.thW - 2 * t.inset
 
@@ -74,6 +92,7 @@ function Switch({ checked, onChange, label, detail, t }) {
     if (e.button !== 0) return
     e.currentTarget.setPointerCapture(e.pointerId)
     setPressed(true) // feedback on press, not on release
+    m.leave()
     drag.current = { x0: e.clientX, p0: pos.value, moved: false, hist: [[e.clientX, e.timeStamp]] }
   }
   const move = (e) => {
@@ -85,7 +104,7 @@ function Switch({ checked, onChange, label, detail, t }) {
     pos.hold((d.p0 * travel + dx) / travel) // raw position; the soft ends are applied when drawing
     d.hist.push([e.clientX, e.timeStamp]); if (d.hist.length > 5) d.hist.shift()
   }
-  const up = (e) => {
+  const up = () => {
     const d = drag.current
     drag.current = null
     setPressed(false)
@@ -105,28 +124,42 @@ function Switch({ checked, onChange, label, detail, t }) {
   if (px < 0) px = -rubber(-px, travel)
   if (px > travel) px = travel + rubber(px - travel, travel)
   const p = px / travel
+  const w = t.thW + k * t.stretch
+  const x = p * travel - k * t.stretch * clamp(p)
+  // Mist: the thumb dissolves while it travels and condenses again at either end
+  const fog = v === 'mist' ? Math.sin(Math.PI * clamp(p)) : 0
+  let transform = `translateX(${x}px)`
+  if (fog) transform += ` scale(${1 + fog * 0.3}, ${1 - fog * 0.12})`
   return (
-    <li className="row row-switch" onPointerMove={glow}>
-      <span className="row-text"><span className="label">{label}</span>{detail && <span className="detail">{detail}</span>}</span>
-      <button className="sw" role="switch" aria-checked={checked} aria-label={label}
+    <li className="row row-switch" onPointerMove={(e) => { glow(e); if (!drag.current) m.move(e) }} onPointerLeave={m.leave}>
+      <span className="row-text"><span className="label">{label}</span></span>
+      <button ref={m.ref} className="sw" role="switch" aria-checked={checked} aria-label={label}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         onClick={(e) => { if (e.detail === 0) onChange(!checked) }} // keyboard (Space / Enter)
-        style={{ '--p': p, '--k': k }}>
+        style={{ '--p': p, '--k': k, '--tx': `${t.inset + x + w / 2}px` }}>
         <span className="sw-track" />
-        <span className="sw-led" />
-        <span className="sw-thumb" style={{ transform: `translateX(${p * travel - k * t.stretch * clamp(p)}px)`, width: t.thW + k * t.stretch }} />
+        <span className="sw-thumb" style={{ transform, width: w, translate: `${m.x}px ${m.y}px`,
+          filter: fog > 0.01 ? `blur(${fog * 4}px)` : undefined, opacity: 1 - fog * 0.5 }} />
       </button>
     </li>
   )
 }
 
-function Checkbox({ checked, onChange, label, detail, t }) {
+function Checkbox({ checked, onChange, label, t }) {
+  const v = t.variant
   const p = useSpring(checked ? 1 : 0, t.spring).value
-  const ring = t.checkStyle === 'ring'
+  const m = useMagnet(v === 'halo', 3)
+  // a one-shot flourish each time it turns on (Halo ring, Drift bubbles)
+  const [burst, setBurst] = useState(0)
+  const prev = useRef(checked)
+  useEffect(() => { if (checked && !prev.current) setBurst((b) => b + 1); prev.current = checked }, [checked])
+  const ring = v === 'halo'
+  const draw = v === 'mist' ? 0 : 1 - clamp(p * 1.25 - 0.25) // Mist doesn't draw the check, it condenses
   return (
     <li className="row row-check">
-      <button className="row-hit" role="checkbox" aria-checked={checked} onClick={() => onChange(!checked)} onPointerMove={glow}>
-        <span className={`cb ${ring ? 'cb-ring' : ''}`} style={{ '--p': clamp(p), '--s': p }}>
+      <button className="row-hit" role="checkbox" aria-checked={checked} onClick={() => onChange(!checked)}
+        onPointerMove={(e) => { glow(e); m.move(e) }} onPointerLeave={m.leave}>
+        <span ref={m.ref} className={`cb ${ring ? 'cb-ring' : ''}`} style={{ '--p': clamp(p), '--s': p, translate: `${m.x}px ${m.y}px` }}>
           {ring ? (
             <svg viewBox="0 0 32 32" aria-hidden="true">
               <circle className="ring-track" cx="16" cy="16" r="13" />
@@ -135,31 +168,44 @@ function Checkbox({ checked, onChange, label, detail, t }) {
             </svg>
           ) : (
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 12.5l4 4 8-9" pathLength="1" style={{ strokeDashoffset: 1 - clamp(p * 1.25 - 0.25) }} />
+              <path d="M6 12.5l4 4 8-9" pathLength="1" style={{ strokeDashoffset: draw }} />
             </svg>
           )}
+          {burst > 0 && v === 'halo' && <span key={burst} className="cb-halo" />}
+          {burst > 0 && v === 'drift' && <span key={burst} className="bubbles"><i /><i /><i /></span>}
         </span>
-        <span className="row-text"><span className="label">{label}</span>{detail && <span className="detail">{detail}</span>}</span>
+        <span className="row-text"><span className="label">{label}</span></span>
       </button>
     </li>
   )
 }
 
-function RadioDot({ on, t }) {
+function RadioRow({ option, on, onPick, onKey, onHover, btnRef, t }) {
   const p = useSpring(on ? 1 : 0, t.spring).value
   return (
-    <span className="rd" style={{ '--p': clamp(p), '--s': p }}>
-      <span className="rd-dot" />
-      {on && t.radioStyle === 'ripple' && <span className="rd-ripple" />}
-    </span>
+    <li className="row row-radio" onPointerEnter={onHover}>
+      <button ref={btnRef} className="row-hit" role="radio" aria-checked={on} tabIndex={on ? 0 : -1}
+        onClick={onPick} onKeyDown={onKey} onPointerMove={glow} style={{ '--p': clamp(p), '--s': p }}>
+        <span className="rd"><span className="rd-dot" /></span>
+        <span className="row-text"><span className="label">{option}</span></span>
+      </button>
+    </li>
   )
 }
 
 function RadioGroup({ title, options, value, onChange, t }) {
+  const v = t.variant
   const idx = options.indexOf(value)
-  const y = useSpring(idx, t.spring).value // the selection glides between rows, same path both ways
+  const [hover, setHover] = useState(null)
+  const ya = useSpring(idx, t.spring).value // the selection glides between rows, same path both ways
+  const yh = useSpring(hover ?? idx, { damping: 1, response: 0.3 }).value
   const refs = useRef([])
-  const trailing = t.radioStyle === 'check'
+  let y = ya, h = 1, sx = 0
+  if (v === 'halo') { // the selection is pulled toward the option you're looking at
+    const pull = clamp((yh - ya) * 0.3, -0.3, 0.3)
+    y = ya + Math.min(0, pull); h = 1 + Math.abs(pull)
+  }
+  if (v === 'drift') sx = Math.sin(Math.PI * (ya - Math.floor(ya))) * 10 // sways as it floats across
   const key = (e, i) => {
     const d = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key]
     if (!d) return
@@ -168,79 +214,66 @@ function RadioGroup({ title, options, value, onChange, t }) {
     onChange(options[n]); refs.current[n]?.focus()
   }
   return (
-    <ul className={`list radio-list ${trailing ? 'radio-trailing' : ''}`} role="radiogroup" aria-label={title} style={{ '--y': y }}>
+    <ul className="list radio-list" role="radiogroup" aria-label={title} style={{ '--y': y, '--h': h, '--sx': sx }} onPointerLeave={() => setHover(null)}>
       <span className="rd-glide" aria-hidden="true" />
-      {trailing && (
-        <svg className="rd-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
-      )}
       {options.map((o, i) => (
-        <li key={o} className="row row-radio">
-          <button ref={(el) => (refs.current[i] = el)} className="row-hit" role="radio" aria-checked={o === value}
-            tabIndex={o === value ? 0 : -1} onClick={() => onChange(o)} onKeyDown={(e) => key(e, i)} onPointerMove={glow}>
-            {!trailing && <RadioDot on={o === value} t={t} />}
-            <span className="row-text"><span className="label">{o}</span></span>
-          </button>
-        </li>
+        <RadioRow key={o} option={o} on={o === value} t={t} btnRef={(el) => (refs.current[i] = el)}
+          onPick={() => onChange(o)} onKey={(e) => key(e, i)} onHover={() => setHover(i)} />
       ))}
     </ul>
   )
 }
 
 /* ================= the four sets =================
-   tokens drive the CSS (as custom properties) AND the spec table, so the spec is always exact */
+   one tone (Ethereal), four concepts — each concept decides how its controls move */
 const SF = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif'
-// all four sets share visionOS glass; each has its own world and one signature detail
 const SETS = [
   {
-    id: 'mist', name: 'Mist', tone: 'Ethereal', platform: 'visionOS',
+    id: 'mist', concept: 'Mist Takes Shape', name: 'Mist', tone: 'Ethereal', platform: 'visionOS',
     content: { topic: 'Immersion', sw: ['Spatial Audio', '', true], cb: ['Show Hands', '', false], radio: ['Environment', ['Yosemite', 'Mount Hood', 'Moon'], 'Yosemite'] },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
       dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
       swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
       cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      checkStyle: 'square', radioStyle: 'dot',
-      ink: '#ffffff', muted: 'rgba(255,255,255,.62)', on: '#34c759', off: 'rgba(255,255,255,.18)', thumb: '#ffffff', accent: '#ffffff',
-      spring: { damping: 1, response: 0.45 },
+      ink: '#ffffff', muted: 'rgba(255,255,255,.62)', on: '#a8d8e8', off: 'rgba(255,255,255,.18)', thumb: '#ffffff', accent: '#ffffff',
+      spring: { damping: 1, response: 0.6 }, variant: 'mist',
     },
   },
   {
-    id: 'aurora', name: 'Aurora', tone: 'Ethereal', platform: 'visionOS',
+    id: 'aurora', concept: 'Light Pours In', name: 'Aurora', tone: 'Ethereal', platform: 'visionOS',
     content: { topic: 'Night', sw: ['Aurora Alerts', '', true], cb: ['Show Stars', '', false], radio: ['Sky', ['Iceland', 'Lapland', 'Yukon'], 'Lapland'] },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
       dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
       swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
       cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      checkStyle: 'square', radioStyle: 'dot',
       ink: '#ffffff', muted: 'rgba(225,240,255,.6)', on: '#5ef0c8', off: 'rgba(255,255,255,.16)', thumb: '#ffffff', accent: '#5ef0c8',
-      spring: { damping: 1, response: 0.5 },
+      spring: { damping: 1, response: 0.5 }, variant: 'aurora',
     },
   },
   {
-    id: 'halo', name: 'Halo', tone: 'Ethereal', platform: 'visionOS',
+    id: 'halo', concept: 'Attention Has Gravity', name: 'Halo', tone: 'Ethereal', platform: 'visionOS',
     content: { topic: 'Presence', sw: ['Persona', '', true], cb: ['Eye Contact', '', false], radio: ['Window', ['Small', 'Medium', 'Large'], 'Medium'] },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
       dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
       swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
       cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      checkStyle: 'square', radioStyle: 'dot',
-      ink: '#2a2f45', muted: 'rgba(42,47,69,.55)', on: '#8f9cff', off: 'rgba(42,47,69,.12)', thumb: '#ffffff', accent: '#2a2f45',
-      spring: { damping: 1, response: 0.55 },
+      ink: '#2a2f45', muted: 'rgba(42,47,69,.55)', on: '#7d8bff', off: 'rgba(42,47,69,.12)', thumb: '#ffffff', accent: '#2a2f45',
+      spring: { damping: 0.85, response: 0.45 }, variant: 'halo',
     },
   },
   {
-    id: 'drift', name: 'Drift', tone: 'Ethereal', platform: 'visionOS',
+    id: 'drift', concept: 'Everything Floats', name: 'Drift', tone: 'Ethereal', platform: 'visionOS',
     content: { topic: 'Depth', sw: ['Ambient Sound', '', true], cb: ['Particles', '', false], radio: ['Mood', ['Calm', 'Deep', 'Glow'], 'Calm'] },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
       dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
       swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
       cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      checkStyle: 'square', radioStyle: 'dot',
       ink: '#eafcff', muted: 'rgba(200,240,250,.6)', on: '#4fd1e8', off: 'rgba(255,255,255,.16)', thumb: '#ffffff', accent: '#eafcff',
-      spring: { damping: 1, response: 0.6 },
+      spring: { damping: 0.7, response: 0.8 }, variant: 'drift',
     },
   },
 ]
@@ -275,8 +308,8 @@ function SetList({ set, auto, offset = 0 }) {
     <div className="topic">
       <h3 className="list-title">{c.topic}</h3>
       <ul className="list">
-        <Switch label={c.sw[0]} detail={c.sw[1]} t={t} checked={sw} onChange={setSw} />
-        <Checkbox label={c.cb[0]} detail={c.cb[1]} t={t} checked={cb} onChange={setCb} />
+        <Switch label={c.sw[0]} t={t} checked={sw} onChange={setSw} />
+        <Checkbox label={c.cb[0]} t={t} checked={cb} onChange={setCb} />
         <li className="row-group">
           <span className="group-label">{c.radio[0]}</span>
           <RadioGroup title={c.radio[0]} options={c.radio[1]} value={rd} onChange={setRd} t={t} />
@@ -323,16 +356,16 @@ export default function App() {
     <main>
       <header className="page-head">
         <a className="back" href="../">← Advanced Interface</a>
-        <h1>Selectors</h1>
-        <p>Week 3 · Ethereal · visionOS</p>
+        <h1>Ethereal</h1>
+        <p>Selectors · Week 3 · visionOS</p>
       </header>
       {SETS.map((set) => (
         <section key={set.id} className={`set vision s-${set.id}`} style={cssVars(set.t)}>
           <div className="set-head">
-            <h2>{set.name}</h2>
+            <h2>{set.concept}</h2>
             {/* Figma line drawing: small thumbnail, zooms in on hover / focus */}
             <a className="draft-ref" href={`${import.meta.env.BASE_URL}final/${set.id}.png`} target="_blank" rel="noreferrer">
-              <img src={`${import.meta.env.BASE_URL}final/${set.id}.png`} alt={`${set.name} drawing from Figma`} loading="lazy"
+              <img src={`${import.meta.env.BASE_URL}final/${set.id}.png`} alt={`${set.concept} drawing from Figma`} loading="lazy"
                 onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
               <span>Figma</span>
             </a>
