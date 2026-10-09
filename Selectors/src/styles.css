@@ -8,6 +8,15 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 
 /* ================= SHARED (everything sized by the set's tokens) ================= */
 .set { font-family: var(--font); color: var(--ink); border-radius: 24px; padding: 32px; margin-bottom: 32px; }
+.set-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+/* Figma drawing thumbnail: grows from its top-right corner on hover */
+.draft-ref { position: relative; flex: 0 0 auto; width: 132px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-decoration: none; color: inherit; outline: none; }
+.draft-ref img { position: relative; z-index: 1; display: block; width: 100%; border-radius: 10px; background: #fff; transform-origin: top right; cursor: zoom-in;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 6px 16px -10px rgba(0,0,0,.4); transition: transform .5s cubic-bezier(.32,.72,0,1), box-shadow .5s; }
+.draft-ref span { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; opacity: .55; transition: opacity .3s; }
+.draft-ref:hover img, .draft-ref:focus-visible img { z-index: 20; transform: scale(4.4); box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 30px 70px -20px rgba(0,0,0,.45); }
+.draft-ref:hover span, .draft-ref:focus-visible span { opacity: 0; }
+@media (max-width: 640px) { .draft-ref { width: 88px; } .draft-ref:hover img, .draft-ref:focus-visible img { transform: scale(3.6); } }
 .set-tone { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; opacity: .6; }
 .set-head h2 { margin: 4px 0 0; font-size: 40px; line-height: 1.05; letter-spacing: -0.02em; }
 .set-head p { margin: 8px 0 28px; max-width: 580px; line-height: 1.5; color: var(--muted); }
@@ -66,52 +75,90 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .spec dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .spec dd i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
 
-/* ================= 01 · GLASS · Serene ================= */
-.s-glass { --rule: rgba(60,60,67,.18); --ring: rgba(60,60,67,.32); --glide: rgba(90,200,200,.12);
-  background: linear-gradient(160deg, #dbe7f2 0%, #ece4f0 55%, #f6eee5 100%); }
-.s-glass .list { background: rgba(255,255,255,.55); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.75), 0 14px 34px -22px rgba(40,60,80,.45); }
-.s-glass .set-head h2 { font-weight: 600; }
+/* ================= 01 · LIQUID GLASS · Serene (iOS) ================= */
+.s-glass { --rule: rgba(60,60,67,.2); --ring: rgba(60,60,67,.3); --glide: transparent;
+  background: radial-gradient(120% 80% at 10% 0%, #cfe3ff 0%, transparent 55%), radial-gradient(90% 70% at 100% 100%, #ffd9e8 0%, transparent 60%), #eef0f6; }
+.s-glass .set-head h2 { font-weight: 700; letter-spacing: -0.03em; }
+.s-glass .list { background: rgba(255,255,255,.58); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(255,255,255,.35), 0 18px 40px -24px rgba(30,50,90,.45); }
+/* the thumb turns into a clear lens while held: bigger, see-through, with a bright rim */
+.s-glass .sw-thumb { scale: calc(1 + var(--k) * .25); background: rgba(255,255,255, calc(1 - var(--k) * .65));
+  backdrop-filter: blur(calc(var(--k) * 2px)) saturate(calc(100% + var(--k) * 80%)); -webkit-backdrop-filter: blur(calc(var(--k) * 2px)) saturate(calc(100% + var(--k) * 80%));
+  box-shadow: inset 0 0 0 calc(var(--k) * 1px) rgba(255,255,255,.9), inset 0 calc(var(--k) * 2px) calc(var(--k) * 4px) rgba(255,255,255,.8), 0 3px 8px rgba(0,0,0,.14), 0 3px 1px rgba(0,0,0,.05); }
+.s-glass .cb { --cb-off: transparent; }
+/* iOS selection: a trailing checkmark that glides to the chosen row */
+.radio-trailing .row-hit { padding-right: 48px; }
+.rd-check { position: absolute; z-index: 2; right: 16px; top: calc((var(--row-h) - 17px) / 2); width: 17px; height: 17px; pointer-events: none;
+  transform: translateY(calc(var(--y) * var(--row-h))); fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ================= 02 · STONE · Monumental ================= */
-.s-stone { --rule: #0d0d0d; --ring: #0d0d0d; --glide: rgba(0,0,0,.05); background: #e4e4e4; border-radius: 4px; }
-.s-stone .set-head h2 { font-size: 56px; font-weight: 300; letter-spacing: -0.04em; }
-.s-stone .list { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
-.s-stone .row + .row::before { left: 0; }
-.s-stone .list-title { margin-left: 0; color: var(--ink); }
-.s-stone .sw-thumb { background: radial-gradient(circle at 35% 30%, #ffffff, #d4d4d4 70%); box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+/* ================= 02 · RINGS · Energetic (watchOS) ================= */
+.s-rings { --rule: transparent; --ring: #3a3a3c; --glide: transparent; background: #000; border-radius: 34px; }
+.s-rings .set-head h2 { font-weight: 700; color: var(--on); letter-spacing: -0.02em; }
+.s-rings .list-title { color: #8e8e93; }
+.s-rings .list { display: flex; flex-direction: column; gap: 6px; overflow: visible; }
+.s-rings .row { background: #1c1c1e; border-radius: 18px; }
+.s-rings .row + .row::before { display: none; }
+.s-rings .rd-glide { display: none; }
+.s-rings .sw-track { background: color-mix(in oklab, var(--on) clamp(0%, calc(var(--p) * 100%), 100%), var(--off)); }
+/* activity ring: the ring sweeps closed, then the check draws */
+.cb-ring { background: none !important; box-shadow: none !important; }
+.cb-ring svg { width: 100%; height: 100%; }
+.cb-ring .ring-track { fill: none; stroke: color-mix(in oklab, var(--accent) 22%, #000); stroke-width: 3; }
+.cb-ring .ring-fill { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1; transform: rotate(-90deg); transform-origin: center;
+  filter: drop-shadow(0 0 calc(var(--p) * 4px) var(--accent)); }
+.cb-ring path { stroke: #fff; stroke-width: 2.6; }
+.s-rings .rd { position: relative; }
+.s-rings .rd-dot { background: var(--on); }
+.rd-ripple { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--on); animation: ripple .7s cubic-bezier(.2,.8,.2,1) forwards; pointer-events: none; }
+@keyframes ripple { from { transform: scale(.6); opacity: .9; } to { transform: scale(2.1); opacity: 0; } }
 
-/* ================= 03 · JELLY · Playful ================= */
-.s-jelly { --rule: rgba(61,44,94,.18); --ring: #3d2c5e; --glide: #fff0f6; --cb-off: #fff; background: #fff4e6; }
-.s-jelly .set-head h2 { color: #ff6b9d; font-weight: 700; }
-.s-jelly .list { background: #fff; border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); }
-.s-jelly .sw-thumb { border: 3px solid var(--ink); top: calc((var(--sw-h) - var(--th-h)) / 2); box-shadow: none; }
-.s-jelly .rd-dot { box-shadow: inset 0 0 0 2.5px var(--ink); }
+/* ================= 03 · SPATIAL · Ethereal (visionOS) ================= */
+.s-spatial { --rule: transparent; --ring: rgba(255,255,255,.5); --glide: rgba(255,255,255,.08); color: #fff;
+  background: radial-gradient(80% 60% at 20% 20%, #8fb7c9 0%, transparent 60%), radial-gradient(70% 60% at 85% 80%, #c79a7d 0%, transparent 60%), linear-gradient(160deg, #42606b, #2b3a40 55%, #5b4a43); }
+.s-spatial .set-head p, .s-spatial .list-title, .s-spatial .spec dt { color: rgba(255,255,255,.65); }
+.s-spatial .set-head h2 { font-weight: 600; }
+.s-spatial .list { background: rgba(128,128,128,.3); backdrop-filter: blur(30px) saturate(140%); -webkit-backdrop-filter: blur(30px) saturate(140%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 0 0 1px rgba(255,255,255,.12), 0 30px 60px -30px rgba(0,0,0,.6); padding: 6px; }
+.s-spatial .row { border-radius: 24px; transition: background .3s, scale 120ms ease-out; }
+.s-spatial .row-check, .s-spatial .row-radio { border-radius: 24px; overflow: hidden; }
+/* a soft light follows the pointer, like eye-tracked hover */
+.s-spatial .row::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .35s;
+  background: radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.22), transparent 70%); }
+.s-spatial .row:hover::after, .s-spatial .row-hit:hover::after { opacity: 1; }
+.s-spatial .row-hit { border-radius: 24px; }
+.s-spatial .row-hit::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .35s;
+  background: radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.22), transparent 70%); }
+/* press sinks into depth */
+.s-spatial .row:active, .s-spatial .row-check:active, .s-spatial .row-radio:active { scale: .96; }
+.s-spatial .sw-track { background: color-mix(in oklab, #34c759 clamp(0%, calc(var(--p) * 100%), 100%), rgba(255,255,255,.18)); box-shadow: inset 0 1px 2px rgba(0,0,0,.25); }
+.s-spatial .sw-thumb { box-shadow: 0 4px 10px rgba(0,0,0,.3), 0 0 calc(var(--k) * 14px) rgba(255,255,255,.6); }
+.s-spatial .cb { --cb-off: rgba(255,255,255,.1); --check: #1d1d1f; }
+.s-spatial .rd-dot { background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.7); }
+.s-spatial .rd { background: rgba(255,255,255,.08); }
+.s-spatial .rd-glide { inset: 6px 6px auto; top: 6px; border-radius: 24px; }
+.s-spatial .spec { --rule: rgba(255,255,255,.25); }
 
-/* ================= 04 · HI-FI · Nostalgic ================= */
-.s-hifi { --rule: rgba(0,0,0,.18); --ring: #1d1a16; --glide: rgba(0,0,0,.06); border-radius: 10px;
-  background: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, transparent 1px 3px), linear-gradient(180deg, #dcd9d2, #b9b5ac);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 -2px 0 rgba(0,0,0,.25); }
-.s-hifi .set-head h2 { text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
-.s-hifi .label { text-transform: uppercase; text-shadow: 0 1px 0 rgba(255,255,255,.55); }
-.s-hifi .list { background: linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.02)); box-shadow: inset 0 1px 2px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.7); }
-.s-hifi .row + .row::after { content: ''; position: absolute; top: 1px; left: var(--pad-x); right: 0; height: 1px; background: rgba(255,255,255,.45); }
-/* slide switch: a dark slot with a ribbed metal knob, and an amber pilot lamp beside it */
-.s-hifi .sw { margin-left: 22px; }
-.s-hifi .sw-track { background: #1f1c18; box-shadow: inset 0 2px 3px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.6); }
-.s-hifi .sw-thumb { background: repeating-linear-gradient(90deg, #f2f0ea 0 2px, #9d998f 2px 4px); box-shadow: 0 2px 2px rgba(0,0,0,.6), inset 0 1px 0 #fff; }
-.s-hifi .sw-led { display: block; position: absolute; right: calc(100% + 12px); top: 50%; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
-  background: color-mix(in oklab, #ffcf6b calc(var(--p) * 100%), #4a3d27);
-  box-shadow: inset 0 1px 1px rgba(0,0,0,.5), 0 0 calc(var(--p) * 12px) calc(var(--p) * 2px) rgba(255,176,46,.75); }
-/* checkbox → latching push button with a lamp */
-.s-hifi .cb { background: linear-gradient(180deg, #f1efe9, #b6b2a8); box-shadow: 0 calc((1 - var(--p)) * 3px) 0 #6f6a60, 0 calc((1 - var(--p)) * 3px + 2px) 3px rgba(0,0,0,.4), inset 0 1px 0 #fff;
-  transform: translateY(calc(var(--p) * 2px)); }
-.s-hifi .cb svg { display: none; }
-.s-hifi .cb-led { display: block; width: 8px; height: 8px; border-radius: 50%; background: color-mix(in oklab, #ffcf6b calc(var(--p) * 100%), #5a4b30);
-  box-shadow: inset 0 1px 1px rgba(0,0,0,.45), 0 0 calc(var(--p) * 10px) calc(var(--p) * 2px) rgba(255,176,46,.8); }
-/* radio → selector lamps */
-.s-hifi .rd { background: #2a2620; box-shadow: inset 0 1px 2px #000, 0 1px 0 rgba(255,255,255,.6); }
-.s-hifi .rd-dot { background: #ffcf6b; box-shadow: 0 0 10px 2px rgba(255,176,46,.8); }
+/* ================= 04 · AQUA · Nostalgic (Mac OS X) ================= */
+.s-aqua { --rule: #d6d6d6; --ring: #8c8c8c; --glide: rgba(58,142,230,.1); border-radius: 10px;
+  background: repeating-linear-gradient(180deg, #f2f2f2 0 2px, #e6e6e6 2px 4px); box-shadow: inset 0 0 0 1px #b8b8b8; }
+.s-aqua .set-head h2 { font-weight: 700; font-size: 34px; text-shadow: 0 1px 0 #fff; }
+.s-aqua .list { background: #fff; box-shadow: inset 0 0 0 1px #9a9a9a, inset 0 2px 3px rgba(0,0,0,.15); }
+.s-aqua .list-title { color: #333; text-shadow: 0 1px 0 #fff; }
+/* lickable gel: a glossy highlight over a vivid blue */
+.aqua-gel { background: linear-gradient(180deg, rgba(255,255,255,.85) 0%, rgba(255,255,255,.2) 48%, transparent 52%), var(--gel); }
+.s-aqua .sw-track { background: linear-gradient(180deg, rgba(255,255,255,.75) 0%, rgba(255,255,255,.15) 48%, transparent 52%),
+  color-mix(in oklab, var(--on) clamp(0%, calc(var(--p) * 100%), 100%), #c9c9c9); box-shadow: inset 0 0 0 1px rgba(0,0,0,.45), inset 0 2px 3px rgba(0,0,0,.25); }
+.s-aqua .sw-thumb { background: linear-gradient(180deg, #fff 0%, #e9e9e9 50%, #d0d0d0 51%, #f4f4f4 100%); box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 2px 3px rgba(0,0,0,.3); }
+.s-aqua .cb, .s-aqua .rd { background: linear-gradient(180deg, rgba(255,255,255,.95) 0%, rgba(255,255,255,.35) 48%, rgba(255,255,255,0) 52%),
+    color-mix(in oklab, var(--on) calc(var(--p) * 100%), #e8e8e8);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, #1f5fa8 calc(var(--p) * 100%), #7d7d7d), 0 1px 2px rgba(0,0,0,.3); }
+.s-aqua .cb path { stroke: #111; filter: drop-shadow(0 1px 0 rgba(255,255,255,.6)); }
+/* checked items throb like the Aqua default button */
+.s-aqua [aria-checked='true'] .cb { animation: throb 1.6s ease-in-out infinite; }
+@keyframes throb { 50% { filter: brightness(1.18) saturate(1.2); } }
+/* the radio dot lands like a water drop: its spring overshoot stretches it */
+.s-aqua .rd-dot { background: radial-gradient(circle at 35% 30%, #fff 0 18%, #0a2a55 60%); transform: scale(var(--s)) scaleY(calc(1 + (var(--s) - var(--p)) * 1.4)) scaleX(calc(1 - (var(--s) - var(--p)) * .6)); }
+.s-aqua .label { text-shadow: 0 1px 0 rgba(255,255,255,.6); }
 
 /* ================= accessibility preferences ================= */
 @media (prefers-reduced-transparency: reduce) {
