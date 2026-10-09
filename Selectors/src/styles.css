@@ -25,7 +25,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 /* title on the left, the list on the right */
 .set { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 24px 48px; align-items: start; }
 .set-head { flex-direction: column; }
-.set-head p { margin-bottom: 20px; }
+.set-head h2 { margin: 0 0 20px; }
 .set-head .draft-ref { align-items: flex-start; }
 .set-head .draft-ref img { transform-origin: top left; }
 @media (max-width: 760px) { .set { grid-template-columns: 1fr; } }
@@ -33,7 +33,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .row-group { position: relative; }
 .row-group::before { content: ''; position: absolute; top: 0; left: var(--pad-x); right: 0; height: var(--divider); background: var(--rule); }
 .group-label { display: block; padding: 12px var(--pad-x) 2px; font-size: var(--dfs); line-height: var(--dlh); color: var(--muted); }
-.list .radio-list { border-radius: 0; background: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; border: 0; padding: 0; outline: 0; overflow: visible; }
+.set .list .radio-list, .wall-tile .list .radio-list { border-radius: 0; background: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; border: 0; padding: 0; outline: 0; overflow: visible; }
 .list-title { margin: 0 0 8px var(--pad-x); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .list { position: relative; list-style: none; margin: 0; padding: 0; border-radius: var(--list-r); overflow: hidden; }
 .row { position: relative; display: flex; align-items: center; gap: var(--gap); min-height: var(--row-h); padding: 0 var(--pad-x); }
@@ -75,99 +75,62 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 /* the selection glides between rows (same path in both directions) */
 .rd-glide { position: absolute; left: 0; right: 0; top: 0; height: var(--row-h); transform: translateY(calc(var(--y) * var(--row-h))); background: var(--glide, transparent); pointer-events: none; }
 
-/* ================= 01 · LIQUID GLASS · Serene (iOS) ================= */
-.s-glass { --rule: rgba(60,60,67,.2); --ring: rgba(60,60,67,.3); --glide: transparent;
-  background: radial-gradient(120% 80% at 10% 0%, #cfe3ff 0%, transparent 55%), radial-gradient(90% 70% at 100% 100%, #ffd9e8 0%, transparent 60%), #eef0f6; }
-.s-glass .set-head h2 { font-weight: 700; letter-spacing: -0.03em; }
-.s-glass .list { background: rgba(255,255,255,.58); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(255,255,255,.35), 0 18px 40px -24px rgba(30,50,90,.45); }
-/* the thumb turns into a clear lens while held: bigger, see-through, with a bright rim */
-.s-glass .sw-thumb { scale: calc(1 + var(--k) * .25); background: rgba(255,255,255, calc(1 - var(--k) * .65));
-  backdrop-filter: blur(calc(var(--k) * 2px)) saturate(calc(100% + var(--k) * 80%)); -webkit-backdrop-filter: blur(calc(var(--k) * 2px)) saturate(calc(100% + var(--k) * 80%));
-  box-shadow: inset 0 0 0 calc(var(--k) * 1px) rgba(255,255,255,.9), inset 0 calc(var(--k) * 2px) calc(var(--k) * 4px) rgba(255,255,255,.8), 0 3px 8px rgba(0,0,0,.14), 0 3px 1px rgba(0,0,0,.05); }
-.s-glass .cb { --cb-off: transparent; }
-/* iOS selection: a trailing checkmark that glides to the chosen row */
-.radio-trailing .row-hit { padding-right: 48px; }
-.rd-check { position: absolute; z-index: 2; right: 16px; top: calc((var(--row-h) - 17px) / 2); width: 17px; height: 17px; pointer-events: none;
-  transform: translateY(calc(var(--y) * var(--row-h))); fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+/* ================= ETHEREAL · visionOS (shared by all four sets) =================
+   floating glass panels, a light that follows the pointer, and a gentle press into depth */
+.vision { --rule: transparent; --ring: color-mix(in oklab, var(--ink) 45%, transparent); --glide: color-mix(in oklab, var(--ink) 10%, transparent);
+  --cb-off: color-mix(in oklab, var(--ink) 8%, transparent); --check: #1d1d1f; color: var(--ink); position: relative; overflow: hidden; }
+.vision .set-head h2 { font-weight: 600; }
+.vision .list-title { color: var(--muted); }
+.vision .list { padding: 6px; background: var(--panel, rgba(128,128,128,.3)); backdrop-filter: blur(30px) saturate(140%); -webkit-backdrop-filter: blur(30px) saturate(140%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 0 0 1px rgba(255,255,255,.12), 0 30px 60px -30px rgba(0,0,0,.55); }
+.vision .row, .vision .row-hit { border-radius: 24px; }
+.vision .row-check, .vision .row-radio { overflow: hidden; }
+.vision .row { transition: scale 140ms ease-out; }
+.vision .row:active, .vision .row-check:active, .vision .row-radio:active { scale: .96; } /* press sinks into depth */
+.vision .row::after, .vision .row-hit::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .4s;
+  background: radial-gradient(150px circle at var(--mx, 50%) var(--my, 50%), var(--light, rgba(255,255,255,.22)), transparent 70%); }
+.vision .row:hover::after, .vision .row-hit:hover::after { opacity: 1; } /* the light follows the pointer */
+.vision .sw-track { background: color-mix(in oklab, var(--on) clamp(0%, calc(var(--p) * 100%), 100%), var(--off)); box-shadow: inset 0 1px 2px rgba(0,0,0,.2); }
+.vision .sw-thumb { box-shadow: 0 4px 10px rgba(0,0,0,.25), 0 0 calc(var(--k) * 14px) rgba(255,255,255,.7); }
+.vision .rd { background: color-mix(in oklab, var(--ink) 8%, transparent); }
+.vision .rd-dot { background: var(--accent); box-shadow: 0 0 8px color-mix(in oklab, var(--accent) 70%, transparent); }
+.vision .rd-glide { border-radius: 24px; }
+.vision .row-group::before { display: none; }
+.vision > * { position: relative; z-index: 1; }
 
-/* ================= 02 · RINGS · Energetic (watchOS) ================= */
-.s-rings { --rule: transparent; --ring: #3a3a3c; --glide: transparent; background: #000; border-radius: 34px; }
-.s-rings .set-head h2 { font-weight: 700; color: var(--on); letter-spacing: -0.02em; }
-.s-rings .list-title { color: #8e8e93; }
-.s-rings .list { display: flex; flex-direction: column; gap: 6px; overflow: visible; }
-.s-rings .row { background: #1c1c1e; border-radius: 18px; }
-.s-rings .row + .row::before { display: none; }
-.s-rings .rd-glide { display: none; }
-.s-rings .row-group { background: none; }
-.s-rings .row-group::before { display: none; }
-.s-rings .group-label { padding: 10px 14px 4px; }
-.s-rings .list .radio-list { display: flex; flex-direction: column; gap: 6px; }
-.s-rings .sw-track { background: color-mix(in oklab, var(--on) clamp(0%, calc(var(--p) * 100%), 100%), var(--off)); }
-/* activity ring: the ring sweeps closed, then the check draws */
-.cb-ring { background: none !important; box-shadow: none !important; }
-.cb-ring svg { width: 100%; height: 100%; }
-.cb-ring .ring-track { fill: none; stroke: color-mix(in oklab, var(--accent) 22%, #000); stroke-width: 3; }
-.cb-ring .ring-fill { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1; transform: rotate(-90deg); transform-origin: center;
-  filter: drop-shadow(0 0 calc(var(--p) * 4px) var(--accent)); }
-.cb-ring path { stroke: #fff; stroke-width: 2.6; }
-.s-rings .rd { position: relative; }
-.s-rings .rd-dot { background: var(--on); }
-.rd-ripple { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--on); animation: ripple .7s cubic-bezier(.2,.8,.2,1) forwards; pointer-events: none; }
-@keyframes ripple { from { transform: scale(.6); opacity: .9; } to { transform: scale(2.1); opacity: 0; } }
+/* ---------- Mist: the slate landscape ---------- */
+.s-mist { background: radial-gradient(80% 60% at 20% 20%, #8fb7c9 0%, transparent 60%), radial-gradient(70% 60% at 85% 80%, #c79a7d 0%, transparent 60%), linear-gradient(160deg, #42606b, #2b3a40 55%, #5b4a43); }
 
-/* ================= 03 · SPATIAL · Ethereal (visionOS) ================= */
-.s-spatial { --rule: transparent; --ring: rgba(255,255,255,.5); --glide: rgba(255,255,255,.08); color: #fff;
-  background: radial-gradient(80% 60% at 20% 20%, #8fb7c9 0%, transparent 60%), radial-gradient(70% 60% at 85% 80%, #c79a7d 0%, transparent 60%), linear-gradient(160deg, #42606b, #2b3a40 55%, #5b4a43); }
-.s-spatial .set-head p, .s-spatial .list-title, .s-spatial .spec dt { color: rgba(255,255,255,.65); }
-.s-spatial .set-head h2 { font-weight: 600; }
-.s-spatial .list { background: rgba(128,128,128,.3); backdrop-filter: blur(30px) saturate(140%); -webkit-backdrop-filter: blur(30px) saturate(140%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 0 0 1px rgba(255,255,255,.12), 0 30px 60px -30px rgba(0,0,0,.6); padding: 6px; }
-.s-spatial .row { border-radius: 24px; transition: background .3s, scale 120ms ease-out; }
-.s-spatial .row-check, .s-spatial .row-radio { border-radius: 24px; overflow: hidden; }
-/* a soft light follows the pointer, like eye-tracked hover */
-.s-spatial .row::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .35s;
-  background: radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.22), transparent 70%); }
-.s-spatial .row:hover::after, .s-spatial .row-hit:hover::after { opacity: 1; }
-.s-spatial .row-hit { border-radius: 24px; }
-.s-spatial .row-hit::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .35s;
-  background: radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.22), transparent 70%); }
-/* press sinks into depth */
-.s-spatial .row:active, .s-spatial .row-check:active, .s-spatial .row-radio:active { scale: .96; }
-.s-spatial .sw-track { background: color-mix(in oklab, #34c759 clamp(0%, calc(var(--p) * 100%), 100%), rgba(255,255,255,.18)); box-shadow: inset 0 1px 2px rgba(0,0,0,.25); }
-.s-spatial .sw-thumb { box-shadow: 0 4px 10px rgba(0,0,0,.3), 0 0 calc(var(--k) * 14px) rgba(255,255,255,.6); }
-.s-spatial .cb { --cb-off: rgba(255,255,255,.1); --check: #1d1d1f; }
-.s-spatial .rd-dot { background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.7); }
-.s-spatial .rd { background: rgba(255,255,255,.08); }
-.s-spatial .rd-glide { border-radius: 24px; }
-.s-spatial .row-group::before { display: none; }
+/* ---------- Aurora: night sky, aurora-colored light ---------- */
+.s-aurora { --panel: rgba(20,30,60,.35); --light: rgba(94,240,200,.28); background: #070b1d; }
+.s-aurora::before { content: ''; position: absolute; inset: -20%; z-index: 0; pointer-events: none; filter: blur(40px); opacity: .85;
+  background: radial-gradient(40% 30% at 30% 30%, #2ee6b0 0%, transparent 70%), radial-gradient(35% 28% at 65% 25%, #7a5cff 0%, transparent 70%), radial-gradient(30% 25% at 50% 60%, #1fb5ff 0%, transparent 70%);
+  animation: aurora 18s ease-in-out infinite alternate; }
+@keyframes aurora { to { transform: translate(6%, 4%) rotate(8deg) scale(1.1); } }
+.s-aurora .cb { background: linear-gradient(135deg, rgba(94,240,200, var(--p)), rgba(122,92,255, var(--p))); }
+.s-aurora .set-head h2 { background: linear-gradient(90deg, #8ff5d9, #b3a1ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
-/* ================= 04 · AQUA · Nostalgic (Mac OS X) ================= */
-.s-aqua { --rule: #d6d6d6; --ring: #8c8c8c; --glide: rgba(58,142,230,.1); border-radius: 10px;
-  background: repeating-linear-gradient(180deg, #f2f2f2 0 2px, #e6e6e6 2px 4px); box-shadow: inset 0 0 0 1px #b8b8b8; }
-.s-aqua .set-head h2 { font-weight: 700; font-size: 34px; text-shadow: 0 1px 0 #fff; }
-.s-aqua .list { background: #fff; box-shadow: inset 0 0 0 1px #9a9a9a, inset 0 2px 3px rgba(0,0,0,.15); }
-.s-aqua .list-title { color: #333; text-shadow: 0 1px 0 #fff; }
-/* lickable gel: a glossy highlight over a vivid blue */
-.aqua-gel { background: linear-gradient(180deg, rgba(255,255,255,.85) 0%, rgba(255,255,255,.2) 48%, transparent 52%), var(--gel); }
-.s-aqua .sw-track { background: linear-gradient(180deg, rgba(255,255,255,.75) 0%, rgba(255,255,255,.15) 48%, transparent 52%),
-  color-mix(in oklab, var(--on) clamp(0%, calc(var(--p) * 100%), 100%), #c9c9c9); box-shadow: inset 0 0 0 1px rgba(0,0,0,.45), inset 0 2px 3px rgba(0,0,0,.25); }
-.s-aqua .sw-thumb { background: linear-gradient(180deg, #fff 0%, #e9e9e9 50%, #d0d0d0 51%, #f4f4f4 100%); box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 2px 3px rgba(0,0,0,.3); }
-.s-aqua .cb, .s-aqua .rd { background: linear-gradient(180deg, rgba(255,255,255,.95) 0%, rgba(255,255,255,.35) 48%, rgba(255,255,255,0) 52%),
-    color-mix(in oklab, var(--on) calc(var(--p) * 100%), #e8e8e8);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, #1f5fa8 calc(var(--p) * 100%), #7d7d7d), 0 1px 2px rgba(0,0,0,.3); }
-.s-aqua .cb path { stroke: #111; filter: drop-shadow(0 1px 0 rgba(255,255,255,.6)); }
-/* checked items throb like the Aqua default button */
-.s-aqua [aria-checked='true'] .cb { animation: throb 1.6s ease-in-out infinite; }
-@keyframes throb { 50% { filter: brightness(1.18) saturate(1.2); } }
-/* the radio dot lands like a water drop: its spring overshoot stretches it */
-.s-aqua .rd-dot { background: radial-gradient(circle at 35% 30%, #fff 0 18%, #0a2a55 60%); transform: scale(var(--s)) scaleY(calc(1 + (var(--s) - var(--p)) * 1.4)) scaleX(calc(1 - (var(--s) - var(--p)) * .6)); }
-.s-aqua .label { text-shadow: 0 1px 0 rgba(255,255,255,.6); }
+/* ---------- Halo: luminous pearly glass, rows tilt toward the pointer ---------- */
+.s-halo { --panel: rgba(255,255,255,.42); --light: rgba(255,255,255,.75); --check: #fff;
+  background: radial-gradient(60% 50% at 25% 20%, #ffffff 0%, transparent 70%), radial-gradient(60% 60% at 80% 85%, #e6e0ff 0%, transparent 70%), linear-gradient(170deg, #eef1fb, #dfe4f6 60%, #f3eef8); }
+.s-halo .list { box-shadow: inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.6), 0 30px 60px -30px rgba(80,90,150,.4); }
+.s-halo .row, .s-halo .row-check, .s-halo .row-radio { transition: transform .5s cubic-bezier(.2,.8,.2,1), scale 140ms ease-out; }
+.s-halo .row:hover, .s-halo .row-check:hover, .s-halo .row-radio:hover { transform: perspective(700px) rotateX(calc(var(--ny, 0) * -5deg)) rotateY(calc(var(--nx, 0) * 5deg)) translateZ(6px); }
+.s-halo .row-check:hover .row-hit, .s-halo .row-radio:hover .row-hit { transform: none; }
+
+/* ---------- Drift: underwater, slow caustic light ---------- */
+.s-drift { --panel: rgba(10,60,80,.32); --light: rgba(120,230,255,.3); background: linear-gradient(180deg, #0d4a5f, #062a3a 70%, #041d29); }
+.s-drift::before { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .16; filter: blur(1.5px); mix-blend-mode: screen;
+  background: repeating-radial-gradient(circle at 30% 20%, rgba(150,240,255,.35) 0 2px, transparent 3px 40px), repeating-radial-gradient(circle at 70% 60%, rgba(150,240,255,.25) 0 2px, transparent 3px 56px);
+  animation: caustic 14s ease-in-out infinite alternate; }
+@keyframes caustic { to { background-position: 40px 30px, -30px 20px; } }
+.s-drift .rd-dot { box-shadow: 0 0 10px rgba(79,209,232,.8), inset -2px -2px 0 rgba(255,255,255,.4); }
 
 /* ================= accessibility preferences ================= */
 @media (prefers-reduced-transparency: reduce) {
-  .s-glass .list { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .vision .list { background: color-mix(in oklab, var(--panel, #445) 100%, #222); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+@media (prefers-reduced-motion: reduce) { .s-aurora::before, .s-drift::before { animation: none; } }
 @media (prefers-contrast: more) {
   .list { outline: 2px solid var(--ink); }
   .set { --rule: var(--ink); --ring: var(--ink); }

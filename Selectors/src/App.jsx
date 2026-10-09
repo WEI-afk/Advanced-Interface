@@ -59,6 +59,8 @@ const glow = (e) => {
   const el = e.currentTarget, r = el.getBoundingClientRect()
   el.style.setProperty('--mx', `${e.clientX - r.left}px`)
   el.style.setProperty('--my', `${e.clientY - r.top}px`)
+  el.style.setProperty('--nx', ((e.clientX - r.left) / r.width * 2 - 1).toFixed(3))
+  el.style.setProperty('--ny', ((e.clientY - r.top) / r.height * 2 - 1).toFixed(3))
 }
 
 function Switch({ checked, onChange, label, detail, t }) {
@@ -187,69 +189,58 @@ function RadioGroup({ title, options, value, onChange, t }) {
 /* ================= the four sets =================
    tokens drive the CSS (as custom properties) AND the spec table, so the spec is always exact */
 const SF = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif'
+// all four sets share visionOS glass; each has its own world and one signature detail
 const SETS = [
   {
-    id: 'glass', name: 'Glass', tone: 'Serene', platform: 'iOS',
-    desc: 'An iOS Settings list in frosted glass. Hold a switch and its thumb turns into a clear glass lens; the selection is a checkmark that glides to its row.',
-    content: {
-      topic: 'Focus', sw: ['Do Not Disturb', 'Silence calls and alerts', true], cb: ['Share Focus Status', '', false], radio: ['Mode', ['Personal', 'Work', 'Sleep'], 'Personal'],
-    },
-    t: {
-      font: SF, fontName: 'SF Pro Text Regular', fw: 400, fs: 17, lh: 22, ls: '-0.43px',
-      dfs: 13, dlh: 18, rowH: 48, padX: 16, gap: 12, listR: 26, divider: 0.5, listGap: 20,
-      swW: 64, swH: 28, thW: 38, thH: 24, inset: 2, swR: 14, thR: 12, stretch: 8, swStroke: 0,
-      cb: 24, cbR: 12, cbStroke: 1.5, checkStroke: 2.2, rd: 0, rdDot: 0, rdStroke: 0,
-      checkStyle: 'circle', radioStyle: 'check', checkNote: 'Reminders-style circle', radioNote: 'Trailing checkmark (17pt) glides between rows',
-      ink: '#000000', muted: '#8a8a8e', on: '#34c759', off: 'rgba(120,120,128,.16)', thumb: '#ffffff', accent: '#007aff',
-      spring: { damping: 1, response: 0.35 }, signature: 'Thumb becomes a glass lens while held (scale 1.25, 65% clear)',
-    },
-  },
-  {
-    id: 'rings', name: 'Rings', tone: 'Energetic', platform: 'watchOS',
-    desc: 'True black and Activity colors. Checking a goal sweeps its ring closed before the check pops in; choosing a workout sends out a ripple like a haptic tap.',
-    content: {
-      topic: 'Workout', sw: ['Auto-Pause', '', true], cb: ['Count Toward Rings', '', false], radio: ['Type', ['Run', 'Cycle', 'Yoga'], 'Run'],
-    },
-    t: {
-      font: '-apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", Inter, system-ui, sans-serif', fontName: 'SF Pro Rounded Semibold', fw: 600, fs: 16, lh: 21, ls: '-0.2px',
-      dfs: 13, dlh: 16, rowH: 56, padX: 14, gap: 12, listR: 0, divider: 0, listGap: 20,
-      swW: 51, swH: 31, thW: 27, thH: 27, inset: 2, swR: 15.5, thR: 13.5, stretch: 6, swStroke: 0,
-      cb: 30, cbR: 15, cbStroke: 3, checkStroke: 3, rd: 26, rdDot: 12, rdStroke: 2.5,
-      checkStyle: 'ring', radioStyle: 'ripple', checkNote: 'Activity ring, sweeps closed first', radioNote: 'Dot with a one-shot ripple',
-      ink: '#ffffff', muted: '#8e8e93', on: '#a6ff00', off: '#2c2c2e', thumb: '#ffffff', accent: '#fa114f',
-      spring: { damping: 0.82, response: 0.3 }, signature: 'Ring sweep 0→70%, check draws 55→100%',
-    },
-  },
-  {
-    id: 'spatial', name: 'Spatial', tone: 'Ethereal', platform: 'visionOS',
-    desc: 'Glass panels floating in a soft landscape. A specular light follows your pointer across each row, and controls sink into depth when you press them.',
-    content: {
-      topic: 'Immersion', sw: ['Spatial Audio', '', true], cb: ['Show Hands', '', false], radio: ['Environment', ['Yosemite', 'Moon', 'Mount Hood'], 'Yosemite'],
-    },
+    id: 'mist', name: 'Mist', tone: 'Ethereal', platform: 'visionOS',
+    content: { topic: 'Immersion', sw: ['Spatial Audio', '', true], cb: ['Show Hands', '', false], radio: ['Environment', ['Yosemite', 'Mount Hood', 'Moon'], 'Yosemite'] },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
       dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
       swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
       cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      checkStyle: 'square', radioStyle: 'dot', checkNote: 'Rounded glass square', radioNote: 'Glass ring, white dot',
-      ink: '#ffffff', muted: 'rgba(255,255,255,.62)', on: 'rgba(255,255,255,.92)', off: 'rgba(255,255,255,.16)', thumb: '#ffffff', accent: '#ffffff',
-      spring: { damping: 1, response: 0.45 }, signature: 'Pointer-tracked specular highlight; press sinks 4% in depth',
+      checkStyle: 'square', radioStyle: 'dot',
+      ink: '#ffffff', muted: 'rgba(255,255,255,.62)', on: '#34c759', off: 'rgba(255,255,255,.18)', thumb: '#ffffff', accent: '#ffffff',
+      spring: { damping: 1, response: 0.45 },
     },
   },
   {
-    id: 'aqua', name: 'Aqua', tone: 'Nostalgic', platform: 'Mac OS X',
-    desc: 'Mac OS X circa 2001: pinstripes, Lucida Grande and lickable blue gel. Checked boxes throb like the default button; radio dots land as wobbling water drops.',
-    content: {
-      topic: 'Dock', sw: ['Magnification', '', true], cb: ['Hide Automatically', '', false], radio: ['Position on screen', ['Left', 'Bottom', 'Right'], 'Bottom'],
-    },
+    id: 'aurora', name: 'Aurora', tone: 'Ethereal', platform: 'visionOS',
+    content: { topic: 'Night', sw: ['Aurora Alerts', '', true], cb: ['Show Stars', '', false], radio: ['Sky', ['Iceland', 'Lapland', 'Yukon'], 'Lapland'] },
     t: {
-      font: '"Lucida Grande", "Lucida Sans Unicode", Inter, system-ui, sans-serif', fontName: 'Lucida Grande', fw: 400, fs: 13, lh: 18, ls: '0',
-      dfs: 11, dlh: 14, rowH: 34, padX: 14, gap: 8, listR: 6, divider: 1, listGap: 18,
-      swW: 46, swH: 22, thW: 22, thH: 20, inset: 1, swR: 11, thR: 10, stretch: 4, swStroke: 1,
-      cb: 16, cbR: 4, cbStroke: 1, checkStroke: 2.6, rd: 16, rdDot: 7, rdStroke: 1,
-      checkStyle: 'aqua', radioStyle: 'drop', checkNote: 'Gel box, throbs while checked', radioNote: 'Gel bead, dot lands like a drop',
-      ink: '#000000', muted: '#555555', on: '#3a8ee6', off: '#e3e3e3', thumb: '#fafafa', accent: '#3a8ee6',
-      spring: { damping: 0.45, response: 0.42 }, signature: 'Throb 1.6s on checked items; drop stretch from spring overshoot',
+      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
+      dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
+      swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
+      cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
+      checkStyle: 'square', radioStyle: 'dot',
+      ink: '#ffffff', muted: 'rgba(225,240,255,.6)', on: '#5ef0c8', off: 'rgba(255,255,255,.16)', thumb: '#ffffff', accent: '#5ef0c8',
+      spring: { damping: 1, response: 0.5 },
+    },
+  },
+  {
+    id: 'halo', name: 'Halo', tone: 'Ethereal', platform: 'visionOS',
+    content: { topic: 'Presence', sw: ['Persona', '', true], cb: ['Eye Contact', '', false], radio: ['Window', ['Small', 'Medium', 'Large'], 'Medium'] },
+    t: {
+      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
+      dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
+      swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
+      cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
+      checkStyle: 'square', radioStyle: 'dot',
+      ink: '#2a2f45', muted: 'rgba(42,47,69,.55)', on: '#8f9cff', off: 'rgba(42,47,69,.12)', thumb: '#ffffff', accent: '#2a2f45',
+      spring: { damping: 1, response: 0.55 },
+    },
+  },
+  {
+    id: 'drift', name: 'Drift', tone: 'Ethereal', platform: 'visionOS',
+    content: { topic: 'Depth', sw: ['Ambient Sound', '', true], cb: ['Particles', '', false], radio: ['Mood', ['Calm', 'Deep', 'Glow'], 'Calm'] },
+    t: {
+      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
+      dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
+      swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
+      cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
+      checkStyle: 'square', radioStyle: 'dot',
+      ink: '#eafcff', muted: 'rgba(200,240,250,.6)', on: '#4fd1e8', off: 'rgba(255,255,255,.16)', thumb: '#ffffff', accent: '#eafcff',
+      spring: { damping: 1, response: 0.6 },
     },
   },
 ]
@@ -317,7 +308,7 @@ function Wall() {
         <div key={c} className="wall-col">
           {Array.from({ length: layout.rows }, (_, r) => {
             const set = SETS[(c + r * 3) % SETS.length]
-            return <div key={r} className={`wall-tile set s-${set.id}`} style={cssVars(set.t)}><SetList set={set} auto offset={c * 2 + r} /></div>
+            return <div key={r} className={`wall-tile set vision s-${set.id}`} style={cssVars(set.t)}><SetList set={set} auto offset={c * 2 + r} /></div>
           })}
         </div>
       ))}
@@ -333,16 +324,12 @@ export default function App() {
       <header className="page-head">
         <a className="back" href="../">← Advanced Interface</a>
         <h1>Selectors</h1>
-        <p>Week 3 · four Apple-style sets, each its own look and motion · one list per set with a switch, a checkbox and radio options · switches can be tapped or dragged.</p>
+        <p>Week 3 · Ethereal · visionOS</p>
       </header>
-      {SETS.map((set, i) => (
-        <section key={set.id} className={`set s-${set.id}`} style={cssVars(set.t)}>
+      {SETS.map((set) => (
+        <section key={set.id} className={`set vision s-${set.id}`} style={cssVars(set.t)}>
           <div className="set-head">
-            <div>
-              <div className="set-tone">{String(i + 1).padStart(2, '0')} · {set.tone} · {set.platform}</div>
-              <h2>{set.name}</h2>
-              <p>{set.desc}</p>
-            </div>
+            <h2>{set.name}</h2>
             {/* Figma line drawing: small thumbnail, zooms in on hover / focus */}
             <a className="draft-ref" href={`${import.meta.env.BASE_URL}final/${set.id}.png`} target="_blank" rel="noreferrer">
               <img src={`${import.meta.env.BASE_URL}final/${set.id}.png`} alt={`${set.name} drawing from Figma`} loading="lazy"
