@@ -197,7 +197,7 @@ function RadioGroup({ title, options, value, onChange, t }) {
 const SF = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif'
 const SETS = [
   {
-    id: 'mist', figma: '23-2', concept: 'Mist Takes Shape', name: 'Mist', tone: 'Ethereal', platform: 'visionOS',
+    id: 'mist', concept: 'Mist Takes Shape', name: 'Mist', tone: 'Ethereal', platform: 'visionOS',
     content: { topic: 'Immersion', sw: ['Spatial Audio', '', true], cb: ['Show Hands', '', false], radio: ['Environment', ['Yosemite', 'Mount Hood', 'Moon'], 'Yosemite'] },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
@@ -209,7 +209,7 @@ const SETS = [
     },
   },
   {
-    id: 'unfold', figma: '23-37', concept: 'Choices Unfold', name: 'Unfold', tone: 'Cozy', platform: 'visionOS',
+    id: 'unfold', concept: 'Choices Unfold', name: 'Unfold', tone: 'Cozy', platform: 'visionOS',
     content: { topic: 'Spaces' },
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
@@ -221,7 +221,7 @@ const SETS = [
     },
   },
   {
-    id: 'frost', figma: '23-79', concept: 'Action Clears the Room', name: 'Frost', tone: 'Serene', platform: 'visionOS',
+    id: 'frost', concept: 'Action Clears the Room', name: 'Frost', tone: 'Serene', platform: 'visionOS',
     content: {},
     t: {
       font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
@@ -233,7 +233,7 @@ const SETS = [
     },
   },
   {
-    id: 'invert', figma: '23-113', concept: 'Light and Dark Trade Places', name: 'Invert', tone: 'Bold', platform: 'visionOS',
+    id: 'invert', concept: 'Light and Dark Trade Places', name: 'Invert', tone: 'Bold', platform: 'visionOS',
     content: {},
     t: { font: '"Barlow Condensed", "SF Pro Display", Inter, sans-serif', ink: '#1d1d1d', muted: 'rgba(29,29,29,.5)', on: '#1d1d1d', off: '#cccccc' },
   },
@@ -587,11 +587,10 @@ function DraftThumb({ set }) {
   }, [box])
   return (
     <>
-      <a ref={ref} className="draft-ref" href={`https://www.figma.com/design/kBC8kZvJsU43A2kTrtOxyM/Selectors?node-id=${set.figma}`} target="_blank" rel="noreferrer"
-        onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
+      <div ref={ref} className="draft-ref" tabIndex={0} onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
         <img src={src} alt={`${set.tone}, ${set.concept} — Figma draft`} loading="lazy" onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
         <span>Figma draft</span>
-      </a>
+      </div>
       {box && createPortal(
         <img className="draft-zoom" src={src} alt="" aria-hidden="true"
           onTransitionEnd={() => { if (!open) setBox(null) }}
