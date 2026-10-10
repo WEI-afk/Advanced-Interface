@@ -114,7 +114,7 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
   // Mist: the thumb dissolves while it travels and condenses again at either end
   const fog = v === 'mist' ? Math.sin(Math.PI * clamp(p)) : 0
   let transform = `translateX(${x}px)`
-  if (fog) transform += ` scale(${1 + fog * 0.3}, ${1 - fog * 0.12})`
+  if (fog) transform += ` scale(${1 + fog * 0.4}, ${1 - fog * 0.15})`
   return (
     <li className="row row-switch" onPointerMove={glow}>
       {icon}
@@ -126,7 +126,7 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
         style={{ '--p': p, '--k': k, '--tx': `${t.inset + x + w / 2}px` }}>
         <span className="sw-track" />
         <span className="sw-thumb" style={{ transform, width: w,
-          filter: fog > 0.01 ? `blur(${fog * 4}px)` : undefined, opacity: 1 - fog * 0.5 }} />
+          filter: fog > 0.01 ? `blur(${fog * 7}px)` : undefined, opacity: 1 - fog * 0.65 }} />
       </button>
     </li>
   )
@@ -222,7 +222,7 @@ const SETS = [
       swW: 50, swH: 30, thW: 26, thH: 26, inset: 2, swR: 15, thR: 13, stretch: 6, swStroke: 0,
       cb: 24, cbR: 7, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
       ink: '#6b4a3e', muted: 'rgba(107,74,62,.6)', on: '#a06a52', off: 'rgba(107,74,62,.16)', thumb: '#fffaf5', accent: '#a06a52',
-      spring: { damping: 1, response: 0.4 }, variant: 'unfold',
+      spring: { damping: 0.85, response: 0.5 }, variant: 'unfold',
     },
   },
   {
@@ -399,8 +399,8 @@ function FrostSet({ auto, offset = 0 }) {
   const [action, setAction] = useState(names[1])
   const [pin, setPin] = useState(true)
   const tiles = useRef([])
-  const p = useSpring(open ? 1 : 0, { damping: 0.9, response: 0.5 }).value
-  const pq = useSpring(pin ? 1 : 0, { damping: 0.6, response: 0.3 }).value
+  const p = useSpring(open ? 1 : 0, { damping: 1, response: 0.75 }).value // calm: no overshoot, unhurried
+  const pq = useSpring(pin ? 1 : 0, { damping: 1, response: 0.45 }).value
   useEffect(() => {
     if (!auto) return
     let i = offset
@@ -434,7 +434,7 @@ function FrostSet({ auto, offset = 0 }) {
       <div className="frost-tiles" aria-hidden={!open}>
         <div className="frost-tile-group" role="radiogroup" aria-label="Action">
         {names.map((name, i) => {
-          const q = clamp((p - i * 0.08) / 0.76) // same spring, read a little later per tile
+          const q = clamp((p - i * 0.12) / 0.52) // same spring, read a little later per tile
           return (
             <button key={name} ref={(el) => (tiles.current[i] = el)} role="radio" aria-checked={action === name} tabIndex={open && action === name ? 0 : -1}
               className={`frost-tile ${action === name ? 'on' : ''}`} onClick={() => setAction(name)} onKeyDown={(e) => tileKey(e, i)}
@@ -446,7 +446,7 @@ function FrostSet({ auto, offset = 0 }) {
         </div>
         {/* checkbox: keep what you make on today's page */}
         {(() => {
-          const q = clamp((p - 4 * 0.08) / 0.76)
+          const q = clamp((p - 4 * 0.12) / 0.52)
           return (
             <button className="frost-pin" role="checkbox" aria-checked={pin} tabIndex={open ? 0 : -1} onClick={() => setPin((v) => !v)}
               style={{ opacity: q, transform: `translateY(${(1 - q) * 34}px)`, pointerEvents: open ? 'auto' : 'none', '--q': clamp(pq), '--qs': pq }}>
