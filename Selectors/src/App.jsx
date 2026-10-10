@@ -307,11 +307,11 @@ function FrostSet({ auto, offset = 0 }) {
   const [open, setOpen] = useState(false) // starts closed: just the + until you reach for it
   const [action, setAction] = useState(names[1])
   const [pin, setPin] = useState(true)
-  const [today, setToday] = useState([]) // what you've added — the room's only content
+  const [today, setToday] = useState([]) // the latest thing you added — the room's only content
   const [ripples, setRipples] = useState(0) // each addition sends one slow ripple across the water
   const wasOpen = useRef(open)
   useEffect(() => { // putting the tray away with "Add to Today" checked leaves the chosen action in the room
-    if (wasOpen.current && !open && pin) { setToday((t) => [ADDED[action], ...t.filter((x) => x !== ADDED[action])].slice(0, 3)); setRipples((n) => n + 1) }
+    if (wasOpen.current && !open && pin) { setToday([ADDED[action]]); setRipples((n) => n + 1) }
     wasOpen.current = open
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
   const tiles = useRef([])
