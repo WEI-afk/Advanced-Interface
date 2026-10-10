@@ -180,7 +180,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .s-frost .set-head h2 { color: #6a4c40; }
 .s-frost .list-title { color: rgba(58,35,26,.65); }
 .s-frost .rd-dot { box-shadow: none; }
-.frost-screen { font-family: var(--font); color: #2b2420; min-height: 200px;
+.frost-screen { font-family: var(--font); color: #2b2420; min-height: 300px;
   background: linear-gradient(180deg, #f7f6f3, #f2f1ec); box-shadow: inset 0 0 0 1px rgba(255,255,255,.7), 0 30px 60px -34px rgba(60,70,60,.35); }
 .frost-veil { position: absolute; inset: 0; background: rgba(250,246,244,.9); cursor: pointer; }
 .frost-dock { position: absolute; left: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 10px; z-index: 2; }
@@ -258,7 +258,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
   .vision .list { background: color-mix(in oklab, var(--panel, #445) 100%, #222); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .unfold-content, .eth-float { animation: none !important; }
+  .unfold-content, .eth-float, .room-item { animation: none !important; }
   }
 @media (prefers-contrast: more) {
   .list { outline: 2px solid var(--ink); }
@@ -305,3 +305,17 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 .frost-tile:hover { background: rgba(230,225,218,.95); }
 .frost-tile.on { background: rgba(106,98,91,.1); color: #5a4f48; box-shadow: inset 0 0 0 1.5px rgba(106,98,91,.7); }
 .frost-pin { box-shadow: inset 0 0 0 1px rgba(106,98,91,.15); }
+
+/* Serene room: one quiet list and a horizon — the thing the tray clears */
+.frost-room { position: absolute; inset: 0; padding: 30px 36px 0 40px; display: flex; flex-direction: column; gap: 6px; transform-origin: 50% 40%; }
+.room-label { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(106,98,91,.6); margin-bottom: 6px; }
+.room-item { margin: 0; font-size: 22px; font-weight: 400; letter-spacing: -0.3px; color: #6a5a52; animation: room-in .9s ease both; }
+.room-item.quiet { color: rgba(106,90,82,.55); }
+@keyframes room-in { from { opacity: 0; transform: translateY(6px); } }
+.room-horizon { position: absolute; left: 40px; right: 36px; top: 58%; height: 1px; background: linear-gradient(90deg, transparent, rgba(106,98,91,.25) 20%, rgba(106,98,91,.25) 80%, transparent); }
+
+/* Cozy surface: soft, matte linen instead of glass */
+.s-unfold::before { display: none; }
+.s-unfold .list.unfold { backdrop-filter: none; -webkit-backdrop-filter: none;
+  background: #f6e8dd url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .29  0 0 0 0 .22  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(120,70,45,.12), 0 20px 40px -22px rgba(120,70,45,.4); }

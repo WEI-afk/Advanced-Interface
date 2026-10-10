@@ -390,6 +390,7 @@ function UnfoldSet({ set, auto, offset = 0 }) {
    one spring opens the tray; each tile reads the same spring a little later, so they rise in sequence
    and sink back in reverse — and a change of mind mid-way just turns the whole sequence around */
 const ACTIONS = { Note: 'pen', Photo: 'photo', Voice: 'wave', Space: 'room' }
+const ADDED = { Note: 'A note', Photo: 'A photo', Voice: 'A voice memo', Space: 'A quiet space' }
 
 /* the switch, checkbox and radio are the app itself:
    + / × is the switch · the action tiles are the radio · Add to Today is the checkbox */
@@ -398,6 +399,12 @@ function FrostSet({ auto, offset = 0 }) {
   const [open, setOpen] = useState(false) // starts closed: just the + until you reach for it
   const [action, setAction] = useState(names[1])
   const [pin, setPin] = useState(true)
+  const [today, setToday] = useState([]) // what you've added — the room's only content
+  const wasOpen = useRef(open)
+  useEffect(() => { // putting the tray away with "Add to Today" checked leaves the chosen action in the room
+    if (wasOpen.current && !open && pin) setToday((t) => [ADDED[action], ...t.filter((x) => x !== ADDED[action])].slice(0, 3))
+    wasOpen.current = open
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
   const tiles = useRef([])
   const p = useSpring(open ? 1 : 0, { damping: 1, response: 0.75 }).value // calm: no overshoot, unhurried
   const pq = useSpring(pin ? 1 : 0, { damping: 1, response: 0.45 }).value
@@ -423,6 +430,12 @@ function FrostSet({ auto, offset = 0 }) {
   }
   return (
     <div className="screen frost-screen">
+      {/* the room: today's quiet list over a horizon — it frosts away while the tray is out */}
+      <div className="frost-room" inert={open ? '' : undefined} style={{ filter: p > 0.005 ? `blur(${clamp(p) * 8}px)` : undefined }}>
+        <span className="room-label">Today</span>
+        {today.length ? today.map((t) => <p key={t} className="room-item">{t}</p>) : <p className="room-item quiet">A quiet day.</p>}
+        <span className="room-horizon" aria-hidden="true" />
+      </div>
       {/* tapping the frosted room puts the tray away */}
       <div className="frost-veil" onClick={() => setOpen(false)} style={{ opacity: clamp(p * 0.7), pointerEvents: open ? 'auto' : 'none' }} />
       <div className="frost-dock">
@@ -611,7 +624,7 @@ const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <
    the enlarged draft is drawn in a layer above the page (so no section can clip or cover it),
    growing out of the thumbnail and shrinking back into it */
 // bump when the Figma drafts are re-exported, so browsers fetch the new images
-const DRAFT_VERSION = 'wire-4'
+const DRAFT_VERSION = 'wire-5'
 
 function DraftThumb({ set }) {
   const ref = useRef(null)
