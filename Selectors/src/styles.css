@@ -114,10 +114,6 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
   background: radial-gradient(circle, rgba(255,255,255,.95), rgba(195,205,247,.55) 45%, transparent 70%); filter: blur(2px);
   animation: mist-ripple 1s cubic-bezier(.2,.7,.2,1) forwards; }
 @keyframes mist-ripple { to { transform: scale(16); opacity: 0; } }
-/* a slow sheen drifts across whatever is on */
-.s-mist .sw-track::after, .s-mist .cb::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: var(--p);
-  background: linear-gradient(100deg, transparent 35%, rgba(255,255,255,.75) 50%, transparent 65%) 0 0 / 260% 100%; animation: sheen 4.5s ease-in-out infinite; }
-@keyframes sheen { from { background-position: 130% 0; } to { background-position: -130% 0; } }
 .s-mist .list-title { color: rgba(110,118,170,.5); letter-spacing: .14em; }
 /* soft lavender-gray type with a faint glow of light around it */
 .s-mist .label { text-shadow: 0 0 10px rgba(165,175,245,.45); }
@@ -126,10 +122,9 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .s-mist .sw-track { background: color-mix(in oklab, #c3cdf7 clamp(0%, calc(var(--p) * 100%), 100%), rgba(61,69,89,.1));
   box-shadow: inset 0 1px 2px rgba(61,69,89,.12), 0 0 calc(var(--p) * 16px) rgba(170,182,255,.65); }
 .s-mist .sw-track { overflow: hidden; }
-/* the thumb: a glass orb that floats just above its track */
-.s-mist .sw-thumb { background: radial-gradient(circle at 36% 30%, #fff 0 22%, rgba(255,255,255,.72) 60%, rgba(230,234,255,.55));
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); translate: 0 -1px;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.9), 0 8px 14px -6px rgba(80,90,150,.35), 0 0 calc(8px + var(--k) * 12px) rgba(255,255,255,.95); }
+/* the thumb: a soft, matte, faintly translucent disc floating just above its track */
+.s-mist .sw-thumb { background: rgba(255,255,255,.88); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); translate: 0 -1px;
+  box-shadow: 0 6px 14px -6px rgba(80,90,150,.3), 0 0 calc(6px + var(--k) * 10px) rgba(255,255,255,.8); }
 .sw-trail { position: absolute; left: var(--inset); top: calc((var(--sw-h) - var(--th-h)) / 2); height: var(--th-h); border-radius: var(--th-r); background: #fff; filter: blur(5px); pointer-events: none; }
 /* checkbox: the fill and the tick condense out of mist */
 .s-mist .cb { background: var(--cb-off); box-shadow: inset 0 0 0 var(--cb-stroke) var(--ring), 0 0 calc(var(--p) * 14px) rgba(170,182,255,.6); }
@@ -272,7 +267,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
   .vision .list { background: color-mix(in oklab, var(--panel, #445) 100%, #222); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .s-mist .sw-track::after, .s-mist .cb::after, .unfold-content { animation: none !important; }
+  .unfold-content { animation: none !important; }
   .mist-ripple { display: none; }
 }
 @media (prefers-contrast: more) {
