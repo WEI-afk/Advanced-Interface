@@ -209,6 +209,11 @@ const SETS = [
     },
   },
   {
+    id: 'invert', concept: 'Light and Dark Trade Places', name: 'Invert', tone: 'Bold', platform: 'visionOS',
+    content: {},
+    t: { font: '"Barlow Condensed", "SF Pro Display", Inter, sans-serif', ink: '#1d1d1d', muted: 'rgba(29,29,29,.5)', on: '#1d1d1d', off: '#cccccc' },
+  },
+  {
     id: 'unfold', concept: 'Choices Unfold', name: 'Unfold', tone: 'Cozy', platform: 'visionOS',
     content: { topic: 'Spaces' },
     t: {
@@ -231,11 +236,6 @@ const SETS = [
       ink: '#2b2420', muted: 'rgba(43,36,32,.6)', on: '#2b2420', off: 'rgba(43,36,32,.16)', thumb: '#ffffff', accent: '#2b2420',
       spring: { damping: 1, response: 0.4 }, variant: 'frost',
     },
-  },
-  {
-    id: 'invert', concept: 'Light and Dark Trade Places', name: 'Invert', tone: 'Bold', platform: 'visionOS',
-    content: {},
-    t: { font: '"Barlow Condensed", "SF Pro Display", Inter, sans-serif', ink: '#1d1d1d', muted: 'rgba(29,29,29,.5)', on: '#1d1d1d', off: '#cccccc' },
   },
 ]
 
