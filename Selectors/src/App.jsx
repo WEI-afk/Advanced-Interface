@@ -56,6 +56,17 @@ const rubber = (over, dim, c = 0.55) => (over * dim * c) / (dim + c * Math.abs(o
 
 /* ================= controls ================= */
 // tracks the pointer inside a row as --mx / --my, used for the visionOS-style hover light
+// Ethereal rows: a press releases a ring of light at the finger, which dissolves on its own
+const breathe = (e) => {
+  const row = e.currentTarget.closest('.s-mist .row')
+  if (!row || reducedMotion()) return
+  const r = row.getBoundingClientRect(), dot = document.createElement('span')
+  dot.className = 'mist-ripple'
+  dot.style.left = `${e.clientX - r.left}px`; dot.style.top = `${e.clientY - r.top}px`
+  dot.addEventListener('animationend', () => dot.remove())
+  row.prepend(dot)
+}
+
 const glow = (e) => {
   const el = e.currentTarget, r = el.getBoundingClientRect()
   el.style.setProperty('--mx', `${e.clientX - r.left}px`)
@@ -117,7 +128,7 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
   let transform = `translateX(${x}px)`
   if (fog) transform += ` scale(${1 + fog * 0.3}, ${1 - fog * 0.12})`
   return (
-    <li className="row row-switch" onPointerMove={glow}>
+    <li className="row row-switch" onPointerMove={glow} onPointerDown={breathe}>
       {icon}
       <RowText label={label} detail={detail} />
       {tag && <span className="tag">{tag}</span>}
@@ -148,7 +159,7 @@ function Checkbox({ checked, onChange, label, detail, icon, tag, t }) {
   return (
     <li className="row row-check">
       <button className="row-hit" role="checkbox" aria-checked={checked} onClick={() => onChange(!checked)}
-        onPointerMove={glow}>
+        onPointerMove={glow} onPointerDown={breathe}>
         {icon}
         {!icon && box}
         <RowText label={label} detail={detail} />
@@ -164,7 +175,7 @@ function RadioRow({ option, on, onPick, onKey, btnRef, t }) {
   return (
     <li className="row row-radio">
       <button ref={btnRef} className="row-hit" role="radio" aria-checked={on} tabIndex={on ? 0 : -1}
-        onClick={onPick} onKeyDown={onKey} onPointerMove={glow} style={{ '--p': clamp(p), '--s': p }}>
+        onClick={onPick} onKeyDown={onKey} onPointerMove={glow} onPointerDown={breathe} style={{ '--p': clamp(p), '--s': p }}>
         <span className="rd"><span className="rd-dot" /></span>
         <span className="row-text"><span className="label">{option}</span></span>
       </button>
