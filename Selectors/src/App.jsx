@@ -229,7 +229,7 @@ const SETS = [
       dfs: 13, dlh: 18, rowH: 62, padX: 14, gap: 12, listR: 28, divider: 0, listGap: 22,
       swW: 50, swH: 30, thW: 26, thH: 26, inset: 2, swR: 15, thR: 13, stretch: 6, swStroke: 0,
       cb: 24, cbR: 7, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      ink: '#6b4a3e', muted: 'rgba(107,74,62,.6)', on: '#2a2321', off: 'rgba(58,42,36,.14)', thumb: '#fffaf5', accent: '#2a2321',
+      ink: '#6b4a3e', muted: 'rgba(107,74,62,.6)', on: '#a06a52', off: 'rgba(107,74,62,.16)', thumb: '#fffaf5', accent: '#a06a52',
       spring: { damping: 1, response: 0.4 }, variant: 'unfold',
     },
   },
@@ -477,7 +477,7 @@ function FrostSet({ auto, offset = 0 }) {
    switch: the thumb slides and track/thumb swap tones · checkbox: white floods in from where you pressed ·
    radio: the white pill slides, its leading edge reaching ahead toward the new choice */
 const TONES = { Amber: '#ffb35c', Moon: '#dfe6ff', Dawn: '#ffc4b8' }
-const INV = { damping: 0.8, response: 0.45 }
+const INV = { damping: 0.62, response: 0.28 } // quick and decisive, with a small overshoot
 
 function InvertSwitch({ on, onChange }) {
   const p = useSpring(on ? 1 : 0, INV).value // 1 = ON (thumb left, dark track)
@@ -493,7 +493,7 @@ function InvertSwitch({ on, onChange }) {
 }
 
 function FloodCheckbox({ checked, onChange, label }) {
-  const p = useSpring(checked ? 1 : 0, { damping: 1, response: 0.55 }).value
+  const p = useSpring(checked ? 1 : 0, { damping: 1, response: 0.3 }).value
   const [origin, setOrigin] = useState(0) // the flood starts where you pressed
   const content = (
     <>
@@ -540,8 +540,8 @@ function InvertSet({ auto, offset = 0 }) {
   const [on, setOn] = useState(true)
   const [dim, setDim] = useState(false)
   const [tone, setTone] = useState('Amber')
-  const lit = useSpring(on ? 1 : 0, { damping: 1, response: 0.6 }).value
-  const dm = useSpring(dim ? 1 : 0, { damping: 1, response: 0.6 }).value
+  const lit = useSpring(on ? 1 : 0, { damping: 1, response: 0.25 }).value
+  const dm = useSpring(dim ? 1 : 0, { damping: 1, response: 0.3 }).value
   useEffect(() => {
     if (!auto) return
     let i = offset
