@@ -307,13 +307,12 @@ function FrostSet({ auto, offset = 0 }) {
   const [open, setOpen] = useState(false) // starts closed: just the + until you reach for it
   const [action, setAction] = useState(names[1])
   const [pin, setPin] = useState(true)
-  const [today, setToday] = useState([]) // the latest thing you added — the room's only content
-  const [ripples, setRipples] = useState(0) // each addition sends one slow ripple across the water
-  const wasOpen = useRef(open)
-  useEffect(() => { // putting the tray away with "Add to Today" checked leaves the chosen action in the room
-    if (wasOpen.current && !open && pin) { setToday([ADDED[action]]); setRipples((n) => n + 1) }
-    wasOpen.current = open
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [ripples, setRipples] = useState(0) // each change to Today sends one slow ripple across the water
+  const first = useRef(true)
+  useEffect(() => { // Add to Today (checkbox) puts the chosen action in the room — or takes it away
+    if (first.current) { first.current = false; return }
+    if (pin) setRipples((n) => n + 1)
+  }, [pin, action])
   const tiles = useRef([])
   const p = useSpring(open ? 1 : 0, { damping: 1, response: 0.75 }).value // calm: no overshoot, unhurried
   const pq = useSpring(pin ? 1 : 0, { damping: 1, response: 0.45 }).value
@@ -341,8 +340,10 @@ function FrostSet({ auto, offset = 0 }) {
     <div className="screen frost-screen">
       {/* the room: today's quiet list over a horizon — it frosts away while the tray is out */}
       <div className="frost-room" inert={open ? '' : undefined} style={{ filter: p > 0.005 ? `blur(${clamp(p) * 8}px)` : undefined }}>
-        <span className="room-label">Today</span>
-        {today.length ? today.map((t) => <p key={t} className="room-item">{t}</p>) : <p className="room-item quiet">A quiet day.</p>}
+        <div className={`room-today ${pin ? '' : 'is-hidden'}`} aria-hidden={!pin}>
+          <span className="room-label">Today</span>
+          <p key={action} className="room-item">{ADDED[action]}</p>
+        </div>
         <span className="room-horizon" aria-hidden="true" />
         {/* the circle: a sun resting on the horizon, mirrored in the water — it sinks while the tray is out */}
         <div className="room-sky" aria-hidden="true">

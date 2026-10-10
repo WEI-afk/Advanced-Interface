@@ -259,7 +259,6 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 .frost-room { position: absolute; inset: 0; padding: 30px 36px 0 40px; display: flex; flex-direction: column; gap: 6px; transform-origin: 50% 40%; }
 .room-label { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(106,98,91,.6); margin-bottom: 6px; }
 .room-item { margin: 0; font-size: 22px; font-weight: 400; letter-spacing: -0.3px; color: #6a5a52; animation: room-in .9s ease both; }
-.room-item.quiet { color: rgba(106,90,82,.55); }
 @keyframes room-in { from { opacity: 0; transform: translateY(6px); } }
 .room-horizon { position: absolute; left: 40px; right: 36px; top: 58%; height: 1px; background: linear-gradient(90deg, transparent, rgba(106,98,91,.25) 20%, rgba(106,98,91,.25) 80%, transparent); }
 
@@ -345,3 +344,7 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
   box-shadow: 0 0 0 1px rgba(106,98,91,.35); animation: room-ripple 2.4s ease-out forwards; }
 @keyframes room-ripple { from { opacity: .8; transform: scale(.5); } to { opacity: 0; transform: scale(2.4, 1.6); } }
 @media (prefers-reduced-motion: reduce) { .room-ripple { display: none; } }
+
+/* Serene: Today is there only while "Add to Today" is checked */
+.room-today { display: flex; flex-direction: column; gap: 6px; transition: opacity .6s ease, transform .6s ease; }
+.room-today.is-hidden { opacity: 0; transform: translateY(6px); }
