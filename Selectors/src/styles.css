@@ -103,42 +103,35 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .vision > * { position: relative; z-index: 1; }
 
 /* ---------- Mist Takes Shape: every state condenses out of a blur ---------- */
-.s-mist { --check: #4b56a8; --panel: rgba(255,255,255,.6); --light: rgba(255,255,255,.75); --ring: rgba(141,155,230,.4); --cb-off: rgba(255,255,255,.5);
-  background: #eceef4; }
-.s-mist .set-head h2 { font-weight: 300; letter-spacing: -0.02em; background: linear-gradient(100deg, #6f7fd6, #9fb8e8 50%, #c9a7d8); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.s-mist .list { box-shadow: inset 0 1px 0 #fff, inset 0 0 0 1px rgba(255,255,255,.8), inset 0 0 24px rgba(255,255,255,.6), 0 0 48px rgba(190,200,255,.5), 0 30px 60px -32px rgba(80,90,140,.3); }
-.s-mist .row { overflow: hidden; }
-.s-mist .row > :not(.mist-ripple) { position: relative; z-index: 1; }
-/* pressing releases a ring of light that spreads and dissolves, like breath on glass */
-.mist-ripple { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; pointer-events: none; z-index: 0;
-  background: radial-gradient(circle, rgba(255,255,255,.95), rgba(195,205,247,.55) 45%, transparent 70%); filter: blur(2px);
-  animation: mist-ripple 1s cubic-bezier(.2,.7,.2,1) forwards; }
-@keyframes mist-ripple { to { transform: scale(16); opacity: 0; } }
-.s-mist .list-title { color: rgba(110,118,170,.5); letter-spacing: .14em; }
-/* soft lavender-gray type with a faint glow of light around it */
-.s-mist .label { text-shadow: 0 0 10px rgba(165,175,245,.45); }
-.s-mist .group-label { color: rgba(110,118,170,.55); }
-/* switch: a glowing track and a pearl thumb that leaves vapor behind it */
-.s-mist .sw-track { background: color-mix(in oklab, #c3cdf7 clamp(0%, calc(var(--p) * 100%), 100%), rgba(61,69,89,.1));
-  box-shadow: inset 0 1px 2px rgba(61,69,89,.12), 0 0 calc(var(--p) * 16px) rgba(170,182,255,.65); }
-.s-mist .sw-track { overflow: hidden; }
-/* the thumb: a soft, matte, faintly translucent disc floating just above its track */
-.s-mist .sw-thumb { background: rgba(255,255,255,.88); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); translate: 0 -1px;
-  box-shadow: 0 6px 14px -6px rgba(80,90,150,.3), 0 0 calc(6px + var(--k) * 10px) rgba(255,255,255,.8); }
-.sw-trail { position: absolute; left: var(--inset); top: calc((var(--sw-h) - var(--th-h)) / 2); height: var(--th-h); border-radius: var(--th-r); background: #fff; filter: blur(5px); pointer-events: none; }
-/* checkbox: the fill and the tick condense out of mist */
-.s-mist .cb { background: var(--cb-off); box-shadow: inset 0 0 0 var(--cb-stroke) var(--ring), 0 0 calc(var(--p) * 14px) rgba(170,182,255,.6); }
-.s-mist .cb::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(135deg, #d5dcfb, #c3cdf7);
+.s-mist { --check: #ffffff; --light: rgba(255,255,255,.7); --ring: rgba(110,120,175,.45); --cb-off: rgba(255,255,255,.6); background: #eceef3; }
+.s-mist .set-head h2 { color: #464d6b; font-weight: 500; }
+/* one screen: the orb's scene on the left, its controls beside it — the screen takes the light's colour */
+.eth-screen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 330px); gap: 0 28px; padding: 22px 24px; background: var(--sky);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.8), 0 30px 60px -34px rgba(70,80,120,.35); transition: background-color .8s ease; }
+.eth-scene { position: relative; min-height: 320px; }
+.eth-float { position: absolute; left: 50%; top: 42%; width: 150px; height: 150px; margin: -75px 0 0 -75px; }
+.eth-float.is-floating { animation: drift 7s ease-in-out infinite; }
+@keyframes drift { 50% { translate: 0 -5px; } }
+.eth-orb { display: block; width: 100%; height: 100%; border-radius: 50%; transition: background .8s ease, box-shadow .8s ease;
+  background: radial-gradient(circle, var(--core) 0 38%, var(--glow) 72%); box-shadow: 0 0 60px 18px color-mix(in oklab, var(--glow) 80%, transparent); }
+.eth-shadow { position: absolute; left: 50%; top: calc(42% + 100px); width: 120px; height: 16px; border-radius: 50%; background: rgba(70,80,120,.5); filter: blur(8px); }
+/* the controls sit in the screen, unboxed */
+.eth-controls { align-self: center; }
+.eth-controls .list { background: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 0; }
+@container screen (max-width: 640px) { .eth-screen { grid-template-columns: 1fr; } .eth-scene { min-height: 260px; } }
+/* the one signature: states condense out of blur */
+.s-mist .sw-track { background: color-mix(in oklab, #8d9be6 clamp(0%, calc(var(--p) * 100%), 100%), rgba(70,77,107,.14)); box-shadow: none; }
+.s-mist .sw-thumb { background: #fff; box-shadow: 0 2px 6px rgba(70,80,120,.25); }
+.s-mist .cb { background: var(--cb-off); box-shadow: inset 0 0 0 var(--cb-stroke) var(--ring); }
+.s-mist .cb::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: #8d9be6;
   opacity: var(--p); filter: blur(calc((1 - var(--p)) * 6px)); transform: scale(calc(1.6 - .6 * var(--p))); }
 .s-mist .cb svg { position: relative; filter: blur(calc((1 - var(--p)) * 3px)); }
 .s-mist .cb path { opacity: var(--p); }
-/* radio: a pool of soft light drifts to the choice, and its dot condenses there */
-.s-mist .rd-glide { background: linear-gradient(90deg, rgba(255,255,255,.8), rgba(255,255,255,.4)); border-radius: 22px;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.85), 0 6px 18px -10px rgba(141,155,230,.5); }
-.s-mist .rd { background: rgba(255,255,255,.6); box-shadow: inset 0 0 0 1.25px color-mix(in oklab, #8d9be6 calc(var(--p) * 100%), rgba(141,155,230,.38)); }
-.s-mist .rd-dot { background: #8d9be6; opacity: var(--p); filter: blur(calc((1 - var(--p)) * 5px));
-  transform: scale(calc(1.9 - .9 * var(--s))); box-shadow: 0 0 calc(var(--p) * 10px) rgba(141,155,230,.6); }
-.s-mist .row-radio .label { opacity: calc(.5 + .5 * var(--p)); }
+.s-mist .rd-glide { background: rgba(255,255,255,.65); border-radius: 18px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.9); }
+.s-mist .rd { background: rgba(255,255,255,.6); box-shadow: inset 0 0 0 1.25px color-mix(in oklab, #8d9be6 calc(var(--p) * 100%), var(--ring)); }
+.s-mist .rd-dot { background: #8d9be6; opacity: var(--p); filter: blur(calc((1 - var(--p)) * 5px)); transform: scale(calc(1.9 - .9 * var(--s))); box-shadow: none; }
+.s-mist .row-radio .label { opacity: calc(.72 + .28 * var(--p)); }
+.s-mist .group-label { color: rgba(70,77,107,.62); }
 
 /* ---------- Choices Unfold: warm paper glass; the chosen tab unfolds its rows ---------- */
 .s-unfold { --panel: rgba(196,160,140,.3); --light: rgba(255,255,255,.4); --check: #fbf3ec; --cb-off: rgba(255,250,245,.6); --ring: rgba(58,42,36,.35);
@@ -267,9 +260,8 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
   .vision .list { background: color-mix(in oklab, var(--panel, #445) 100%, #222); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .unfold-content { animation: none !important; }
-  .mist-ripple { display: none; }
-}
+  .unfold-content, .eth-float { animation: none !important; }
+  }
 @media (prefers-contrast: more) {
   .list { outline: 2px solid var(--ink); }
   .set { --rule: var(--ink); --ring: var(--ink); }
@@ -283,9 +275,9 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 .wall-tile .topic { max-width: none; }
 
 /* full-width screen sets: Figma draft sits to the right of the title */
-.s-frost .set-head, .s-invert .set-head { flex-direction: row; justify-content: space-between; align-items: flex-start; }
-.s-frost .set-head .draft-ref, .s-invert .set-head .draft-ref { align-items: flex-end; }
-.s-frost .set-head .draft-ref img, .s-invert .set-head .draft-ref img { transform-origin: top right; }
+.s-mist .set-head, .s-frost .set-head, .s-invert .set-head { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: flex-start; }
+.s-mist .set-head .draft-ref, .s-frost .set-head .draft-ref, .s-invert .set-head .draft-ref { align-items: flex-end; }
+.s-mist .set-head .draft-ref img, .s-frost .set-head .draft-ref img, .s-invert .set-head .draft-ref img { transform-origin: top right; }
 
 /* ---------- type color per tone ---------- */
 /* Cozy: warm cocoa-rose, with a faint lamplight glow */

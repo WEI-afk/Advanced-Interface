@@ -56,17 +56,6 @@ const rubber = (over, dim, c = 0.55) => (over * dim * c) / (dim + c * Math.abs(o
 
 /* ================= controls ================= */
 // tracks the pointer inside a row as --mx / --my, used for the visionOS-style hover light
-// Ethereal rows: a press releases a ring of light at the finger, which dissolves on its own
-const breathe = (e) => {
-  const row = e.currentTarget.closest('.s-mist .row')
-  if (!row || reducedMotion()) return
-  const r = row.getBoundingClientRect(), dot = document.createElement('span')
-  dot.className = 'mist-ripple'
-  dot.style.left = `${e.clientX - r.left}px`; dot.style.top = `${e.clientY - r.top}px`
-  dot.addEventListener('animationend', () => dot.remove())
-  row.prepend(dot)
-}
-
 const glow = (e) => {
   const el = e.currentTarget, r = el.getBoundingClientRect()
   el.style.setProperty('--mx', `${e.clientX - r.left}px`)
@@ -82,7 +71,6 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
   const pos = useSpring(checked ? 1 : 0, t.spring)
   const [pressed, setPressed] = useState(false)
   const press = useSpring(pressed ? 1 : 0, { damping: 1, response: 0.2 })
-  const trail = useSpring(checked ? 1 : 0, { damping: 1, response: 0.95 }).value // a slower follower: the thumb's vapor
   const drag = useRef(null)
   const travel = t.swW - t.thW - 2 * t.inset
 
@@ -128,7 +116,7 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
   let transform = `translateX(${x}px)`
   if (fog) transform += ` scale(${1 + fog * 0.3}, ${1 - fog * 0.12})`
   return (
-    <li className="row row-switch" onPointerMove={glow} onPointerDown={breathe}>
+    <li className="row row-switch" onPointerMove={glow}>
       {icon}
       <RowText label={label} detail={detail} />
       {tag && <span className="tag">{tag}</span>}
@@ -137,7 +125,6 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
         onClick={(e) => { if (e.detail === 0) onChange(!checked) }} // keyboard (Space / Enter)
         style={{ '--p': p, '--k': k, '--tx': `${t.inset + x + w / 2}px` }}>
         <span className="sw-track" />
-        {v === 'mist' && <span className="sw-trail" style={{ transform: `translateX(${clamp(trail) * travel}px)`, width: t.thW, opacity: Math.min(0.7, Math.abs(trail - p) * 2.2) }} />}
         <span className="sw-thumb" style={{ transform, width: w,
           filter: fog > 0.01 ? `blur(${fog * 4}px)` : undefined, opacity: 1 - fog * 0.5 }} />
       </button>
@@ -159,7 +146,7 @@ function Checkbox({ checked, onChange, label, detail, icon, tag, t }) {
   return (
     <li className="row row-check">
       <button className="row-hit" role="checkbox" aria-checked={checked} onClick={() => onChange(!checked)}
-        onPointerMove={glow} onPointerDown={breathe}>
+        onPointerMove={glow}>
         {icon}
         {!icon && box}
         <RowText label={label} detail={detail} />
@@ -175,7 +162,7 @@ function RadioRow({ option, on, onPick, onKey, btnRef, t }) {
   return (
     <li className="row row-radio">
       <button ref={btnRef} className="row-hit" role="radio" aria-checked={on} tabIndex={on ? 0 : -1}
-        onClick={onPick} onKeyDown={onKey} onPointerMove={glow} onPointerDown={breathe} style={{ '--p': clamp(p), '--s': p }}>
+        onClick={onPick} onKeyDown={onKey} onPointerMove={glow} style={{ '--p': clamp(p), '--s': p }}>
         <span className="rd"><span className="rd-dot" /></span>
         <span className="row-text"><span className="label">{option}</span></span>
       </button>
@@ -217,8 +204,8 @@ const SETS = [
       dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
       swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
       cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      ink: '#5a6285', muted: 'rgba(90,98,133,.55)', on: '#c3cdf7', off: 'rgba(61,69,89,.1)', thumb: '#ffffff', accent: '#8d9be6',
-      spring: { damping: 1, response: 0.7 }, variant: 'mist',
+      ink: '#464d6b', muted: 'rgba(70,77,107,.62)', on: '#c3cdf7', off: 'rgba(61,69,89,.1)', thumb: '#ffffff', accent: '#8d9be6',
+      spring: { damping: 1, response: 0.4 }, variant: 'mist',
     },
   },
   {
@@ -569,14 +556,63 @@ function InvertSet({ auto, offset = 0 }) {
   )
 }
 
-const BODIES = { unfold: UnfoldSet, frost: FrostSet, invert: InvertSet }
+/* ================= Ethereal: a soft orb of light that the controls act on =================
+   Weightless lifts it off its shadow · Soft Focus diffuses its edges · Light shifts the whole screen's light.
+   The controls answer at once; only the orb itself drifts slowly, as something weightless would. */
+const LIGHTS = {
+  Dawn: { sky: '#f7eff0', glow: '#ffd2c2', core: '#fff7f2' },
+  Haze: { sky: '#f0f1f4', glow: '#d9dce6', core: '#ffffff' },
+  Moonlight: { sky: '#eaeef8', glow: '#b9c7f4', core: '#f4f7ff' },
+}
+function MistSet({ set, auto, offset = 0 }) {
+  const { content: c, t } = set
+  const [sw, setSw] = useState(c.sw[2])
+  const [cb, setCb] = useState(c.cb[2])
+  const [rd, setRd] = useState(c.radio[2])
+  const lift = useSpring(sw ? 1 : 0, { damping: 0.8, response: 0.8 }).value
+  const soft = useSpring(cb ? 1 : 0, { damping: 1, response: 0.6 }).value
+  useEffect(() => {
+    if (!auto) return
+    let i = offset
+    const id = setInterval(() => {
+      const k = i++ % 5
+      if (k === 0) setSw((v) => !v)
+      else if (k === 1) setCb((v) => !v)
+      else setRd(c.radio[1][(k - 2) % c.radio[1].length])
+    }, 1200)
+    return () => clearInterval(id)
+  }, [auto, offset, c])
+  const L = LIGHTS[rd]
+  return (
+    <div className="screen eth-screen" style={{ '--sky': L.sky, '--glow': L.glow, '--core': L.core }}>
+      <div className="eth-scene" aria-hidden="true">
+        <span className="eth-shadow" style={{ transform: `translateX(-50%) scale(${1 - clamp(lift) * 0.5})`, opacity: 0.32 - clamp(lift) * 0.22 }} />
+        <span className={`eth-float ${sw ? 'is-floating' : ''}`} style={{ transform: `translateY(${-lift * 40}px)` }}>
+          <span className="eth-orb" style={{ filter: `blur(${1 + Math.max(0, soft) * 14}px)` }} />
+        </span>
+      </div>
+      <div className="eth-controls">
+        <ul className="list">
+          <Switch label={c.sw[0]} t={t} checked={sw} onChange={setSw} />
+          <Checkbox label={c.cb[0]} t={t} checked={cb} onChange={setCb} />
+          <li className="row-group">
+            <span className="group-label">{c.radio[0]}</span>
+            <RadioGroup title={c.radio[0]} options={c.radio[1]} value={rd} onChange={setRd} t={t} />
+          </li>
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+const BODIES = { mist: MistSet, unfold: UnfoldSet, frost: FrostSet, invert: InvertSet }
 const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <B {...props} /> }
 
 /* ================= Figma draft thumbnail =================
    the enlarged draft is drawn in a layer above the page (so no section can clip or cover it),
    growing out of the thumbnail and shrinking back into it */
 // bump when the Figma drafts are re-exported, so browsers fetch the new images
-const DRAFT_VERSION = 'wire-3'
+const DRAFT_VERSION = 'wire-4'
 
 function DraftThumb({ set }) {
   const ref = useRef(null)
