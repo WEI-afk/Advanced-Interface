@@ -395,7 +395,7 @@ const ACTIONS = { Note: 'pen', Photo: 'photo', Voice: 'wave', Space: 'room' }
    + / × is the switch · the action tiles are the radio · Add to Today is the checkbox */
 function FrostSet({ auto, offset = 0 }) {
   const names = Object.keys(ACTIONS)
-  const [open, setOpen] = useState(true) // starts open so the tiles (radio) are on show
+  const [open, setOpen] = useState(false) // starts closed: just the + until you reach for it
   const [action, setAction] = useState(names[1])
   const [pin, setPin] = useState(true)
   const tiles = useRef([])
