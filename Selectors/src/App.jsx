@@ -563,7 +563,7 @@ const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <
    the enlarged draft is drawn in a layer above the page (so no section can clip or cover it),
    growing out of the thumbnail and shrinking back into it */
 // bump when the Figma drafts are re-exported, so browsers fetch the new images
-const DRAFT_VERSION = 'wire-1'
+const DRAFT_VERSION = 'wire-2'
 
 function DraftThumb({ set }) {
   const ref = useRef(null)
@@ -588,7 +588,7 @@ function DraftThumb({ set }) {
   return (
     <>
       <div ref={ref} className="draft-ref" tabIndex={0} onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
-        <img src={src} alt={`${set.tone}, ${set.concept} — Figma draft`} loading="lazy" onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
+        <img src={src} alt={`${set.tone} — Figma draft`} loading="lazy" onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
         <span>Figma draft</span>
       </div>
       {box && createPortal(
@@ -644,7 +644,7 @@ export default function App() {
       {SETS.map((set) => (
         <section key={set.id} className={`set vision s-${set.id}`} style={cssVars(set.t)}>
           <div className="set-head">
-            <h2>{set.tone}, {set.concept}</h2>
+            <h2>{set.tone}</h2>
             <DraftThumb set={set} />
           </div>
           <SetBody set={set} />
