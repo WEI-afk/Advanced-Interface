@@ -294,3 +294,41 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 .nrg-radio button:active { scale: .92; }
 .nrg-radio button:focus-visible { outline: 2px solid #c6ff3d; outline-offset: 2px; border-radius: 22px; }
 @container screen (max-width: 640px) { .nrg-screen { grid-template-columns: 1fr; } .nrg-scene { min-height: 260px; } }
+
+/* ================= type + hover micro-interactions, per tone ================= */
+/* Ethereal — light italic serif title, airy labels; hover is a slow, soft halo */
+.s-mist .set-head h2 { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 300; font-size: 52px; letter-spacing: 0; }
+.s-mist .label, .s-mist .group-label { font-family: Manrope, Inter, sans-serif; }
+.s-mist .label { font-weight: 400; letter-spacing: .1px; }
+.s-mist .rd, .s-mist .cb, .s-mist .sw-track { transition: scale .5s cubic-bezier(.2,.8,.2,1), filter .5s ease; }
+.s-mist .row-radio:hover .rd { scale: 1.1; filter: drop-shadow(0 0 6px rgba(141,155,230,.55)); }
+.s-mist .row-check:hover .cb { filter: drop-shadow(0 0 6px rgba(141,155,230,.55)); }
+.s-mist .row-switch:hover .sw-track { filter: drop-shadow(0 0 8px rgba(141,155,230,.5)); }
+.s-mist .row-radio .label { transition: opacity .5s ease; }
+.s-mist .row-radio:hover .label { opacity: 1; }
+
+/* Bold — every hover is a decisive preview: tone labels jump to full white */
+.inv-radio button[aria-checked="false"]:hover { color: #fff !important; }
+.inv-switch:hover .inv-label, .flood:hover .flood-text { letter-spacing: 1.2px; }
+.inv-label, .flood-text { transition: letter-spacing .2s cubic-bezier(.3,1.5,.6,1); }
+
+/* Energetic — wide heavy type; hover springs: tilt, squash, hop */
+.s-energy .label { font-family: "Unbounded", Inter, sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0; }
+.s-energy .cb, .s-energy .sw-thumb, .nrg-radio button { transition: rotate .35s cubic-bezier(.34,1.8,.64,1), scale .35s cubic-bezier(.34,1.8,.64,1), translate .35s cubic-bezier(.34,1.8,.64,1); }
+.s-energy .row-check:hover .cb { rotate: -10deg; scale: 1.1; }
+.s-energy .row-switch:hover .sw-thumb { scale: 1.12 .9; }
+.nrg-radio button:hover { translate: 0 -3px; }
+.nrg-radio button[aria-checked="false"]:hover { color: #c6ff3d !important; }
+
+/* Serene — editorial serif; hover is slow and slight */
+.s-frost .set-head h2, .room-item { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; }
+.s-frost .set-head h2 { font-size: 46px; letter-spacing: 0; }
+.room-item { font-size: 28px; letter-spacing: 0; }
+.frost-tile svg, .frost-knob { transition: translate .6s ease; }
+.frost-tile:hover svg { translate: 0 -3px; }
+.frost-switch:hover .frost-knob { translate: 0 -3px; }
+.frost-pin { transition: box-shadow .6s ease; }
+.frost-pin:hover { box-shadow: inset 0 0 0 1px rgba(106,98,91,.4); }
+@media (prefers-reduced-motion: reduce) {
+  .s-mist .row-radio:hover .rd, .s-energy .row-check:hover .cb, .s-energy .row-switch:hover .sw-thumb, .nrg-radio button:hover, .frost-tile:hover svg, .frost-switch:hover .frost-knob { scale: none; rotate: none; translate: none; }
+}

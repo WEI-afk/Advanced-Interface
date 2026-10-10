@@ -388,10 +388,13 @@ const INV = { damping: 0.62, response: 0.28 } // quick and decisive, with a smal
 
 function InvertSwitch({ on, onChange }) {
   const p = useSpring(on ? 1 : 0, INV).value // 1 = ON (thumb left, dark track)
+  const [hover, setHover] = useState(false)
+  const lean = useSpring(hover ? 1 : 0, INV).value // hover: the thumb leans toward the side it would move to
   const c = clamp(p)
   return (
     <button className="inv-switch" role="switch" aria-checked={on} aria-label="Power" onClick={() => onChange(!on)}
-      style={{ '--c': c, '--x': 1 - p }}>
+      onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}
+      style={{ '--c': c, '--x': 1 - p + lean * (on ? 0.08 : -0.08) }}>
       <span className="inv-thumb" />
       <span className="inv-label left" style={{ color: `color-mix(in oklab, #1d1d1d ${c * 100}%, #9a9a9a)` }}>On</span>
       <span className="inv-label right" style={{ color: `color-mix(in oklab, #6f6f6f ${c * 100}%, #1d1d1d)` }}>Off</span>
@@ -402,6 +405,8 @@ function InvertSwitch({ on, onChange }) {
 function FloodCheckbox({ checked, onChange, label }) {
   const p = useSpring(checked ? 1 : 0, { damping: 1, response: 0.3 }).value
   const [origin, setOrigin] = useState(0) // the flood starts where you pressed
+  const [hover, setHover] = useState(false)
+  const h = useSpring(hover && !checked ? 1 : 0, INV).value // hover: a drop of white waits under the pointer
   const content = (
     <>
       <span className="flood-text">{label}</span>
@@ -410,9 +415,11 @@ function FloodCheckbox({ checked, onChange, label }) {
   )
   return (
     <button className="flood" role="checkbox" aria-checked={checked}
+      onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}
+      onPointerMove={(e) => { if (!checked) setOrigin(e.clientX - e.currentTarget.getBoundingClientRect().left) }}
       onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); if (e.detail) setOrigin(e.clientX - r.left); onChange(!checked) }}>
       <span className="flood-layer base">{content}</span>
-      <span className="flood-layer top" aria-hidden="true" style={{ clipPath: `circle(${Math.max(0, p) * 340}px at ${origin}px 50%)` }}>{content}</span>
+      <span className="flood-layer top" aria-hidden="true" style={{ clipPath: `circle(${Math.max(Math.max(0, p) * 340, h * 16)}px at ${origin}px 50%)` }}>{content}</span>
     </button>
   )
 }
