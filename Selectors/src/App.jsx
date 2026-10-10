@@ -217,7 +217,7 @@ const SETS = [
       dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
       swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
       cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      ink: '#3d4559', muted: 'rgba(61,69,89,.5)', on: '#c3cdf7', off: 'rgba(61,69,89,.1)', thumb: '#ffffff', accent: '#8d9be6',
+      ink: '#5a6285', muted: 'rgba(90,98,133,.55)', on: '#c3cdf7', off: 'rgba(61,69,89,.1)', thumb: '#ffffff', accent: '#8d9be6',
       spring: { damping: 1, response: 0.7 }, variant: 'mist',
     },
   },
