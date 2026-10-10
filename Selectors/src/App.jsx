@@ -298,6 +298,7 @@ const Glyph = ({ name }) => <svg viewBox="0 0 16 16" aria-hidden="true">{GLYPH[n
    and sink back in reverse — and a change of mind mid-way just turns the whole sequence around */
 const ACTIONS = { Note: 'pen', Photo: 'photo', Voice: 'wave', Space: 'room' }
 const ADDED = { Note: 'A note', Photo: 'A photo', Voice: 'A voice memo', Space: 'A quiet space' }
+const TINT = { Note: '#e8d9c6', Photo: '#ecd3cd', Voice: '#d5dfcf', Space: '#d2dce6' } // the sun takes a calm tint from the chosen action
 
 /* the switch, checkbox and radio are the app itself:
    + / × is the switch · the action tiles are the radio · Add to Today is the checkbox */
@@ -307,9 +308,10 @@ function FrostSet({ auto, offset = 0 }) {
   const [action, setAction] = useState(names[1])
   const [pin, setPin] = useState(true)
   const [today, setToday] = useState([]) // what you've added — the room's only content
+  const [ripples, setRipples] = useState(0) // each addition sends one slow ripple across the water
   const wasOpen = useRef(open)
   useEffect(() => { // putting the tray away with "Add to Today" checked leaves the chosen action in the room
-    if (wasOpen.current && !open && pin) setToday((t) => [ADDED[action], ...t.filter((x) => x !== ADDED[action])].slice(0, 3))
+    if (wasOpen.current && !open && pin) { setToday((t) => [ADDED[action], ...t.filter((x) => x !== ADDED[action])].slice(0, 3)); setRipples((n) => n + 1) }
     wasOpen.current = open
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
   const tiles = useRef([])
@@ -342,6 +344,14 @@ function FrostSet({ auto, offset = 0 }) {
         <span className="room-label">Today</span>
         {today.length ? today.map((t) => <p key={t} className="room-item">{t}</p>) : <p className="room-item quiet">A quiet day.</p>}
         <span className="room-horizon" aria-hidden="true" />
+        {/* the circle: a sun resting on the horizon, mirrored in the water — it sinks while the tray is out */}
+        <div className="room-sky" aria-hidden="true">
+          <span className="room-sun" style={{ transform: `translate(-50%, ${clamp(p) * 96}px)`, '--tint': TINT[action] }} />
+        </div>
+        <div className="room-water" aria-hidden="true">
+          <span className="room-sun reflect" style={{ transform: `translate(-50%, ${-clamp(p) * 96}px) scaleY(-1)`, '--tint': TINT[action] }} />
+          {ripples > 0 && <span key={ripples} className="room-ripple" />}
+        </div>
       </div>
       {/* tapping the frosted room puts the tray away */}
       <div className="frost-veil" onClick={() => setOpen(false)} style={{ opacity: clamp(p * 0.7), pointerEvents: open ? 'auto' : 'none' }} />
@@ -629,7 +639,7 @@ const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <
    the enlarged draft is drawn in a layer above the page (so no section can clip or cover it),
    growing out of the thumbnail and shrinking back into it */
 // bump when the Figma drafts are re-exported, so browsers fetch the new images
-const DRAFT_VERSION = 'wire-6'
+const DRAFT_VERSION = 'wire-7'
 
 function DraftThumb({ set }) {
   const ref = useRef(null)

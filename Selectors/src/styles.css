@@ -332,3 +332,16 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 @media (prefers-reduced-motion: reduce) {
   .s-mist .row-radio:hover .rd, .s-energy .row-check:hover .cb, .s-energy .row-switch:hover .sw-thumb, .nrg-radio button:hover, .frost-tile:hover svg, .frost-switch:hover .frost-knob { scale: none; rotate: none; translate: none; }
 }
+
+/* Serene circle: a sun resting on the horizon, mirrored in still water */
+.room-sky, .room-water { position: absolute; left: 0; right: 0; overflow: hidden; pointer-events: none; }
+.room-sky { top: 0; height: 58%; }
+.room-water { top: 58%; bottom: 0; }
+.room-sun { position: absolute; left: 72%; bottom: 0; width: 118px; height: 118px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, color-mix(in oklab, var(--tint) 35%, #fff), var(--tint) 75%); transition: background 1.2s ease; }
+.room-sun.reflect { bottom: auto; top: 0; opacity: .32; filter: blur(3px);
+  -webkit-mask-image: linear-gradient(transparent 15%, #000); mask-image: linear-gradient(transparent 15%, #000); } /* flipped with the reflection: opaque at the horizon */
+.room-ripple { position: absolute; left: 72%; top: 14px; width: 120px; height: 18px; margin-left: -60px; border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(106,98,91,.35); animation: room-ripple 2.4s ease-out forwards; }
+@keyframes room-ripple { from { opacity: .8; transform: scale(.5); } to { opacity: 0; transform: scale(2.4, 1.6); } }
+@media (prefers-reduced-motion: reduce) { .room-ripple { display: none; } }
