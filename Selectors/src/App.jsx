@@ -544,7 +544,6 @@ function InvertSet({ auto, offset = 0 }) {
   const glow = clamp(lit) * (1 - dm * 0.55)
   return (
     <div className="screen inv-screen">
-      <div className="inv-head" aria-hidden="true"><b>Night Light</b><span>01</span></div>
       {/* the lamp answers all three controls */}
       <div className="inv-lamp" aria-hidden="true" style={{ '--g': glow, '--tone': TONES[tone] }}><span /></div>
       <div className="inv-controls">
