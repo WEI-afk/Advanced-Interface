@@ -71,6 +71,7 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
   const pos = useSpring(checked ? 1 : 0, t.spring)
   const [pressed, setPressed] = useState(false)
   const press = useSpring(pressed ? 1 : 0, { damping: 1, response: 0.2 })
+  const trail = useSpring(checked ? 1 : 0, { damping: 1, response: 0.95 }).value // a slower follower: the thumb's vapor
   const drag = useRef(null)
   const travel = t.swW - t.thW - 2 * t.inset
 
@@ -125,6 +126,7 @@ function Switch({ checked, onChange, label, detail, icon, tag, t }) {
         onClick={(e) => { if (e.detail === 0) onChange(!checked) }} // keyboard (Space / Enter)
         style={{ '--p': p, '--k': k, '--tx': `${t.inset + x + w / 2}px` }}>
         <span className="sw-track" />
+        {v === 'mist' && <span className="sw-trail" style={{ transform: `translateX(${clamp(trail) * travel}px)`, width: t.thW, opacity: Math.min(0.7, Math.abs(trail - p) * 2.2) }} />}
         <span className="sw-thumb" style={{ transform, width: w,
           filter: fog > 0.01 ? `blur(${fog * 4}px)` : undefined, opacity: 1 - fog * 0.5 }} />
       </button>
@@ -198,14 +200,14 @@ const SF = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, 
 const SETS = [
   {
     id: 'mist', concept: 'Mist Takes Shape', name: 'Mist', tone: 'Ethereal', platform: 'visionOS',
-    content: { topic: 'Immersion', sw: ['Spatial Audio', '', true], cb: ['Show Hands', '', false], radio: ['Environment', ['Yosemite', 'Mount Hood', 'Moon'], 'Yosemite'] },
+    content: { topic: 'Atmosphere', sw: ['Weightless', '', true], cb: ['Soft Focus', '', false], radio: ['Light', ['Dawn', 'Haze', 'Moonlight'], 'Dawn'] },
     t: {
-      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 17, lh: 22, ls: '-0.3px',
+      font: SF, fontName: 'SF Pro Text Medium', fw: 400, fs: 17, lh: 22, ls: '-0.1px',
       dfs: 13, dlh: 18, rowH: 54, padX: 18, gap: 14, listR: 30, divider: 0, listGap: 22,
       swW: 54, swH: 32, thW: 28, thH: 28, inset: 2, swR: 16, thR: 14, stretch: 6, swStroke: 0,
       cb: 26, cbR: 8, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      ink: '#ffffff', muted: 'rgba(255,255,255,.62)', on: '#a8d8e8', off: 'rgba(255,255,255,.18)', thumb: '#ffffff', accent: '#ffffff',
-      spring: { damping: 1, response: 0.6 }, variant: 'mist',
+      ink: '#3d4559', muted: 'rgba(61,69,89,.5)', on: '#c3cdf7', off: 'rgba(61,69,89,.1)', thumb: '#ffffff', accent: '#8d9be6',
+      spring: { damping: 1, response: 0.7 }, variant: 'mist',
     },
   },
   {
@@ -563,7 +565,7 @@ const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <
    the enlarged draft is drawn in a layer above the page (so no section can clip or cover it),
    growing out of the thumbnail and shrinking back into it */
 // bump when the Figma drafts are re-exported, so browsers fetch the new images
-const DRAFT_VERSION = 'wire-2'
+const DRAFT_VERSION = 'wire-3'
 
 function DraftThumb({ set }) {
   const ref = useRef(null)
