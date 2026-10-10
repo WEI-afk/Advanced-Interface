@@ -188,7 +188,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 /* ---------- Action Clears the Room: warm frosted screen; the tray rises and the room fades ---------- */
 .s-frost { --panel: rgba(255,250,246,.55); --light: rgba(255,255,255,.5); --check: #fff; --cb-off: rgba(255,255,255,.5); --ring: rgba(43,36,32,.35);
   background: radial-gradient(60% 50% at 15% 10%, #f6c9a6 0%, transparent 70%), linear-gradient(160deg, #eeb08a, #e08f68 60%, #cf7556); }
-.s-frost .set-head h2 { color: #3a231a; }
+.s-frost .set-head h2 { color: #6a4c40; }
 .s-frost .list-title { color: rgba(58,35,26,.65); }
 .s-frost .rd-dot { box-shadow: none; }
 .frost-screen { font-family: var(--font); color: #2b2420; min-height: 200px;
@@ -290,3 +290,16 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 .s-frost .set-head, .s-invert .set-head { flex-direction: row; justify-content: space-between; align-items: flex-start; }
 .s-frost .set-head .draft-ref, .s-invert .set-head .draft-ref { align-items: flex-end; }
 .s-frost .set-head .draft-ref img, .s-invert .set-head .draft-ref img { transform-origin: top right; }
+
+/* ---------- type color per tone ---------- */
+/* Cozy: warm cocoa-rose, with a faint lamplight glow */
+.s-unfold .label, .s-unfold .unfold-tab { text-shadow: 0 0 10px rgba(255,205,170,.55); }
+.s-unfold .set-head h2 { color: #6b4a3e; text-shadow: 0 0 18px rgba(255,205,170,.6); }
+.s-unfold .list-title { color: rgba(107,74,62,.55); }
+.s-unfold .unfold-tab[aria-checked="true"] { text-shadow: none; }
+/* Serene: calm, softened taupe — nothing shouts */
+.frost-tile, .frost-pin { color: #6a5a52; }
+.frost-tile.on { color: #f6efe9; }
+/* Bold: crisp pure black, captions pulled up in contrast */
+.s-invert .set-head h2, .inv-head b { color: #000; }
+.inv-cap, .inv-head span { color: #444; }
