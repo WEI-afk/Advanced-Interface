@@ -562,11 +562,14 @@ const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <
 /* ================= Figma draft thumbnail =================
    the enlarged draft is drawn in a layer above the page (so no section can clip or cover it),
    growing out of the thumbnail and shrinking back into it */
+// bump when the Figma drafts are re-exported, so browsers fetch the new images
+const DRAFT_VERSION = 'wire-1'
+
 function DraftThumb({ set }) {
   const ref = useRef(null)
   const [box, setBox] = useState(null)
   const [open, setOpen] = useState(false)
-  const src = `${import.meta.env.BASE_URL}final/${set.id}.png`
+  const src = `${import.meta.env.BASE_URL}final/${set.id}.png?v=${DRAFT_VERSION}`
   const show = () => {
     const r = ref.current.querySelector('img').getBoundingClientRect()
     const W = Math.min(680, window.innerWidth - 32), H = W * 504 / 900
