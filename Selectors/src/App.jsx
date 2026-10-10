@@ -136,11 +136,15 @@ function Checkbox({ checked, onChange, label, detail, icon, tag, t }) {
   const v = t.variant
   const p = useSpring(checked ? 1 : 0, t.spring).value
   const draw = v === 'mist' ? 0 : 1 - clamp(p * 1.25 - 0.25) // Mist doesn't draw the check, it condenses
+  const [burst, setBurst] = useState(0) // Energetic: each check pops a ring of sparks
+  const prev = useRef(checked)
+  useEffect(() => { if (checked && !prev.current) setBurst((b) => b + 1); prev.current = checked }, [checked])
   const box = (
     <span className="cb" style={{ '--p': clamp(p), '--s': p }}>
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6 12.5l4 4 8-9" pathLength="1" style={{ strokeDashoffset: draw }} />
       </svg>
+      {v === 'energy' && burst > 0 && <span key={burst} className="sparks" aria-hidden="true">{[0, 1, 2, 3, 4, 5].map((i) => <i key={i} style={{ '--a': `${i * 60}deg` }} />)}</span>}
     </span>
   )
   return (
@@ -214,15 +218,15 @@ const SETS = [
     t: { font: '"Barlow Condensed", "SF Pro Display", Inter, sans-serif', ink: '#1d1d1d', muted: 'rgba(29,29,29,.5)', on: '#1d1d1d', off: '#cccccc' },
   },
   {
-    id: 'unfold', concept: 'Choices Unfold', name: 'Unfold', tone: 'Cozy', platform: 'visionOS',
-    content: { topic: 'Spaces' },
+    id: 'energy', concept: 'Energy Never Sits Still', name: 'Energy', tone: 'Energetic', platform: 'visionOS',
+    content: { sw: ['Boost', '', true], cb: ['Shockwave', '', true], radio: ['Pace', ['Jog', 'Run', 'Sprint'], 'Run'] },
     t: {
-      font: SF, fontName: 'SF Pro Text Medium', fw: 500, fs: 16, lh: 21, ls: '-0.2px',
-      dfs: 13, dlh: 18, rowH: 62, padX: 14, gap: 12, listR: 28, divider: 0, listGap: 22,
-      swW: 50, swH: 30, thW: 26, thH: 26, inset: 2, swR: 15, thR: 13, stretch: 6, swStroke: 0,
-      cb: 24, cbR: 7, cbStroke: 1.5, checkStroke: 2.4, rd: 24, rdDot: 10, rdStroke: 1.5,
-      ink: '#6b4a3e', muted: 'rgba(107,74,62,.6)', on: '#a06a52', off: 'rgba(107,74,62,.16)', thumb: '#fffaf5', accent: '#a06a52',
-      spring: { damping: 0.85, response: 0.5 }, variant: 'unfold',
+      font: SF, fontName: 'SF Pro Text Bold', fw: 700, fs: 17, lh: 22, ls: '-0.2px',
+      dfs: 13, dlh: 18, rowH: 56, padX: 4, gap: 14, listR: 0, divider: 0, listGap: 22,
+      swW: 62, swH: 36, thW: 30, thH: 30, inset: 3, swR: 18, thR: 15, stretch: 12, swStroke: 0,
+      cb: 28, cbR: 9, cbStroke: 2, checkStroke: 2.8, rd: 24, rdDot: 10, rdStroke: 1.5,
+      ink: '#ffffff', muted: 'rgba(255,255,255,.6)', on: '#c6ff3d', off: 'rgba(255,255,255,.16)', thumb: '#ffffff', accent: '#c6ff3d',
+      spring: { damping: 0.5, response: 0.3 }, variant: 'energy',
     },
   },
   {
@@ -280,112 +284,15 @@ function SetList({ set, auto, offset = 0 }) {
   )
 }
 
-/* ================= Choices Unfold: the tabs are the radio; the chosen tab unfolds its rows ================= */
+/* ================= small line glyphs (Serene tiles) ================= */
 const GLYPH = {
   room: <path d="M2.5 13.5V7L8 2.5 13.5 7v6.5zM6.5 13.5v-4h3v4" />,
   wave: <path d="M2 8h1M5 5.5v5M8 3v10M11 5.5v5M14 8h-1" />,
-  sun: <><circle cx="8" cy="8" r="2.8" /><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" /></>,
-  book: <path d="M8 4.5C6.5 3.5 4.5 3 2.5 3.3v9.2c2-.3 4 .2 5.5 1.2 1.5-1 3.5-1.5 5.5-1.2V3.3C11.5 3 9.5 3.5 8 4.5zM8 4.5v9.2" />,
-  drop: <path d="M8 2.5S4 7 4 9.8a4 4 0 0 0 8 0C12 7 8 2.5 8 2.5z" />,
-  sunset: <path d="M2 11.5h12M4.5 11.5a3.5 3.5 0 0 1 7 0M8 3.5v2M3.8 6.3l1.1 1.1M12.2 6.3l-1.1 1.1" />,
   pen: <path d="M3 13l1-3.5 6.5-6.5a1.8 1.8 0 0 1 2.5 2.5L6.5 12 3 13zM9.5 4l2.5 2.5" />,
   photo: <><rect x="2.5" y="3.5" width="11" height="9" rx="2" /><circle cx="6" cy="7" r="1.2" /><path d="M13.5 10.5l-3-3-5 5" /></>,
   plus: <path d="M8 3v10M3 8h10" />,
-  flame: <path d="M8 2.5c1.8 2.2 3 3.8 3 6a3 3 0 0 1-6 0c0-1.3.6-2.2 1.4-3 .2 1.2.8 1.8 1.6 2-.6-1.8-.6-3.4 0-5z" />,
 }
 const Glyph = ({ name }) => <svg viewBox="0 0 16 16" aria-hidden="true">{GLYPH[name]}</svg>
-const Tile = ({ dark, letter, glyph }) => <span className={`tile ${dark ? 'tile-dark' : ''}`} aria-hidden="true">{letter ?? <Glyph name={glyph} />}</span>
-
-const UNFOLD = [
-  { id: 'Rooms', glyph: 'room', rows: [
-    ['sw', { dark: true, glyph: 'sun' }, 'Sunroom', 'Warm morning light', 'Open', true],
-    ['cb', { glyph: 'book' }, 'Reading Nook', 'Quiet, soft focus', 'Calm', false],
-  ] },
-  { id: 'Sounds', glyph: 'wave', rows: [
-    ['sw', { dark: true, glyph: 'drop' }, 'Rainfall', 'Soft on the glass', 'Loop', true],
-    ['cb', { glyph: 'wave' }, 'Wind Chimes', 'Drifting, far off', 'Air', true],
-  ] },
-  { id: 'Light', glyph: 'sun', rows: [
-    ['sw', { dark: true, glyph: 'sunset' }, 'Golden Hour', 'Low amber glow', '6:40', false],
-    ['cb', { glyph: 'flame' }, 'Candlelight', 'A gentle flicker', 'Dim', false],
-  ] },
-]
-
-function UnfoldSet({ set, auto, offset = 0 }) {
-  const { t, content: c } = set
-  const [tab, setTab] = useState('Rooms') // null = folded away to just the tab bar
-  const [vals, setVals] = useState(() => Object.fromEntries(UNFOLD.flatMap((g) => g.rows.map((r, i) => [`${g.id}:${i}`, r[5]]))))
-  const last = useRef(tab); if (tab) last.current = tab
-  const shown = UNFOLD.find((g) => g.id === last.current)
-  const tabsRef = useRef(null), bodyRef = useRef(null), measured = useRef(false)
-  const [m, setM] = useState({ x: 0, w: 0, h: 0 })
-  const x = useSpring(m.x, t.spring), w = useSpring(m.w, t.spring), o = useSpring(tab ? 1 : 0, t.spring)
-  const h = useSpring(tab ? m.h : 0, t.spring) // the panel grows / folds to fit what the tab holds
-
-  useLayoutEffect(() => {
-    const measure = () => {
-      const btn = tabsRef.current?.querySelector(`[data-tab="${last.current}"]`)
-      if (!btn || !bodyRef.current) return
-      const next = { x: btn.offsetLeft, w: btn.offsetWidth, h: bodyRef.current.offsetHeight }
-      if (!measured.current) { measured.current = true; x.hold(next.x); w.hold(next.w); h.hold(next.h) } // no slide-in on load
-      setM(next)
-    }
-    measure()
-    window.addEventListener('resize', measure)
-    document.fonts?.ready.then(measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!auto) return
-    let i = offset
-    const id = setInterval(() => {
-      const k = i++ % 4
-      if (k < 2) { const key = `${last.current}:${k}`; setVals((v) => ({ ...v, [key]: !v[key] })) }
-      else if (k === 2) setTab((cur) => UNFOLD[(UNFOLD.findIndex((g) => g.id === (cur ?? last.current)) + 1) % UNFOLD.length].id)
-    }, 1100)
-    return () => clearInterval(id)
-  }, [auto, offset])
-
-  const pick = (id) => setTab((cur) => (cur === id ? null : id)) // choosing the open tab again folds it away
-  const key = (e, i) => {
-    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
-    if (!d) return
-    e.preventDefault()
-    const n = (i + d + UNFOLD.length) % UNFOLD.length
-    setTab(UNFOLD[n].id); tabsRef.current.children[n + 1]?.focus()
-  }
-  return (
-    <div className="topic">
-      <h3 className="list-title">{c.topic}</h3>
-      <div className="list unfold">
-        <div className="unfold-body" style={{ height: Math.max(0, h.value) }} aria-hidden={!tab}>
-          <div ref={bodyRef} key={shown.id} className={`unfold-content ${tab ? '' : 'folding'}`}>
-            <ul className="unfold-rows">
-              {shown.rows.map(([kind, tile, label, detail, tag], i) => {
-                const k = `${shown.id}:${i}`
-                const C = kind === 'sw' ? Switch : Checkbox
-                return <C key={k} t={t} icon={<Tile {...tile} />} label={label} detail={detail} tag={tag}
-                  checked={vals[k]} onChange={(v) => setVals((s) => ({ ...s, [k]: v }))} />
-              })}
-            </ul>
-            <div className="unfold-rule" />
-          </div>
-        </div>
-        <div ref={tabsRef} className="unfold-tabs" role="radiogroup" aria-label={c.topic}>
-          <span className="unfold-pill" aria-hidden="true" style={{ transform: `translateX(${x.value}px)`, width: w.value, opacity: clamp(o.value) }} />
-          {UNFOLD.map((g, i) => (
-            <button key={g.id} data-tab={g.id} className="unfold-tab" role="radio" aria-checked={tab === g.id}
-              tabIndex={(tab ?? last.current) === g.id ? 0 : -1} onClick={() => pick(g.id)} onKeyDown={(e) => key(e, i)}>
-              <Glyph name={g.glyph} />{g.id}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 /* ================= Action Clears the Room: reaching for an action frosts everything else away =================
    one spring opens the tray; each tile reads the same spring a little later, so they rise in sequence
    and sink back in reverse — and a change of mind mid-way just turns the whole sequence around */
@@ -617,14 +524,105 @@ function MistSet({ set, auto, offset = 0 }) {
   )
 }
 
-const BODIES = { mist: MistSet, unfold: UnfoldSet, frost: FrostSet, invert: InvertSet }
+/* ================= Energetic: a ball that never sits still =================
+   Boost sends it higher and hotter · Shockwave rings out on every landing · Pace sets the tempo.
+   The ball runs on its own clock (drawn straight to the DOM each frame); the controls are springy and overshoot. */
+const PACE = { Jog: 1.1, Run: 1.9, Sprint: 3 } // bounces per second
+
+function EnergyRadio({ options, value, onChange }) {
+  const idx = options.indexOf(value)
+  const x = useSpring(idx, { damping: 0.5, response: 0.3 }).value
+  const refs = useRef([])
+  const lag = idx - x // the pill zips ahead toward the choice, then snaps together
+  const key = (e, i) => {
+    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
+    if (!d) return
+    e.preventDefault()
+    const n = (i + d + options.length) % options.length
+    onChange(options[n]); refs.current[n]?.focus()
+  }
+  return (
+    <div className="nrg-radio" role="radiogroup" aria-label="Pace" style={{ '--n': options.length }}>
+      <span className="nrg-pill" style={{ left: `calc(${(x - Math.max(0, -lag) * 0.45) / options.length * 100}% + 5px)`,
+        width: `calc(${(1 + Math.abs(lag) * 0.45) / options.length * 100}% - 10px)` }} />
+      {options.map((o, i) => (
+        <button key={o} ref={(el) => (refs.current[i] = el)} role="radio" aria-checked={value === o} tabIndex={value === o ? 0 : -1}
+          onClick={() => onChange(o)} onKeyDown={(e) => key(e, i)}
+          style={{ color: `color-mix(in oklab, #17121f ${clamp(1 - Math.abs(x - i)) * 100}%, #a59db3)` }}>{o}</button>
+      ))}
+    </div>
+  )
+}
+
+function EnergySet({ set, auto, offset = 0 }) {
+  const { content: c, t } = set
+  const [boost, setBoost] = useState(c.sw[2])
+  const [shock, setShock] = useState(c.cb[2])
+  const [pace, setPace] = useState(c.radio[2])
+  const hot = useSpring(boost ? 1 : 0, { damping: 0.55, response: 0.35 }).value
+  const live = useRef({}); live.current = { hot, shock, pace }
+  const scene = useRef(null), ball = useRef(null), shadow = useRef(null)
+  useEffect(() => {
+    if (!auto) return
+    let i = offset
+    const id = setInterval(() => {
+      const k = i++ % 5
+      if (k === 0) setBoost((v) => !v)
+      else if (k === 1) setShock((v) => !v)
+      else setPace(c.radio[1][k - 2])
+    }, 1300)
+    return () => clearInterval(id)
+  }, [auto, offset, c])
+  useEffect(() => {
+    if (reducedMotion()) return
+    let raf, last = performance.now(), ph = 0
+    const tick = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now
+      const { hot, shock, pace } = live.current
+      const prev = ph; ph += dt * PACE[pace]
+      const f = ph % 1, H = 70 + hot * 70
+      const y = Math.sin(Math.PI * f) * H
+      const near = Math.max(0, 1 - Math.min(f, 1 - f) * 7) // 1 at the floor
+      const speed = Math.abs(Math.cos(Math.PI * f))
+      const sx = 1 + near * 0.3 - (1 - near) * speed * 0.08, sy = 1 - near * 0.26 + (1 - near) * speed * 0.12 // squash on landing, stretch in flight
+      if (ball.current) ball.current.style.transform = `translate(-50%, ${-y}px) scale(${sx}, ${sy})`
+      if (shadow.current) { shadow.current.style.transform = `translateX(-50%) scale(${1 - (y / H) * 0.55})`; shadow.current.style.opacity = 0.55 - (y / H) * 0.4 }
+      if (shock && Math.floor(ph) !== Math.floor(prev) && scene.current) { // a landing: ring out
+        const r = document.createElement('span'); r.className = 'nrg-shock'
+        r.addEventListener('animationend', () => r.remove()); scene.current.appendChild(r)
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+  return (
+    <div className="screen nrg-screen" style={{ '--hot': clamp(hot) }}>
+      <div ref={scene} className="nrg-scene" aria-hidden="true">
+        <span className="nrg-floor" />
+        <span ref={shadow} className="nrg-shadow" />
+        <span ref={ball} className="nrg-ball" />
+      </div>
+      <div className="nrg-controls">
+        <ul className="list">
+          <Switch label={c.sw[0]} t={t} checked={boost} onChange={setBoost} />
+          <Checkbox label={c.cb[0]} t={t} checked={shock} onChange={setShock} />
+        </ul>
+        <span className="nrg-cap">{c.radio[0]}</span>
+        <EnergyRadio options={c.radio[1]} value={pace} onChange={setPace} />
+      </div>
+    </div>
+  )
+}
+
+const BODIES = { mist: MistSet, energy: EnergySet, frost: FrostSet, invert: InvertSet }
 const SetBody = (props) => { const B = BODIES[props.set.id] ?? SetList; return <B {...props} /> }
 
 /* ================= Figma draft thumbnail =================
    the enlarged draft is drawn in a layer above the page (so no section can clip or cover it),
    growing out of the thumbnail and shrinking back into it */
 // bump when the Figma drafts are re-exported, so browsers fetch the new images
-const DRAFT_VERSION = 'wire-5'
+const DRAFT_VERSION = 'wire-6'
 
 function DraftThumb({ set }) {
   const ref = useRef(null)
