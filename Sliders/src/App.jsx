@@ -150,7 +150,7 @@ function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, projec
 
 /* ================= Energetic: a drum machine =================
    Sliders don't have to be straight: Tempo is a groove wrapped around the drum's rim (a dial you turn),
-   Pattern is a mixer fader beside the sequencer. A 16-step sequencer plays the pattern at the tempo;
+   Pattern is a stepped band cradling the drum from below. A 16-step sequencer plays the pattern at the tempo;
    the drum bounces on kicks, shudders on snares and flashes on hats. Sound is optional and off by default. */
 const ENERGY_SPRING = { damping: 0.5, response: 0.3 } // quick, with overshoot
 const PATTERNS = [
@@ -189,13 +189,20 @@ function hit(kind) {
 
 // --- Tempo: a 270° groove around the drum rim
 const ARC = { r: 136, a0: 135, sweep: 270 }
-const arcPt = (t) => { const a = (ARC.a0 + ARC.sweep * t) * Math.PI / 180; return [ARC.r * Math.cos(a), ARC.r * Math.sin(a)] }
-const arcPath = (t) => { const [x0, y0] = arcPt(0), [x1, y1] = arcPt(Math.max(t, 0.0001)); return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${ARC.r} ${ARC.r} 0 ${ARC.sweep * t > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}` }
+const arcPt = (t, A = ARC) => { const a = (A.a0 + A.sweep * t) * Math.PI / 180; return [A.r * Math.cos(a), A.r * Math.sin(a)] }
+const arcPath = (t, A = ARC, t0 = 0) => {
+  const [x0, y0] = arcPt(t0, A), [x1, y1] = arcPt(Math.max(t, t0 + 0.0001), A)
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${A.r} ${A.r} 0 ${Math.abs(A.sweep * (t - t0)) > 180 ? 1 : 0} ${A.sweep > 0 ? 1 : 0} ${x1.toFixed(2)} ${y1.toFixed(2)}`
+}
+
+const drumXY = (e, svg) => { // pointer relative to the drum's centre (the svg origin)
+  const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, sc = r.width / vb.width
+  return [e.clientX - (r.left - vb.x * sc), e.clientY - (r.top - vb.y * sc)]
+}
 
 function DrumTempo({ t, onChange, svgRef, gid, children }) {
   const project = (e) => { // the pointer's angle around the drum → a position along the groove
-    const r = svgRef.current.getBoundingClientRect()
-    const x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2)
+    const [x, y] = drumXY(e, svgRef.current)
     const d = ((Math.atan2(y, x) * 180 / Math.PI - ARC.a0) % 360 + 360) % 360
     return d <= ARC.sweep ? d / ARC.sweep : (d > ARC.sweep + (360 - ARC.sweep) / 2 ? 0 : 1)
   }
@@ -223,23 +230,39 @@ function DrumTempo({ t, onChange, svgRef, gid, children }) {
   )
 }
 
-// --- Pattern: a mixer fader beside the sequencer — push it up for more energy (Four at the bottom, Blast at the top)
-function PatternFader({ k, onChange }) {
-  const s = useSlider({ t: (4 - k) / 4, onChange: (x) => onChange(4 - Math.round(x * 4)), steps: 5, vertical: true, spring: ENERGY_SPRING })
-  const p = clamp(s.p)
-  const st = s.dragging ? 1 + Math.min(Math.abs(s.vel) * 0.12, 0.5) : 1 // the cap stretches with speed
+// --- Pattern: a stepped band cradling the drum from below — Four on the left, Blast on the right
+const PARC = { r: 168, a0: 160, sweep: -140 }
+function PatternArc({ k, onChange, svgRef, gid }) {
+  const project = (e) => { // the pointer's angle under the drum → a stop along the band
+    const [x, y] = drumXY(e, svgRef.current)
+    const d = ((Math.atan2(y, x) * 180 / Math.PI) % 360 + 360) % 360
+    if (d >= 20 && d <= 160) return (160 - d) / 140
+    return d > 160 && d < 270 ? 0 : 1
+  }
+  const s = useSlider({ t: k / 4, onChange: (x) => onChange(Math.round(x * 4)), steps: 5, project, spring: ENERGY_SPRING })
+  const p = clamp(s.p), [cx, cy] = arcPt(p, PARC)
+  const ang = PARC.a0 + PARC.sweep * p
+  const st = s.dragging ? 1 + Math.min(Math.abs(s.vel) * 0.12, 0.5) : 1 // the cap stretches along the band with speed
+  const peek = s.hx != null && !s.pressed ? Math.round(clamp(s.hx) * 4) : null
+  const [lx, ly] = arcPt(p, { ...PARC, r: PARC.r + 30 })
+  const anchor = lx > 70 ? 'start' : lx < -70 ? 'end' : 'middle' // the name leans away from the cap at the ends
   return (
-    <div className={`fader ${s.state}`} {...s.bind} aria-label="Pattern" aria-orientation="vertical" aria-valuemin={0} aria-valuemax={4} aria-valuenow={k} aria-valuetext={PATTERNS[k].name}>
-      <div className="fader-track" ref={s.track}>
-        <span className="fader-fill" style={{ height: `${(1 - p) * 100}%` }} />
-        {PATTERNS.map((pt, i) => <span key={pt.name} className={`fader-notch ${i <= k ? 'lit' : ''}`} style={{ top: `${((4 - i) / 4) * 100}%` }} />)}
-        <span className="fader-cap" style={{ top: `${s.p * 100}%`, '--st': st }} />
-      </div>
-      {/* one name rides beside the cap and flips as it crosses each notch */}
-      <div className="fader-names" aria-hidden="true">
-        <span style={{ top: `${clamp(s.p) * 100}%` }}>{PATTERNS[4 - Math.round(clamp(s.p) * 4)].name}</span>
-      </div>
-    </div>
+    <g className={`pat-arc ${s.state}`} {...s.bind} aria-label="Pattern" aria-valuemin={0} aria-valuemax={4} aria-valuenow={k} aria-valuetext={PATTERNS[k].name}>
+      <path d={arcPath(1, PARC)} className="pat-hit" />
+      <path d={arcPath(1, PARC)} className="pat-band" />
+      <path d={arcPath(p, PARC)} className="pat-fill" stroke={`url(#${gid})`} />
+      <path d={arcPath(p, PARC)} className="pat-flow" />
+      {PATTERNS.map((pt, i) => {
+        const a = (PARC.a0 + PARC.sweep * i / 4) * Math.PI / 180, r0 = PARC.r - 15, r1 = PARC.r + 15
+        return <line key={pt.name} className={`pat-notch ${i <= k ? 'lit' : ''} ${peek === i ? 'peek' : ''}`} x1={r0 * Math.cos(a)} y1={r0 * Math.sin(a)} x2={r1 * Math.cos(a)} y2={r1 * Math.sin(a)} />
+      })}
+      <g transform={`translate(${cx.toFixed(2)} ${cy.toFixed(2)}) rotate(${ang.toFixed(2)})`}>
+        <g className="pat-cap" style={{ transform: `scale(1, ${st.toFixed(3)})` }}>
+          <rect x="-18" y="-7" width="36" height="14" rx="7" className="cap" /><rect x="-10" y="-1.5" width="20" height="3" rx="1.5" className="grip" />
+        </g>
+      </g>
+      <text className="pat-name" x={lx.toFixed(2)} y={(ly + 6).toFixed(2)} textAnchor={anchor}>{PATTERNS[Math.round(p * 4)].name}</text>
+    </g>
   )
 }
 
@@ -281,9 +304,10 @@ function EnergySet({ auto, offset = 0 }) {
     <div ref={root} className="screen nrg-screen">
       <button className={`nrg-sound ${sound ? 'on' : ''}`} aria-pressed={sound} onClick={() => { if (!sound) ensureAudio(); setSound((v) => !v) }}>{sound ? 'Sound on' : 'Sound off'}</button>
       <div ref={stage} className="drum-stage">
-        <svg ref={drumSvg} viewBox="-160 -160 320 320" className="drum">
+        <svg ref={drumSvg} viewBox="-240 -160 480 380" className="drum">
           <defs>
             <linearGradient id={`ng${uid}`} gradientUnits="userSpaceOnUse" x1="-140" y1="100" x2="140" y2="100"><stop offset="0" stopColor="#d4ff3a" /><stop offset="1" stopColor="#ff2e88" /></linearGradient>
+            <linearGradient id={`pg${uid}`} gradientUnits="userSpaceOnUse" x1="-170" y1="0" x2="170" y2="0"><stop offset="0" stopColor="#2ee6ff" /><stop offset="1" stopColor="#d4ff3a" /></linearGradient>
             <radialGradient id={`hd${uid}`} cx="45%" cy="40%"><stop offset="0" stopColor="#ff7ab6" /><stop offset=".6" stopColor="#ff2e88" /><stop offset="1" stopColor="#7a1bff" /></radialGradient>
           </defs>
           <g ref={head} aria-hidden="true">
@@ -294,9 +318,9 @@ function EnergySet({ auto, offset = 0 }) {
             <circle ref={rim} r="98" className="drum-hat" />
           </g>
           <DrumTempo t={tempo} onChange={setTempo} svgRef={drumSvg} gid={`ng${uid}`} />
+          <PatternArc k={k} onChange={setK} svgRef={drumSvg} gid={`pg${uid}`} />
         </svg>
       </div>
-      <PatternFader k={k} onChange={setK} />
       <div className="controls nrg-controls">
         <div className="sl-head mach-head"><span className="sl-label">Pattern</span></div>
         <div className="seq" aria-label={`${P.name} pattern`}>
@@ -578,10 +602,10 @@ const SETS = [
   {
     id: 'energy', tone: 'Energetic', Body: EnergySet,
     spec: [
-      ['Layout', [['Screen', 'padding 28 / 32, radius 34, #0D0A14 with a magenta glow behind the drum'], ['Columns', 'drum 1fr · pattern fader 130 · sequencer full width below'], ['Drum', 'head r 92 · shell r 104 · 10 lugs 10 × 16'], ['Light', 'no outlines — colour is light: acid lime #D4FF3A, hot pink #FF2E88, electric cyan #2EE6FF']]],
+      ['Layout', [['Screen', 'padding 28 / 32, radius 34, #0D0A14 with a magenta glow behind the drum'], ['Stack', 'drum with both sliders · sequencer below, same width'], ['Drum', 'head r 92 · shell r 104 · 10 lugs 10 × 16'], ['Light', 'no outlines — colour is light: acid lime #D4FF3A, hot pink #FF2E88, electric cyan #2EE6FF']]],
       ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 800 · 22 / 26'], ['BPM', 'Unbounded 800 · 44 / 44 in the drum'], ['Stops / rows', 'Unbounded 600 · 11 / 14']]],
       ['Continuous · Tempo (around the rim)', [['Range', '60 – 180 BPM, step 1'], ['Path', '270° arc, r 136, from 135° clockwise'], ['Groove', 'stroke 16 #2A2236; fill 16 → 22 on each kick, gradient #D4FF3A → #FF2E88, glow 4 → 14'], ['Flow', 'streaks 3 / 13 along the fill, moving 16 units per beat'], ['Knob', 'r 15, #FFFFFF, pink glow, bounces ×1.18 on the kick; pressed: ×0.86, core r 5 → 7 in #FF2E88, halo r 23; dragged: stretches along the tangent (≤ 1.4×)']]],
-      ['Stepped · Pattern (mixer fader)', [['Stops', '5, bottom → top — Four · Backbeat · Shuffle · Break · Blast'], ['Track', 'vertical, w 12 (16 on the kick), radius 6, #2A2236, beside the sequencer'], ['Fill', 'from the bottom, #2EE6FF → #D4FF3A, streaks flow upward with the tempo'], ['Cap', '36 × 14, radius 7, #FFFFFF, lime glow; pressed ×0.9 with a pink grip line; stretches with speed'], ['Names', 'Unbounded 600 · 10 / 12, beside each notch']]],
+      ['Stepped · Pattern (band under the drum)', [['Stops', '5, left → right — Four · Backbeat · Shuffle · Break · Blast'], ['Band', 'arc r 168, 160° → 20° (140°), stroke 18 (22 on hover), #2A2236, round caps'], ['Fill', 'from the left, #2EE6FF → #D4FF3A, streaks flow with the tempo'], ['Notches', '5 radial ticks 30 long; lit up to the current stop, white under the pointer'], ['Cap', '36 × 14, radius 7, #FFFFFF, lime glow, set radially; hover ×1.1 · pressed ×0.9 with a pink grip · stretches along the band with speed'], ['Name', 'Unbounded 800 · 18, rides outside the cap, flips at each notch; the hovered notch turns white']]],
       ['Sequencer', [['Grid', '3 rows × 16 steps, cell 14 × 20, radius 4, gap 3'], ['Rows', 'Kick #FF2E88 · Snare #2EE6FF · Hat #D4FF3A, lit cells glow'], ['Playhead', 'sixteenth notes at the tempo, outlined column']]],
       ['States', [['Idle', 'knobs rest in their grooves; the drum keeps playing'], ['Hover', 'grooves thicken; a ghost knob previews the BPM / the stop under the pointer swells'], ['Pressed', 'the knob jumps to the finger and grips; the groove fill thickens'], ['Drag', 'knobs ride their curves 1:1 (projected onto the path); the beat and pattern change live'], ['Release', 'springs on with overshoot; stepped flicks carry to the next stop']]],
       ['Motion', [['Spring', 'damping 0.5, response 0.3'], ['Hits', 'kick: head ×1.06 + ring · snare: 4 px shudder · hat: rim flash'], ['Sound', 'optional, synthesized; off by default']]],
