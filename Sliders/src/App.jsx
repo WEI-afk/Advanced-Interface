@@ -103,7 +103,8 @@ function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, spring
   }
   const move = (e) => {
     const d = g.current
-    if (!d) { setHx(at(e)); return }
+    setHx(at(e)) // the pointer is tracked while hovering *and* while held, so hover-driven details keep following it
+    if (!d) return
     const raw = at(e); d.raw = raw
     if (!d.moved && Math.abs((vertical ? e.clientY : e.clientX) - d.x0) > 3) { d.moved = true; setDragging(true) }
     if (!d.moved) return
@@ -187,7 +188,6 @@ function EnergyIntensity({ level, onChange }) {
             style={{ '--i': i, translate: `0 ${-5 * near}px`, scale: `1 ${s.pressed ? 0.75 : 1 + 0.35 * near}` }} />
         })}
         <span className="nrg-knob" style={{ left: `${s.x(s.p)}%` }} />
-        <span className="nrg-bubble" style={{ left: `${s.x(s.p)}%` }}>{LEVELS[level]}</span>
       </div>
       <div className="nrg-ticks" aria-hidden="true">{LEVELS.map((l, i) => <span key={l} className={`${i === level ? 'on' : ''} ${s.hx != null && !s.pressed && Math.round(clamp(s.hx) * 4) === i && i !== level ? 'peek' : ''}`}>{l}</span>)}</div>
     </div>
@@ -266,7 +266,7 @@ function FutThrust({ t, onChange }) {
           const at = i / 20, near = s.hx == null ? 0 : clamp(1 - Math.abs(at - s.hx) * 8)
           const lean = s.hx == null ? 0 : -Math.sign(s.hx - at) * near * 18 // ticks lean toward the cursor…
           return <span key={i} className={`${i % 5 === 0 ? 'major' : ''} ${at <= s.p + 1e-6 ? 'on' : ''}`}
-            style={{ left: `${at * 100}%`, '--near': near, '--grow': `${near * 8}px`, rotate: `${lean}deg` }}>{i % 5 === 0 && <em>{i * 5}</em>}</span>
+            style={{ left: `${at * 100}%`, '--near': near, '--grow': `${near * 8}px`, rotate: `${lean}deg`, '--lean': `${lean}deg` }}>{i % 5 === 0 && <em>{i * 5}</em>}</span>
         })}
       </div>
     </div>
@@ -508,7 +508,7 @@ const SETS = [
       ['Layout', [['Screen', 'padding 28 / 32, radius 34, #17121F'], ['Columns', 'subject 1fr · controls 340'], ['Slider gap', '34'], ['Label → track', '14']]],
       ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 600 · 18 / 22 · tabular'], ['Bubble', 'Unbounded 800 · 14 / 18'], ['Step names', 'Unbounded 500 · 10 / 12']]],
       ['Continuous · Tempo', [['Range', '60 – 180 BPM, step 1'], ['Track', 'an elastic cord, stroke 12 (14 on hover), round caps, #2A2333, pinned at both ends'], ['Fill', 'gradient #C6FF3D → #FF2D78'], ['Thumb', '30 × 30, radius 15, #FFF, shadow 0 3 8 / 40%'], ['Bubble', 'h 30, pad 0 10, radius 10, #C6FF3D, 16 above thumb']]],
-      ['Stepped · Intensity', [['Stops', '5 — Easy · Steady · Push · Hard · All-out'], ['Blocks', 'h 16, radius 6, gap 6; lit = lime → pink by stop'], ['Knob', '10 × 30, radius 5, #FFF, centred on stop'], ['Bubble', 'same as Tempo']]],
+      ['Stepped · Intensity', [['Stops', '5 — Easy · Steady · Push · Hard · All-out'], ['Blocks', 'h 16, radius 6, gap 6; lit = lime → pink by stop'], ['Knob', '10 × 30, radius 5, #FFF, centred on stop'], ['Value', 'shown in the header and the label row — no bubble over the blocks']]],
       ['States', [['Idle', 'thumb 30, track 12, value in the header'], ['Hover', 'the cord gives 3 px at the thumb; thumb ×1.12; a ghost thumb + value previews the pointer; blocks rise up to 5 px toward the pointer'], ['Pressed', 'the cord is pulled 12 px down at the thumb; squash 1.25 × 0.8 + lime glow; bubble pops in; blocks brace (scale-y 0.75)'], ['Drag', 'stays squashed, stretches with speed (≤ 1.5×); live bubble; each lit block pops'], ['Release', 'the cord twangs (damping 0.16, response 0.3); stepped flicks carry to the next stop']]],
       ['Motion', [['Spring', 'damping 0.5, response 0.3 (overshoots)'], ['Flick', 'stepped: projected 60 ms ahead, carries to next stop']]],
     ],
