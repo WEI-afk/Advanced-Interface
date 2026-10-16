@@ -81,7 +81,10 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .drum-tempo.is-press .dot, .drum-tempo.is-drag .dot { r: 7px; fill: #ff2e88; }
 .drum-tempo.is-press .halo, .drum-tempo.is-drag .halo { opacity: .7; scale: 1; }
 .tempo-ghost circle { fill: none; stroke: rgba(255,255,255,.6); stroke-width: 2; stroke-dasharray: 3 3; }
-.tempo-ghost text { font: 700 12px/1 Unbounded, sans-serif; text-anchor: middle; fill: #fff; }
+.chip { pointer-events: none; animation: chip-in .2s ease-out; }
+.chip rect { fill: rgba(13,10,20,.88); stroke: rgba(255,255,255,.35); stroke-width: 1; }
+.chip text { font: 700 11px/1 Unbounded, sans-serif; text-anchor: middle; fill: #fff; }
+@keyframes chip-in { from { opacity: 0; } }
 .drum-tempo:focus-visible .groove { stroke: #2ee6ff; }
 /* the machine */
 .nrg-controls { gap: 22px; grid-column: 1 / -1; padding: 12px 0 0; }

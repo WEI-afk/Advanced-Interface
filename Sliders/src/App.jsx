@@ -200,6 +200,12 @@ const drumXY = (e, svg) => { // pointer relative to the drum's centre (the svg o
   return [e.clientX - (r.left - vb.x * sc), e.clientY - (r.top - vb.y * sc)]
 }
 
+// a hover preview: a dark pill that stays readable over the neon, set just outside the slider
+function Chip({ x, y, text }) {
+  const w = text.length * 8.4 + 18
+  return <g className="chip" transform={`translate(${x.toFixed(2)} ${y.toFixed(2)})`}><rect x={-w / 2} y="-12" width={w} height="24" rx="12" /><text y="4">{text}</text></g>
+}
+
 function DrumTempo({ t, onChange, svgRef, gid, children }) {
   const project = (e) => { // the pointer's angle around the drum → a position along the groove
     const [x, y] = drumXY(e, svgRef.current)
@@ -216,7 +222,7 @@ function DrumTempo({ t, onChange, svgRef, gid, children }) {
       <path d={arcPath(p)} className="groove-fill" stroke={`url(#${gid})`} />
       <path d={arcPath(p)} className="groove-flow" />{/* energy streams along the fill, locked to the tempo */}
       {children}
-      {s.hx != null && !s.pressed && (() => { const [gx, gy] = arcPt(clamp(s.hx)); return <g className="tempo-ghost" transform={`translate(${gx} ${gy})`}><circle r="11" /><text y="-20">{Math.round(60 + clamp(s.hx) * 120)}</text></g> })()}
+      {s.hx != null && !s.pressed && (() => { const [gx, gy] = arcPt(clamp(s.hx)); const out = arcPt(clamp(s.hx), { ...ARC, r: ARC.r + 38 }), [lx, ly] = out[1] > 70 ? arcPt(clamp(s.hx), { ...ARC, r: ARC.r - 40 }) : out; /* low on the rim the chip tucks inside, clear of the Pattern band */ return <g className="tempo-ghost"><circle cx={gx} cy={gy} r="11" /><Chip x={lx} y={ly} text={`${Math.round(60 + clamp(s.hx) * 120)} BPM`} /></g> })()}
       {/* the knob: pressed, it grips (compresses, pink core, halo); dragged, it stretches along the groove's tangent */}
       <g className="tempo-knob" transform={`translate(${kx.toFixed(2)} ${ky.toFixed(2)}) rotate(${(ARC.a0 + ARC.sweep * p + 90).toFixed(2)})`}>
         <circle r="23" className="halo" />
@@ -261,6 +267,7 @@ function PatternArc({ k, onChange, svgRef, gid }) {
           <rect x="-18" y="-7" width="36" height="14" rx="7" className="cap" /><rect x="-10" y="-1.5" width="20" height="3" rx="1.5" className="grip" />
         </g>
       </g>
+      {peek != null && peek !== Math.round(p * 4) && (() => { const [hx, hy] = arcPt(peek / 4, { ...PARC, r: PARC.r + 34 }); return <Chip x={hx} y={hy} text={PATTERNS[peek].name} /> })()}
       <text className="pat-name" x={lx.toFixed(2)} y={(ly + 6).toFixed(2)} textAnchor={anchor}>{PATTERNS[Math.round(p * 4)].name}</text>
     </g>
   )
@@ -595,7 +602,7 @@ const SETS = [
       ['Layout', [['Screen', 'padding 28 / 32, radius 34, #0D0A14 with a magenta glow behind the drum'], ['Stack', 'drum with both sliders · sequencer below, same width'], ['Drum', 'head r 92 · shell r 104 · 10 lugs 10 × 16'], ['Light', 'no outlines — colour is light: acid lime #D4FF3A, hot pink #FF2E88, electric cyan #2EE6FF']]],
       ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 800 · 22 / 26'], ['BPM', 'Unbounded 800 · 44 / 44 in the drum'], ['Stops / rows', 'Unbounded 600 · 11 / 14']]],
       ['Continuous · Tempo (around the rim)', [['Range', '60 – 180 BPM, step 1'], ['Path', '270° arc, r 136, from 135° clockwise'], ['Groove', 'stroke 16 #2A2236; fill 16 → 22 on each kick, gradient #D4FF3A → #FF2E88, glow 4 → 14'], ['Flow', 'streaks 3 / 13 along the fill, moving 16 units per beat'], ['Knob', 'r 15, #FFFFFF, pink glow, bounces ×1.18 on the kick; pressed: ×0.86, core r 5 → 7 in #FF2E88, halo r 23; dragged: stretches along the tangent (≤ 1.4×)']]],
-      ['Stepped · Pattern (band under the drum)', [['Stops', '5, left → right — Four · Backbeat · Shuffle · Break · Blast'], ['Band', 'arc r 168, 160° → 20° (140°), stroke 18 (22 on hover), #2A2236, round caps'], ['Fill', 'from the left, #2EE6FF → #D4FF3A, streaks flow with the tempo'], ['Notches', '5 radial ticks 30 long; lit up to the current stop, white under the pointer'], ['Cap', '36 × 14, radius 7, #FFFFFF, lime glow, set radially; hover ×1.1 · pressed ×0.9 with a pink grip · stretches along the band with speed'], ['Name', 'Unbounded 800 · 18, rides outside the cap, flips at each notch; the hovered notch turns white']]],
+      ['Stepped · Pattern (band under the drum)', [['Stops', '5, left → right — Four · Backbeat · Shuffle · Break · Blast'], ['Band', 'arc r 168, 160° → 20° (140°), stroke 18 (22 on hover), #2A2236, round caps'], ['Fill', 'from the left, #2EE6FF → #D4FF3A, streaks flow with the tempo'], ['Notches', '5 radial ticks 30 long; lit up to the current stop, white under the pointer'], ['Cap', '36 × 14, radius 7, #FFFFFF, lime glow, set radially; hover ×1.1 · pressed ×0.9 with a pink grip · stretches along the band with speed'], ['Name', 'Unbounded 800 · 18, rides outside the cap, flips at each notch; hover: the notch turns white and a dark chip names that stop']]],
       ['Sequencer', [['Grid', '3 rows × 16 steps, cell 14 × 20, radius 4, gap 3'], ['Rows', 'Kick #FF2E88 · Snare #2EE6FF · Hat #D4FF3A, lit cells glow'], ['Playhead', 'sixteenth notes at the tempo, outlined column']]],
       ['States', [['Idle', 'knobs rest in their grooves; the drum keeps playing'], ['Hover', 'grooves thicken; a ghost knob previews the BPM / the stop under the pointer swells'], ['Pressed', 'the knob jumps to the finger and grips; the groove fill thickens'], ['Drag', 'knobs ride their curves 1:1 (projected onto the path); the beat and pattern change live'], ['Release', 'springs on with overshoot; stepped flicks carry to the next stop']]],
       ['Motion', [['Spring', 'damping 0.5, response 0.3'], ['Hits', 'kick: head ×1.06 + ring · snare: 4 px shudder · hat: rim flash'], ['Sound', 'optional, synthesized; off by default']]],
