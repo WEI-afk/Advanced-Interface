@@ -325,6 +325,7 @@ const MYS_SPRING = { damping: 1, response: 0.55 } // slow and deliberate, never 
 const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
 const mixHex = (h1, h2, t) => '#' + hexRgb(h1).map((v, i) => Math.round(lerp(v, hexRgb(h2)[i], clamp(t))).toString(16).padStart(2, '0')).join('')
 const STARS = Array.from({ length: 46 }, (_, i) => { const r = (n) => ((Math.sin(i * 9301 + n * 49297) * 233280) % 1 + 1) % 1; return { x: r(1) * 100, y: r(2) * 58, s: 0.6 + r(3) * 1.6, d: r(4) * 6 } })
+  .filter((st) => !(st.x > 52 && st.y > 16)) // keep the sky clear around the sliders, so only the paths' own stars sit there
 
 // a name that hands over to the next one through a soft blur, following a continuous position
 function Handover({ names, f }) {
