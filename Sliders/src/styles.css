@@ -71,12 +71,15 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .drum-tempo { cursor: grab; outline: none; }
 .drum-tempo.is-hover .groove { stroke-width: 20; }
 .drum-tempo.is-press .groove-fill, .drum-tempo.is-drag .groove-fill { stroke-width: calc(20px + var(--kick) * 6px); }
-/* knobs: bounce on the kick, squash on press */
-.tempo-knob > circle:first-child { fill: #fff; transform-box: fill-box; transform-origin: center; transition: transform .35s cubic-bezier(.34,1.8,.64,1); scale: calc(1 + var(--kick) * .18); }
-.tempo-knob > circle:first-child { filter: drop-shadow(0 0 10px #ff2e88); }
-.tempo-knob .dot { fill: #0d0a14; }
-.drum-tempo.is-hover .tempo-knob > circle:first-child { transform: scale(1.15); }
-.drum-tempo.is-press .tempo-knob > circle:first-child, .drum-tempo.is-drag .tempo-knob > circle:first-child { transform: scale(1.25, .8); }
+/* the Tempo knob: bounces on the kick; pressed it grips, dragged it stretches along the groove */
+.knob-body { transition: scale .3s cubic-bezier(.34,1.8,.64,1); }
+.tempo-knob .body { fill: #fff; filter: drop-shadow(0 0 10px #ff2e88); transform-box: fill-box; transform-origin: center; scale: calc(1 + var(--kick) * .18); }
+.tempo-knob .dot { fill: #0d0a14; transition: r .25s cubic-bezier(.34,1.8,.64,1), fill .2s; }
+.tempo-knob .halo { fill: none; stroke: #ff2e88; stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; scale: .7; transition: opacity .2s, scale .35s cubic-bezier(.34,1.8,.64,1); }
+.drum-tempo.is-hover .knob-body { scale: 1.12; }
+.drum-tempo.is-press .knob-body, .drum-tempo.is-drag .knob-body { scale: .86; }
+.drum-tempo.is-press .dot, .drum-tempo.is-drag .dot { r: 7px; fill: #ff2e88; }
+.drum-tempo.is-press .halo, .drum-tempo.is-drag .halo { opacity: .7; scale: 1; }
 .tempo-ghost circle { fill: none; stroke: rgba(255,255,255,.6); stroke-width: 2; stroke-dasharray: 3 3; }
 .tempo-ghost text { font: 700 12px/1 Unbounded, sans-serif; text-anchor: middle; fill: #fff; }
 .drum-tempo:focus-visible .groove { stroke: #2ee6ff; }
