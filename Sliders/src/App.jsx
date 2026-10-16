@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 /* ================= spring physics =================
@@ -16,10 +16,13 @@ function stepSpring(s, damping, response, dt) {
   }
 }
 
+const Slow = createContext(1) // slow motion: every spring's response is stretched by this factor
+
 function useSpring(target, { damping = 1, response = 0.35 } = {}) {
+  const slow = useContext(Slow)
   const s = useRef({ x: target, v: 0, target, held: false })
   const cfg = useRef({ damping, response })
-  cfg.current = { damping, response }
+  cfg.current = { damping, response: response * slow }
   const [, redraw] = useState(0)
   const raf = useRef()
   const run = useCallback(() => {
@@ -146,6 +149,10 @@ function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, spring
   }
 }
 
+// the live state, written under each slider — so every state can be read while you test it
+const stateName = (s) => (s.dragging ? 'Drag' : s.pressed ? 'Pressed' : s.hover ? 'Hover' : 'Default')
+const StateLine = ({ s, text }) => <div className="sl-state" aria-hidden="true"><b>{stateName(s)}</b><span>·</span>{text}</div>
+
 /* ================= Energetic: a heart that beats at your tempo ================= */
 const LEVELS = ['Easy', 'Steady', 'Push', 'Hard', 'All-out']
 const ENERGY_SPRING = { damping: 0.5, response: 0.3 } // quick, with overshoot
@@ -161,7 +168,10 @@ function EnergyTempo({ t, onChange }) {
         <span className="nrg-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
         <span className="nrg-thumb" style={{ left: `${s.x(s.p)}%`, '--st': s.dragging ? stretch : 1 }} />
         <span className="nrg-bubble" style={{ left: `${s.x(s.p)}%` }}>{bpm}</span>
+        {/* hover previews the value under the pointer: a ghost thumb with the number it would land on */}
+        {s.hx != null && !s.pressed && <span className="nrg-ghost" style={{ left: `${clamp(s.hx) * 100}%` }}><em>{Math.round(60 + clamp(s.hx) * 120)}</em></span>}
       </div>
+      <StateLine s={s} text={`${bpm} BPM`} />
     </div>
   )
 }
@@ -176,7 +186,8 @@ function EnergyIntensity({ level, onChange }) {
         <span className="nrg-knob" style={{ left: `${s.x(s.p)}%` }} />
         <span className="nrg-bubble" style={{ left: `${s.x(s.p)}%` }}>{LEVELS[level]}</span>
       </div>
-      <div className="nrg-ticks" aria-hidden="true">{LEVELS.map((l, i) => <span key={l} className={i === level ? 'on' : ''}>{l}</span>)}</div>
+      <div className="nrg-ticks" aria-hidden="true">{LEVELS.map((l, i) => <span key={l} className={`${i === level ? 'on' : ''} ${s.hx != null && !s.pressed && Math.round(clamp(s.hx) * 4) === i && i !== level ? 'peek' : ''}`}>{l}</span>)}</div>
+      <StateLine s={s} text={LEVELS[level]} />
     </div>
   )
 }
@@ -240,6 +251,8 @@ function FutThrust({ t, onChange }) {
         <span className="fut-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
         <span className="fut-thumb" style={{ left: `${s.p * 100}%` }}><i /></span>
         <span className="fut-readout" style={{ left: `${s.p * 100}%` }}>THR {pct}</span>
+        {/* hover: a crosshair under the pointer reads out the value it would set */}
+        {s.hx != null && !s.pressed && <span className="fut-cross" style={{ left: `${clamp(s.hx) * 100}%` }}><em>{(clamp(s.hx) * 100).toFixed(1)}</em></span>}
       </div>
       {/* a graduated ruler: ticks light up behind the thumb and brighten near the pointer */}
       <div className="fut-ruler" aria-hidden="true">
@@ -248,6 +261,7 @@ function FutThrust({ t, onChange }) {
           return <span key={i} className={`${i % 5 === 0 ? 'major' : ''} ${at <= s.p + 1e-6 ? 'on' : ''}`} style={{ left: `${at * 100}%`, '--near': near }}>{i % 5 === 0 && <em>{i * 5}</em>}</span>
         })}
       </div>
+      <StateLine s={s} text={`${pct} %`} />
     </div>
   )
 }
@@ -262,6 +276,7 @@ function FutWarp({ warp, onChange }) {
         <span className="fut-bracket" style={{ '--p': s.p }} />{/* a four-corner reticle, placed by the cells' exact geometry */}
         <span className="fut-readout" style={{ left: `${s.x(s.p)}%` }}>WARP {warp + 1}</span>
       </div>
+      <StateLine s={s} text={WARPS[warp]} />
     </div>
   )
 }
@@ -390,6 +405,7 @@ function MoonPhase({ phase, onChange, onMorph }) {
         ))}
         <span className="mys-pearl is-moon" style={{ left: `${s.p * 100}%` }}><MiniMoon k={f / 4} /></span>
       </div>
+      <StateLine s={s} text={MOON_PHASES[phase]} />
     </div>
   )
 }
@@ -408,6 +424,7 @@ function MoonVeil({ t, onChange, onMorph }) {
         <PathStars at={[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]} s={s} reach={reach} dim={v} />{/* the mist hides them as it thickens */}
         <span className="mys-pearl" style={{ left: `${s.p * 100}%`, filter: `blur(${v * 1.6}px)`, opacity: 1 - v * 0.35 }} />
       </div>
+      <StateLine s={s} text={`${Math.round(v * 100)} %`} />
     </div>
   )
 }
@@ -474,35 +491,35 @@ function useAuto(auto, offset, actions) {
 /* ================= the three sets + their spec ================= */
 const SETS = [
   {
-    id: 'energy', tone: 'Energetic', Body: EnergySet,
+    id: 'energy', tone: 'Energetic', Body: EnergySet, line: 'A heartbeat you set by hand. The thumb squashes, stretches and pops; the blocks light up like a meter.',
     spec: [
       ['Layout', [['Screen', 'padding 28 / 32, radius 34, #17121F'], ['Columns', 'subject 1fr · controls 340'], ['Slider gap', '34'], ['Label → track', '14']]],
       ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 600 · 18 / 22 · tabular'], ['Bubble', 'Unbounded 800 · 14 / 18'], ['Step names', 'Unbounded 500 · 10 / 12']]],
       ['Continuous · Tempo', [['Range', '60 – 180 BPM, step 1'], ['Track', 'h 12 (16 on hover/drag), radius 8, #2A2333'], ['Fill', 'gradient #C6FF3D → #FF2D78'], ['Thumb', '30 × 30, radius 15, #FFF, shadow 0 3 8 / 40%'], ['Bubble', 'h 30, pad 0 10, radius 10, #C6FF3D, 16 above thumb']]],
       ['Stepped · Intensity', [['Stops', '5 — Easy · Steady · Push · Hard · All-out'], ['Blocks', 'h 16, radius 6, gap 6; lit = lime → pink by stop'], ['Knob', '10 × 30, radius 5, #FFF, centred on stop'], ['Bubble', 'same as Tempo']]],
-      ['States', [['Hover', 'thumb ×1.12, track 12 → 16'], ['Pressed', 'thumb squash 1.25 × 0.8 + 6 px lime glow, bubble pops in'], ['Drag', 'thumb stays squashed (1.25 × 0.8) and stretches further with speed (≤ 1.5×); live value bubble; each lit block pops']]],
+      ['States', [['Idle', 'thumb 30, track 12, value in the header'], ['Hover', 'thumb ×1.12, track 12 → 16; a ghost thumb + value previews where the pointer is'], ['Pressed', 'thumb jumps to the finger, squash 1.25 × 0.8 + 6 px lime glow, bubble pops in'], ['Drag', 'stays squashed, stretches with speed (≤ 1.5×); live bubble; each lit block pops'], ['Release', 'springs on at the finger’s speed with overshoot; stepped flicks carry to the next stop']]],
       ['Motion', [['Spring', 'damping 0.5, response 0.3 (overshoots)'], ['Flick', 'stepped: projected 60 ms ahead, carries to next stop']]],
     ],
   },
   {
-    id: 'reactor', tone: 'Futuristic', Body: FutureSet,
+    id: 'reactor', tone: 'Futuristic', Body: FutureSet, line: 'An instrument panel. A reticle over a graduated ruler, a crosshair that reads ahead, a reactor that answers.',
     spec: [
       ['Layout', [['Screen', 'padding 28 / 32, radius 34, #05080F + 24 px grid at 4%'], ['Columns', 'subject 1fr · controls 340'], ['Slider gap', '38']]],
       ['Type', [['Label', 'Space Grotesk 500 · 11 / 14 · caps · tracking 0.24em'], ['Value', 'JetBrains Mono 500 · 18 / 22 · tabular'], ['Readout', 'JetBrains Mono 500 · 11 / 14'], ['Ruler', 'JetBrains Mono 400 · 9 / 10']]],
       ['Continuous · Thrust', [['Range', '0 – 100 %, step 1 (0.1 shown)'], ['Track', 'h 2, rgba(62,240,255,.18)'], ['Fill', '#3EF0FF + glow 0 0 8'], ['Thumb', 'diamond 14 × 14, stroke 1.5 #3EF0FF, crosshair h 30'], ['Ruler', '21 ticks every 5 %, major every 25 % (h 10 / 5)']]],
       ['Stepped · Warp', [['Stops', '5 — W1 … W5'], ['Cells', 'h 32, gap 6, chamfer 6, stroke 1'], ['Reticle', 'four corners, arms 7, stroke 1.5, 5 outside the cell (2 when pressed)']]],
-      ['States', [['Hover', 'diamond ×1.15; ruler ticks near the pointer brighten'], ['Pressed', 'diamond fills; the reticle closes in on the cell (5 → 2)'], ['Drag', 'readout chip above thumb, ticks light behind it; new cell boots with a flicker']]],
+      ['States', [['Idle', 'outlined diamond, reticle 5 outside the cell'], ['Hover', 'diamond ×1.15; ticks near the pointer brighten; a crosshair reads out the value under it'], ['Pressed', 'diamond fills; the reticle closes in on the cell (5 → 2)'], ['Drag', 'readout chip above the thumb, ticks light behind it; a new cell boots with a flicker'], ['Release', 'settles precisely (damping 0.9) — no overshoot to speak of']]],
       ['Motion', [['Spring', 'damping 0.9, response 0.22 (precise)']]],
     ],
   },
   {
-    id: 'moon', tone: 'Mysterious', Body: MysteriousSet,
+    id: 'moon', tone: 'Mysterious', Body: MysteriousSet, line: 'A path in the dark, lit only by the moon you carry. The fuller it grows, the further you can see.',
     spec: [
       ['Layout', [['Screen', 'radius 34; night scene 1fr · controls 320, padding 28 / 36'], ['Moon', 'r 64 (128 Ø); halo r 82 → 112 with Veil'], ['Water', 'lower 34 % of the scene; reflection blurred 3, 35 %']]],
       ['Type', [['Caption', 'Inter 500 · 10 / 12 · caps · tracking 0.3em'], ['Phase name', 'Cormorant Garamond italic 400 · 26 / 30'], ['Veil value', 'Cormorant Garamond 400 · 26 / 30, % at 15'], ['Labels', 'no text appears on press or drag — the header and the scene carry the value']]],
       ['Stepped · Phase', [['Stops', '5 — New · Crescent · Half · Gibbous · Full'], ['Track', 'h 1, #E8E6DC at 55 %, hidden — visible only inside the pools of light'], ['Light', 'thumb reach 40 → 150 px as the moon fills'], ['Stops', 'moon glyphs 12 × 12, 6 % in the dark → 100 % when lit'], ['Waypoints', 'star points 2 × 2 midway between stops, 12 below the line (in the stop row); twinkle 6 s; 22 % → 100 % and ×1.6 when lit'], ['Thumb', 'a moon 18 × 18 drawn in the current phase']]],
       ['Continuous · Veil', [['Range', '0 – 100 %, step 1'], ['Fill', 'a trail of light, transparent → #E8E6DC 80 %, ending at the thumb'], ['Light', 'reach 120 → 35 px as the veil thickens'], ['Stars', 'a star point every 10 %, 12 below the line, fading under the veil'], ['Thumb', 'pearl 14 × 14, blurs up to 1.6 px with the veil']]],
-      ['States', [['Hover', 'a lantern (60 px) follows the pointer and reveals the hidden track and stops beneath it'], ['Pressed', 'the thumb blooms a 10 px halo'], ['Drag', 'the pool of light travels with the thumb; names hand over through a 5 px blur; the night follows live']]],
+      ['States', [['Idle', 'only the thumb’s pool of light shows the path'], ['Hover', 'a lantern (60 px) follows the pointer and reveals the hidden track and stops beneath it'], ['Pressed', 'the thumb blooms a 10 px halo'], ['Drag', 'the pool of light travels with the thumb; names hand over through a 5 px blur; the night follows live'], ['Release', 'drifts into place slowly (damping 1, 0.55 s), no bounce']]],
       ['Motion', [['Spring', 'damping 1, response 0.55 (slow, no bounce)'], ['Ambient', 'stars twinkle 6 s · mist drifts 40 s · reflection shimmers 5 s']]],
     ],
   },
@@ -546,17 +563,21 @@ function DraftThumb({ set }) {
 
 function SetSection({ set }) {
   const [spec, setSpec] = useState(false)
+  const [slow, setSlow] = useState(false)
   const { Body } = set
   return (
     <section className={`set s-${set.id}`}>
       <div className="set-head">
-        <h2>{set.tone}</h2>
+        <div className="set-title"><h2>{set.tone}</h2><p className="set-line">{set.line}</p></div>
         <div className="head-tools">
           <DraftThumb set={set} />
+          <div className="tool-row">
+          <button className="spec-toggle" aria-pressed={slow} onClick={() => setSlow((v) => !v)}>{slow ? 'Slow motion · on' : 'Slow motion 0.25×'}</button>
           <button className="spec-toggle" aria-expanded={spec} onClick={() => setSpec((v) => !v)}>{spec ? 'Hide spec' : 'Spec'}</button>
+          </div>
         </div>
       </div>
-      <Body />
+      <Slow.Provider value={slow ? 4 : 1}><Body /></Slow.Provider>
       {/* spec sheet: folded away until asked for */}
       <div className={`spec ${spec ? 'open' : ''}`} aria-hidden={!spec}>
         <div className="spec-inner">
@@ -568,7 +589,7 @@ function SetSection({ set }) {
               </div>
             ))}
           </div>
-          <p className="spec-note">px at 1×. All sliders: press anywhere on the track and the thumb jumps there · drag 1:1 · arrows / Page Up / Page Down / Home / End.</p>
+          <p className="spec-note">px at 1×. Slow motion stretches every spring 4×. All sliders: press anywhere on the track and the thumb jumps there · drag 1:1 · arrows / Page Up / Page Down / Home / End.</p>
         </div>
       </div>
     </section>

@@ -212,3 +212,26 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 
 /* the set (or wall tile) is the size container, so a screen can restack itself when narrow */
 .set, .wall-tile { container: screen / inline-size; }
+
+/* ================= concept line, state line, hover previews ================= */
+.set-title { display: flex; flex-direction: column; gap: 10px; max-width: 560px; }
+.set-line { margin: 0; font: 400 15px/22px Inter, sans-serif; opacity: .7; }
+.s-moon .set-line { font: italic 400 18px/24px "Cormorant Garamond", serif; }
+.s-reactor .set-line { font: 400 13px/20px "JetBrains Mono", monospace; }
+.head-tools { flex-direction: column; align-items: flex-end; gap: 12px; }
+.tool-row { display: flex; gap: 8px; }
+.spec-toggle[aria-pressed="true"] { opacity: 1; box-shadow: inset 0 0 0 2px currentColor; font-weight: 700; }
+.sl-state { display: flex; gap: 6px; margin-top: 12px; font: 500 10px/12px Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; opacity: .45; font-variant-numeric: tabular-nums; }
+.sl-state b { font-weight: 700; opacity: 1; }
+.fut-screen .sl-state { font-family: "JetBrains Mono", monospace; color: #3ef0ff; }
+.mys-screen .sl-state { opacity: .25; } /* barely there in the dark */
+/* the value, set larger — part of the slider's character */
+.nrg-screen .sl-value { font-size: 28px; line-height: 32px; }
+.fut-screen .sl-value { font-size: 26px; line-height: 30px; }
+/* Energetic hover: a ghost thumb with the value it would land on */
+.nrg-ghost { position: absolute; top: 50%; width: 22px; height: 22px; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: inset 0 0 0 2px rgba(255,255,255,.45); }
+.nrg-ghost em { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); font: 600 12px/14px Unbounded, sans-serif; font-style: normal; color: rgba(255,255,255,.6); }
+.nrg-ticks span.peek { color: rgba(198,255,61,.55); }
+/* Futuristic hover: a crosshair that reads ahead */
+.fut-cross { position: absolute; top: -6px; bottom: -32px; width: 1px; margin-left: -.5px; pointer-events: none; background: repeating-linear-gradient(rgba(62,240,255,.6) 0 3px, transparent 3px 6px); }
+.fut-cross em { position: absolute; top: -16px; left: 4px; font: 400 10px/12px "JetBrains Mono", monospace; font-style: normal; color: rgba(62,240,255,.75); white-space: nowrap; }
