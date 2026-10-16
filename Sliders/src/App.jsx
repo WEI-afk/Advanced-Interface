@@ -65,7 +65,7 @@ const lerp = (a, b, t) => a + (b - a) * t
    - drag: the thumb follows 1:1, soft past the ends; stepped sliders feel detents between stops
    - release: the spring takes over at the finger's velocity; a flick carries a stepped slider on
    - keyboard: arrows / Page Up/Down / Home / End, with the value announced */
-function useSlider({ t, onChange, steps = 0, inset = 0, spring = { damping: 1, response: 0.35 } }) {
+function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, spring = { damping: 1, response: 0.35 } }) {
   const pos = useSpring(t, spring)
   const track = useRef(null)
   const [hover, setHover] = useState(false)
@@ -78,7 +78,8 @@ function useSlider({ t, onChange, steps = 0, inset = 0, spring = { damping: 1, r
   const snap = (x) => (n ? Math.round(clamp(x) * n) / n : clamp(x))
   const at = (e) => {
     const r = track.current.getBoundingClientRect()
-    return ((e.clientX - r.left) / r.width - inset) / (1 - 2 * inset)
+    const f = vertical ? (e.clientY - r.top) / r.height : (e.clientX - r.left) / r.width // vertical: first stop at the top
+    return (f - inset) / (1 - 2 * inset)
   }
   const draw = (raw) => {
     let x = raw
@@ -95,7 +96,7 @@ function useSlider({ t, onChange, steps = 0, inset = 0, spring = { damping: 1, r
     e.currentTarget.setPointerCapture(e.pointerId)
     setPressed(true) // feedback on press, not on release
     const raw = at(e)
-    g.current = { x0: e.clientX, raw, moved: false, hist: [[raw, e.timeStamp]] }
+    g.current = { x0: vertical ? e.clientY : e.clientX, raw, moved: false, hist: [[raw, e.timeStamp]] }
     pos.hold(draw(raw)) // the thumb lands under the finger the instant you press
     const live = snap(raw)
     if (live !== t) onChange(live)
@@ -104,7 +105,7 @@ function useSlider({ t, onChange, steps = 0, inset = 0, spring = { damping: 1, r
     const d = g.current
     if (!d) { setHx(at(e)); return }
     const raw = at(e); d.raw = raw
-    if (!d.moved && Math.abs(e.clientX - d.x0) > 3) { d.moved = true; setDragging(true) }
+    if (!d.moved && Math.abs((vertical ? e.clientY : e.clientX) - d.x0) > 3) { d.moved = true; setDragging(true) }
     if (!d.moved) return
     pos.hold(draw(raw))
     d.hist.push([raw, e.timeStamp]); if (d.hist.length > 6) d.hist.shift()
@@ -127,7 +128,8 @@ function useSlider({ t, onChange, steps = 0, inset = 0, spring = { damping: 1, r
   const key = (e) => {
     const unit = n ? 1 / n : 0.01
     const big = n ? unit : 0.1
-    const d = { ArrowRight: unit, ArrowUp: unit, ArrowLeft: -unit, ArrowDown: -unit, PageUp: big, PageDown: -big, Home: -1, End: 1 }[e.key]
+    const up = vertical ? -unit : unit // a vertical list runs top → bottom
+    const d = { ArrowRight: unit, ArrowUp: up, ArrowLeft: -unit, ArrowDown: -up, PageUp: big, PageDown: -big, Home: -1, End: 1 }[e.key]
     if (d == null) return
     e.preventDefault()
     onChange(snap(t + d * (e.shiftKey && !n ? 10 : 1)))
@@ -312,64 +314,110 @@ function FutureSet({ auto, offset = 0 }) {
   )
 }
 
-/* ================= Luxurious: a gold coin, weighed and polished ================= */
-const KARATS = [9, 14, 18, 22, 24]
-const GOLD = { 9: '#c7b27f', 14: '#d2b46b', 18: '#dbb158', 22: '#e1ab45', 24: '#e6a434' }
-const LUX_SPRING = { damping: 1, response: 0.5 } // weighty and smooth — never bounces
+/* ================= Ethereal: a soft sphere drifting between phases ================= */
+const PHASES = [
+  { name: 'Dawn', a: '#ffe1ee', b: '#d39af2', c: '#8a74f2' },
+  { name: 'Tide', a: '#ddefff', b: '#7ea6f6', c: '#4253e2' },
+  { name: 'Dusk', a: '#ffe4f3', b: '#e08fd8', c: '#9157e6' },
+  { name: 'Night', a: '#d4d1ff', b: '#6a60de', c: '#27207c' },
+]
+const ETH_SPRING = { damping: 1, response: 0.45 } // soft, unhurried, never bounces
 
-function LuxLustre({ t, onChange }) {
-  const s = useSlider({ t, onChange, spring: LUX_SPRING })
+function EthPhase({ phase, onChange }) {
+  const s = useSlider({ t: phase / 3, onChange: (x) => onChange(Math.round(x * 3)), steps: 4, vertical: true, spring: ETH_SPRING })
+  return (
+    <div className={`eth-v ${s.state}`} {...s.bind} aria-label="Phase" aria-orientation="vertical" aria-valuemin={1} aria-valuemax={4} aria-valuenow={phase + 1} aria-valuetext={PHASES[phase].name}>
+      <span className="eth-cap">Phase</span>
+      <div className="eth-line" ref={s.track}>
+        <span className="eth-line-fill" style={{ height: `${clamp(s.p) * 100}%` }} />
+        {PHASES.map((ph, i) => (
+          <span key={ph.name} className={`eth-stop ${i === phase ? 'on' : ''}`} style={{ top: `${(i / 3) * 100}%` }}>
+            <i /><b>{ph.name}</b><small>{ph.c.toUpperCase()}</small>
+          </span>
+        ))}
+        <span className="eth-sq" style={{ top: `${s.p * 100}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function EthDiffusion({ t, onChange }) {
+  const s = useSlider({ t, onChange, spring: ETH_SPRING })
   const v = Math.round(t * 100)
   return (
-    <div className={`lux-slider ${s.state}`} {...s.bind} aria-label="Lustre" aria-valuemin={0} aria-valuemax={100} aria-valuenow={v}>
-      <div className="sl-head"><span className="sl-label">Lustre</span><span className="sl-value">{v}</span></div>
-      <div className="lux-track" ref={s.track}>
-        <span className="lux-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
-        <span className="lux-thumb" style={{ left: `${s.p * 100}%` }}><i /></span>
-        <span className="lux-float" style={{ left: `${s.p * 100}%` }}>{v}</span>
+    <div className={`eth-h ${s.state}`} {...s.bind} aria-label="Diffusion" aria-valuemin={0} aria-valuemax={100} aria-valuenow={v}>
+      <div className="sl-head"><span className="eth-cap">Diffusion</span><span className="eth-num">{String(v).padStart(2, '0')}</span></div>
+      <div className="eth-track" ref={s.track}>
+        <span className="eth-track-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
+        <span className="eth-hsq" style={{ left: `${s.p * 100}%` }} />
+        <span className="eth-tag" style={{ left: `${s.p * 100}%` }}>{v}</span>
       </div>
     </div>
   )
 }
 
-function LuxKarat({ k, onChange }) {
-  const s = useSlider({ t: k / 4, onChange: (x) => onChange(Math.round(x * 4)), steps: 5, spring: LUX_SPRING })
+function EtherealSet({ auto, offset = 0 }) {
+  const [phase, setPhase] = useState(0)
+  const [diff, setDiff] = useState(0.35)
+  useAuto(auto, offset, [() => setPhase(Math.floor(Math.random() * 4)), () => setDiff(Math.random())])
+  const P = PHASES[phase]
   return (
-    <div className={`lux-slider ${s.state}`} {...s.bind} aria-label="Karat" aria-valuemin={9} aria-valuemax={24} aria-valuenow={KARATS[k]} aria-valuetext={`${KARATS[k]} karat`}>
-      <div className="sl-head"><span className="sl-label">Karat</span><span className="sl-value">{KARATS[k]}<small>K</small></span></div>
-      <div className="lux-track" ref={s.track}>
-        <span className="lux-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
-        {KARATS.map((c, i) => <span key={c} className={`lux-notch ${i <= k ? 'on' : ''}`} style={{ left: `${(i / 4) * 100}%` }} />)}
-        <span className="lux-thumb" style={{ left: `${s.p * 100}%` }}><i /></span>
-        <span className="lux-float" style={{ left: `${s.p * 100}%` }}>{KARATS[k]} <em>karat</em></span>
+    <div className="screen eth-screen" style={{ '--a': P.a, '--b': P.b, '--c': P.c, '--d': diff }}>
+      <div className="eth-left">
+        <div className="eth-orb-wrap" aria-hidden="true"><span className="eth-orb" /></div>
+        <EthDiffusion t={diff} onChange={setDiff} />
       </div>
-      <div className="lux-marks" aria-hidden="true">{KARATS.map((c, i) => <span key={c} className={i === k ? 'on' : ''} style={{ left: `${(i / 4) * 100}%` }}>{c}K</span>)}</div>
+      <div className="eth-field"><EthPhase phase={phase} onChange={setPhase} /></div>
     </div>
   )
 }
 
-function Coin({ karat, lustre }) {
+/* ================= Matter-of-fact: a timer, set by two honest rows ================= */
+const CHIMES = [0, 5, 10, 15, 30] // minutes; 0 = off
+const MOF_SPRING = { damping: 1, response: 0.18 } // direct: no bounce, no lag
+
+function RowSlider({ label, valueText, t, onChange, steps = 0, aria }) {
+  const inset = steps ? 0.08 : 0
+  const s = useSlider({ t, onChange, steps, inset, spring: MOF_SPRING })
+  const n = steps ? steps - 1 : 0
   return (
-    <div className="coin-stage" aria-hidden="true">
-      <div className="coin" style={{ '--gold': GOLD[karat], '--lustre': lustre }}>
-        <span className="coin-sheen" />
-        <span className="coin-glint" />
-        <span className="coin-mark"><span>{karat}<i>K</i></span></span>
+    <div className={`row-slider ${s.state}`} {...s.bind} {...aria}>
+      <div className="rs-track" ref={s.track}>
+        <span className="rs-fill" style={{ width: `${s.x(clamp(s.p))}%` }} />
+        {n > 0 && Array.from({ length: steps }, (_, i) => <span key={i} className="rs-dot" style={{ left: `${s.x(i / n)}%` }} />)}
+        <span className="rs-handle" style={{ left: `${s.x(s.p)}%` }} />
+        <span className="rs-label">{label}</span>
+        <span className="rs-value">{valueText}</span>
       </div>
     </div>
   )
 }
 
-function LuxSet({ auto, offset = 0 }) {
-  const [lustre, setLustre] = useState(0.6)
-  const [k, setK] = useState(2)
-  useAuto(auto, offset, [() => setLustre(Math.random()), () => setK(Math.floor(Math.random() * 5))])
+function TimerDial({ minutes, chime }) {
+  const deg = (minutes / 60) * 360
   return (
-    <div className="screen lux-screen">
-      <Coin karat={KARATS[k]} lustre={lustre} />
-      <div className="controls">
-        <LuxKarat k={k} onChange={setK} />
-        <LuxLustre t={lustre} onChange={setLustre} />
+    <div className="dial-stage" aria-hidden="true">
+      <div className="dial" style={{ '--deg': `${deg}deg` }}>
+        {chime > 0 && Array.from({ length: 60 / chime }, (_, i) => <span key={`${chime}-${i}`} className="dial-tick" style={{ transform: `rotate(${i * chime * 6}deg)` }} />)}
+        <span className="dial-face"><b>{String(minutes).padStart(2, '0')}:00</b><small>{chime ? `chime every ${chime} min` : 'no chime'}</small></span>
+      </div>
+    </div>
+  )
+}
+
+function MatterSet({ auto, offset = 0 }) {
+  const [dur, setDur] = useState(25 / 60)
+  const [chime, setChime] = useState(2)
+  useAuto(auto, offset, [() => setDur(Math.random()), () => setChime(Math.floor(Math.random() * 5))])
+  const minutes = Math.round(dur * 60), c = CHIMES[chime]
+  return (
+    <div className="screen mof-screen">
+      <TimerDial minutes={minutes} chime={c} />
+      <div className="controls mof-controls">
+        <RowSlider label="Duration" valueText={`${minutes} min`} t={dur} onChange={setDur}
+          aria={{ 'aria-label': 'Duration', 'aria-valuemin': 0, 'aria-valuemax': 60, 'aria-valuenow': minutes, 'aria-valuetext': `${minutes} minutes` }} />
+        <RowSlider label="Chime" valueText={c ? `Every ${c} min` : 'Off'} t={chime / 4} onChange={(x) => setChime(Math.round(x * 4))} steps={5}
+          aria={{ 'aria-label': 'Chime', 'aria-valuemin': 0, 'aria-valuemax': 4, 'aria-valuenow': chime, 'aria-valuetext': c ? `every ${c} minutes` : 'off' }} />
       </div>
     </div>
   )
@@ -410,21 +458,33 @@ const SETS = [
     ],
   },
   {
-    id: 'karat', tone: 'Luxurious', Body: LuxSet,
+    id: 'phase', tone: 'Ethereal', Body: EtherealSet,
     spec: [
-      ['Layout', [['Screen', 'padding 32 / 40, radius 34, #0C0B0A'], ['Columns', 'subject 1fr · controls 340'], ['Slider gap', '44']]],
-      ['Type', [['Label', 'Cormorant Garamond italic 400 · 20 / 24'], ['Value', 'Bodoni Moda 400 · 24 / 28'], ['Marks', 'Cormorant Garamond 500 · 13 / 16 · tracking 0.06em'], ['Float', 'Bodoni Moda italic 400 · 26 / 30']]],
-      ['Continuous · Lustre', [['Range', '0 – 100, step 1'], ['Track', 'h 1, rgba(216,181,106,.3)'], ['Fill', 'h 1.5, #D8B56A'], ['Thumb', 'bead 18 × 18, radial gold, ring 32 on hover (stroke 1)']]],
-      ['Stepped · Karat', [['Stops', '5 — 9K · 14K · 18K · 22K · 24K'], ['Notches', 'diamond 7 × 7, stroke 1, filled when reached'], ['Marks', '14 below track, current in gold']]],
-      ['States', [['Hover', 'a fine gold ring settles around the bead (0.5 s)'], ['Pressed', 'bead sinks ×0.9, shadow deepens'], ['Drag', 'value floats above on a hairline leader; strong detents at each karat']]],
-      ['Motion', [['Spring', 'damping 1, response 0.5 (weighty, no bounce)']]],
+      ['Layout', [['Screen', 'radius 34, #FFFFFF; field column 240 on a phase gradient'], ['Columns', 'sphere + Diffusion 1fr · Phase 240'], ['Sphere', '200 × 200, radial gradient of the phase']]],
+      ['Type', [['Caption', 'Inter 500 · 11 / 14 · caps · tracking 0.16em'], ['Stop name', 'Inter 500 · 13 / 16'], ['Hex', 'IBM Plex Mono 400 · 10 / 12'], ['Number', 'IBM Plex Mono 400 · 22 / 26']]],
+      ['Stepped · Phase (vertical)', [['Stops', '4 — Dawn · Tide · Dusk · Night'], ['Line', 'w 1, h 240, white 45 %; filled part white'], ['Stop', 'square 10 × 10, stroke 1 white; label offset 18'], ['Thumb', 'square 14 × 14, white fill']]],
+      ['Continuous · Diffusion', [['Range', '0 – 100, step 1'], ['Track', 'h 1, #2D2A4A at 20 %; fill 1.5 #2D2A4A'], ['Thumb', 'square 12 × 12, stroke 1.5, white fill'], ['Tag', 'IBM Plex Mono 11 / 14, 14 above the thumb']]],
+      ['States', [['Hover', 'squares take a soft glow; stops light up'], ['Pressed', 'thumb rotates 45° into a diamond and fills'], ['Drag', 'value tag floats beside the thumb; sphere and field follow live']]],
+      ['Motion', [['Spring', 'damping 1, response 0.45 (soft, no bounce)'], ['Colour', 'phase colours cross-fade 0.8 s']]],
+    ],
+  },
+  {
+    id: 'timer', tone: 'Matter-of-fact', Body: MatterSet,
+    spec: [
+      ['Layout', [['Screen', 'padding 28 / 32, radius 34, #F1EFEA'], ['Columns', 'dial 1fr · rows 380'], ['Row gap', '10']]],
+      ['Type', [['Label', 'Inter 500 · 15 / 20'], ['Value', 'IBM Plex Mono 500 · 15 / 20 · tabular'], ['Dial', 'IBM Plex Mono 500 · 34 / 40']]],
+      ['Row slider (both)', [['Row', 'h 56, radius 14, track #E2DFD8'], ['Fill', '#FFFFFF, right edge hairline #D3CFC6'], ['Handle', 'w 2 (4 pressed), h 22 → 30 on hover, #111, 10 from fill edge'], ['Padding', 'label / value inset 18']]],
+      ['Continuous · Duration', [['Range', '0 – 60 min, step 1'], ['Readout', 'value right-aligned, updates live']]],
+      ['Stepped · Chime', [['Stops', '5 — Off · 5 · 10 · 15 · 30 min'], ['Dots', '4 × 4, #111 at 30 %, inset 8 %']]],
+      ['States', [['Hover', 'track #DAD6CE, handle grows 22 → 30'], ['Pressed', 'handle 2 → 4 wide, value turns bold'], ['Drag', 'fill follows 1:1, value and dial update live; label dims to 60 %']]],
+      ['Motion', [['Spring', 'damping 1, response 0.18 (direct)']]],
     ],
   },
 ]
 
 /* ================= Figma draft thumbnail =================
    the enlarged draft is drawn above the page, so no section clips it */
-const DRAFT_VERSION = 'wire-1'
+const DRAFT_VERSION = 'wire-2'
 function DraftThumb({ set }) {
   const ref = useRef(null)
   const [box, setBox] = useState(null)

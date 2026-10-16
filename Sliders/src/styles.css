@@ -136,50 +136,75 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .r-core { fill: #3ef0ff; opacity: calc(.25 + var(--thrust) * .75); filter: drop-shadow(0 0 calc(6px + var(--thrust) * 22px) #3ef0ff); transition: opacity .2s; }
 .r-label { position: absolute; bottom: 4px; font: 500 11px/14px "JetBrains Mono", monospace; letter-spacing: .1em; color: rgba(62,240,255,.6); }
 
-/* ================= LUXURIOUS ================= */
-.s-karat { background: #ece7de; color: #1a1712; }
-.s-karat .set-head h2 { font-family: "Bodoni Moda", Georgia, serif; font-weight: 400; letter-spacing: -0.01em; }
-.lux-screen { background: radial-gradient(70% 90% at 20% 50%, #1a1712, #0c0b0a 70%); color: #efe6d2; padding: 32px 40px; box-shadow: 0 30px 60px -30px rgba(12,11,10,.7); }
-.lux-screen .controls { gap: 44px; }
-.lux-screen .sl-label { font: italic 400 20px/24px "Cormorant Garamond", Georgia, serif; color: rgba(239,230,210,.75); }
-.lux-screen .sl-value { font: 400 24px/28px "Bodoni Moda", Georgia, serif; color: #d8b56a; transition: opacity .4s; }
-.lux-screen .sl-value small { font-size: 14px; margin-left: 1px; }
-.lux-slider.is-drag .sl-value { opacity: .35; }
-.lux-track { position: relative; height: 24px; }
-.lux-track::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(216,181,106,.3); }
-.lux-fill { position: absolute; left: 0; top: 50%; height: 1.5px; margin-top: -.25px; background: linear-gradient(90deg, #a8843f, #d8b56a); }
-.lux-notch { position: absolute; top: 50%; width: 7px; height: 7px; border: 1px solid rgba(216,181,106,.6); background: #0c0b0a; transform: translate(-50%, -50%) rotate(45deg); transition: background-color .5s ease; }
-.lux-notch.on { background: #d8b56a; }
-/* a polished gold bead; a fine ring settles around it on hover */
-.lux-thumb { position: absolute; top: 50%; width: 18px; height: 18px; border-radius: 50%; transform: translate(-50%, -50%) scale(var(--bs, 1));
-  background: radial-gradient(circle at 35% 30%, #fff3d0, #d8b56a 45%, #8a6a2c); box-shadow: 0 2px 6px rgba(0,0,0,.5); transition: transform .5s cubic-bezier(.2,.8,.2,1), box-shadow .5s; }
-.lux-thumb i { position: absolute; inset: -8px; border-radius: 50%; border: 1px solid rgba(216,181,106,.7); opacity: 0; transform: scale(.7); transition: opacity .5s ease, transform .5s cubic-bezier(.2,.8,.2,1); }
-.lux-slider.is-hover .lux-thumb i, .lux-slider.is-press .lux-thumb i, .lux-slider.is-drag .lux-thumb i { opacity: 1; transform: scale(1); }
-.lux-slider.is-press .lux-thumb, .lux-slider.is-drag .lux-thumb { --bs: .9; box-shadow: 0 1px 2px rgba(0,0,0,.7); }
-/* while held, the value floats above the bead on a hairline */
-.lux-float { position: absolute; bottom: calc(100% + 18px); transform: translate(-50%, 6px); font: italic 400 26px/30px "Bodoni Moda", Georgia, serif; color: #f3e3bb; white-space: nowrap;
-  pointer-events: none; opacity: 0; transition: opacity .4s ease, transform .5s cubic-bezier(.2,.8,.2,1); }
-.lux-float em { font: italic 400 16px/1 "Cormorant Garamond", serif; color: rgba(239,230,210,.7); }
-.lux-float::after { content: ''; position: absolute; left: 50%; top: calc(100% + 4px); width: 1px; height: 14px; background: linear-gradient(#d8b56a, transparent); }
-.lux-slider.is-press .lux-float, .lux-slider.is-drag .lux-float { opacity: 1; transform: translate(-50%, 0); }
-.lux-marks { position: relative; height: 18px; margin-top: 8px; }
-.lux-marks span { position: absolute; transform: translateX(-50%); font: 500 13px/16px "Cormorant Garamond", serif; letter-spacing: .06em; color: rgba(239,230,210,.45); transition: color .5s; }
-.lux-marks span.on { color: #d8b56a; }
-/* subject: a gold coin — karat sets its colour, lustre its polish */
-.coin-stage { display: grid; place-items: center; min-height: 300px; }
-.coin { position: relative; width: 210px; height: 210px; border-radius: 50%; overflow: hidden; transition: background .8s ease;
-  background: radial-gradient(circle at 38% 32%, color-mix(in oklab, var(--gold) 45%, #fff6dc), var(--gold) 55%, color-mix(in oklab, var(--gold) 55%, #2a1d08) 100%);
-  box-shadow: inset 0 0 0 8px rgba(0,0,0,.08), inset 0 0 0 9px rgba(255,240,200,.35), 0 24px 50px -18px rgba(0,0,0,.8); }
-.coin-glint { position: absolute; inset: 0; background: radial-gradient(40% 30% at 32% 26%, rgba(255,255,255,.95), transparent 70%); opacity: var(--lustre); transition: opacity .3s; }
-.coin-sheen { position: absolute; inset: -30%; background: conic-gradient(from 0deg, transparent 0 40%, rgba(255,250,230,.55) 48%, transparent 56% 100%); opacity: calc(var(--lustre) * .8); animation: sheen 9s linear infinite; }
-@keyframes sheen { to { transform: rotate(360deg); } }
-.coin-mark { position: absolute; inset: 0; display: grid; place-items: center; font: italic 400 44px/1 "Bodoni Moda", serif; color: color-mix(in oklab, var(--gold) 45%, #3a2808); text-shadow: 0 1px 0 rgba(255,245,215,.6); }
-.coin-mark i { font-size: 22px; }
+/* ================= ETHEREAL ================= */
+.s-phase { background: #f1f0f6; color: #2d2a4a; }
+.s-phase .set-head h2 { font-family: Inter, sans-serif; font-weight: 300; letter-spacing: -0.03em; }
+.eth-screen { background: #fff; padding: 0; grid-template-columns: minmax(0, 1fr) 240px; gap: 0; align-items: stretch; color: #2d2a4a; box-shadow: 0 30px 60px -34px rgba(45,42,74,.35); }
+.eth-cap { font: 500 11px/14px Inter, sans-serif; letter-spacing: .16em; text-transform: uppercase; opacity: .7; }
+.eth-left { display: flex; flex-direction: column; justify-content: center; gap: 28px; padding: 32px 40px; }
+.eth-orb-wrap { display: grid; place-items: center; min-height: 230px; }
+.eth-orb { width: 200px; height: 200px; border-radius: 50%; transition: background .8s ease, filter .3s ease;
+  background: radial-gradient(circle at 42% 38%, var(--c) 0%, var(--b) 55%, var(--a) 100%); filter: blur(calc(var(--d) * 18px)); }
+/* continuous: a hairline and a small square */
+.eth-num { font: 400 22px/26px "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+.eth-track { position: relative; height: 24px; }
+.eth-track::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(45,42,74,.2); }
+.eth-track-fill { position: absolute; left: 0; top: 50%; height: 1.5px; margin-top: -.25px; background: #2d2a4a; }
+.eth-hsq, .eth-sq { position: absolute; background: #fff; border: 1.5px solid #2d2a4a; transition: transform .45s cubic-bezier(.2,.8,.2,1), background-color .3s, box-shadow .45s; }
+.eth-hsq { top: 50%; width: 12px; height: 12px; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); }
+.eth-h.is-hover .eth-hsq { box-shadow: 0 0 0 6px rgba(141,122,242,.15); }
+.eth-h.is-press .eth-hsq, .eth-h.is-drag .eth-hsq { --rot: 45deg; background: #2d2a4a; }
+.eth-tag { position: absolute; bottom: calc(100% + 4px); transform: translate(-50%, 4px); font: 400 11px/14px "IBM Plex Mono", monospace; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s cubic-bezier(.2,.8,.2,1); }
+.eth-h.is-press .eth-tag, .eth-h.is-drag .eth-tag { opacity: 1; transform: translate(-50%, 0); }
+/* the field: the phase's colours, with the vertical stepped slider on it */
+.eth-field { position: relative; display: grid; place-items: center; padding: 36px 24px; color: #fff; transition: background .8s ease;
+  background: radial-gradient(140% 90% at 50% 0%, var(--c), color-mix(in oklab, var(--b) 85%, var(--c)) 100%); } /* deep enough for white labels top to bottom */
+.eth-v { display: flex; flex-direction: column; gap: 18px; padding: 6px 70px 6px 6px; }
+.eth-v .eth-cap { color: #fff; }
+.eth-line { position: relative; width: 1px; height: 240px; margin-left: 7px; background: rgba(255,255,255,.45); }
+.eth-line-fill { position: absolute; left: 0; top: 0; width: 1px; background: #fff; }
+.eth-stop { position: absolute; left: 0; display: flex; align-items: baseline; gap: 6px; transform: translateY(-50%); white-space: nowrap; }
+.eth-stop i { position: absolute; left: -5px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border: 1px solid rgba(255,255,255,.8); transition: box-shadow .45s; }
+.eth-stop b { margin-left: 18px; font: 500 13px/16px Inter, sans-serif; opacity: .72; transition: opacity .45s; }
+.eth-stop small { font: 400 10px/12px "IBM Plex Mono", monospace; opacity: .65; }
+.eth-stop.on b { opacity: 1; }
+.eth-v.is-hover .eth-stop i { box-shadow: 0 0 10px rgba(255,255,255,.6); }
+.eth-sq { left: 0; width: 14px; height: 14px; background: #fff; border-color: #fff; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); box-shadow: 0 0 12px rgba(255,255,255,.5); }
+.eth-v.is-press .eth-sq, .eth-v.is-drag .eth-sq { --rot: 45deg; }
+@container screen (max-width: 680px) { .eth-screen { grid-template-columns: 1fr; } }
+
+/* ================= MATTER-OF-FACT ================= */
+.s-timer { background: #e8e6e0; color: #111; }
+.s-timer .set-head h2 { font-family: Inter, sans-serif; font-weight: 600; letter-spacing: -0.03em; }
+.mof-screen { background: #f1efea; color: #111; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); box-shadow: inset 0 0 0 1px #dedad2; }
+.mof-controls { gap: 10px; }
+/* row slider: the whole row is the control */
+.rs-track { position: relative; height: 56px; border-radius: 14px; background: #e2dfd8; overflow: hidden; transition: background-color .15s; }
+.row-slider.is-hover .rs-track { background: #dad6ce; }
+.rs-fill { position: absolute; left: 0; top: 0; bottom: 0; background: #fff; box-shadow: 1px 0 0 #d3cfc6; }
+.rs-dot { position: absolute; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: rgba(17,17,17,.3); }
+.rs-handle { position: absolute; top: 50%; width: 2px; height: 22px; margin-left: -12px; border-radius: 1px; background: #111; transform: translateY(-50%); transition: height .15s, width .1s; }
+.row-slider.is-hover .rs-handle { height: 30px; }
+.row-slider.is-press .rs-handle, .row-slider.is-drag .rs-handle { width: 4px; height: 30px; border-radius: 2px; }
+.rs-label, .rs-value { position: absolute; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.rs-label { left: 18px; font: 500 15px/20px Inter, sans-serif; transition: opacity .15s; }
+.rs-value { right: 18px; font: 500 15px/20px "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+.row-slider.is-press .rs-value, .row-slider.is-drag .rs-value { font-weight: 700; }
+.row-slider.is-drag .rs-label { opacity: .6; }
+/* subject: the dial — duration fills it, chime marks it */
+.dial-stage { display: grid; place-items: center; min-height: 300px; }
+.dial { position: relative; width: 230px; height: 230px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #111;
+  background: conic-gradient(#111 var(--deg), transparent 0); transition: background .15s; }
+.dial-tick { position: absolute; left: 50%; top: 0; width: 2px; height: 50%; margin-left: -1px; transform-origin: 50% 100%; }
+.dial-tick::before { content: ''; position: absolute; top: -12px; left: 0; width: 2px; height: 8px; background: #111; }
+.dial-face { position: absolute; inset: 22px; border-radius: 50%; background: #f1efea; display: grid; place-content: center; text-align: center; box-shadow: inset 0 0 0 1px #dedad2; }
+.dial-face b { font: 500 34px/40px "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+.dial-face small { font: 400 12px/16px Inter, sans-serif; color: #666; }
 
 /* ================= accessibility preferences ================= */
 [role="slider"]:focus-visible { outline: 2px solid currentColor; outline-offset: 8px; border-radius: 6px; }
 @media (prefers-reduced-motion: reduce) {
-  .coin-sheen, .blk.lit, .cell.on { animation: none; }
+  .blk.lit, .cell.on { animation: none; }
   .pulse-ring { display: none; }
 }
 
