@@ -142,9 +142,16 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .eth-screen { background: #fff; padding: 0; grid-template-columns: minmax(0, 1fr) 240px; gap: 0; align-items: stretch; color: #2d2a4a; box-shadow: 0 30px 60px -34px rgba(45,42,74,.35); }
 .eth-cap { font: 500 11px/14px Inter, sans-serif; letter-spacing: .16em; text-transform: uppercase; opacity: .7; }
 .eth-left { display: flex; flex-direction: column; justify-content: center; gap: 28px; padding: 32px 40px; }
-.eth-orb-wrap { display: grid; place-items: center; min-height: 230px; }
-.eth-orb { width: 200px; height: 200px; border-radius: 50%; transition: background .8s ease, filter .3s ease;
-  background: radial-gradient(circle at 42% 38%, var(--c) 0%, var(--b) 55%, var(--a) 100%); filter: blur(calc(var(--d) * 18px)); }
+.eth-orb-wrap { display: grid; place-items: center; gap: 18px; min-height: 230px; }
+.eth-readout { display: grid; grid-template-columns: auto auto auto; align-items: baseline; gap: 14px; }
+.eth-names { position: relative; display: grid; }
+.eth-names b { grid-area: 1 / 1; font: 500 15px/20px Inter, sans-serif; }
+.eth-readout small { font: 400 11px/14px "IBM Plex Mono", monospace; opacity: .6; font-variant-numeric: tabular-nums; }
+.eth-orb { width: 200px; height: 200px; border-radius: 50%;
+  /* light drifts (--dx/--dy) around the phase's highlight (--hx/--hy); a soft rim of light sits low on the sphere */
+  background: radial-gradient(70% 45% at 50% 100%, rgba(255,255,255,.55), transparent 70%),
+    radial-gradient(circle at calc(var(--hx) + var(--dx, 0%)) calc(var(--hy) + var(--dy, 0%)), var(--c) 0%, var(--b) 55%, var(--a) 100%);
+  filter: blur(calc(var(--d) * 18px)); }
 /* continuous: a hairline and a small square */
 .eth-num { font: 400 22px/26px "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
 .eth-track { position: relative; height: 24px; }
@@ -157,17 +164,16 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .eth-tag { position: absolute; bottom: calc(100% + 4px); transform: translate(-50%, 4px); font: 400 11px/14px "IBM Plex Mono", monospace; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s cubic-bezier(.2,.8,.2,1); }
 .eth-h.is-press .eth-tag, .eth-h.is-drag .eth-tag { opacity: 1; transform: translate(-50%, 0); }
 /* the field: the phase's colours, with the vertical stepped slider on it */
-.eth-field { position: relative; display: grid; place-items: center; padding: 36px 24px; color: #fff; transition: background .8s ease;
+.eth-field { position: relative; display: grid; place-items: center; padding: 36px 24px; color: #fff;
   background: radial-gradient(140% 90% at 50% 0%, var(--c), color-mix(in oklab, var(--b) 85%, var(--c)) 100%); } /* deep enough for white labels top to bottom */
 .eth-v { display: flex; flex-direction: column; gap: 18px; padding: 6px 70px 6px 6px; }
 .eth-v .eth-cap { color: #fff; }
 .eth-line { position: relative; width: 1px; height: 240px; margin-left: 7px; background: rgba(255,255,255,.45); }
 .eth-line-fill { position: absolute; left: 0; top: 0; width: 1px; background: #fff; }
 .eth-stop { position: absolute; left: 0; display: flex; align-items: baseline; gap: 6px; transform: translateY(-50%); white-space: nowrap; }
-.eth-stop i { position: absolute; left: -5px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border: 1px solid rgba(255,255,255,.8); transition: box-shadow .45s; }
-.eth-stop b { margin-left: 18px; font: 500 13px/16px Inter, sans-serif; opacity: .72; transition: opacity .45s; }
-.eth-stop small { font: 400 10px/12px "IBM Plex Mono", monospace; opacity: .65; }
-.eth-stop.on b { opacity: 1; }
+.eth-stop i { position: absolute; left: -5px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border: 1px solid rgba(255,255,255,.8); background: color-mix(in oklab, var(--sw) calc(var(--near) * 100%), transparent); transition: box-shadow .45s; }
+.eth-stop b { margin-left: 18px; font: 500 13px/16px Inter, sans-serif; opacity: calc(.62 + var(--near) * .38); }
+.eth-stop small { font: 400 10px/12px "IBM Plex Mono", monospace; opacity: calc(.5 + var(--near) * .4); }
 .eth-v.is-hover .eth-stop i { box-shadow: 0 0 10px rgba(255,255,255,.6); }
 .eth-sq { left: 0; width: 14px; height: 14px; background: #fff; border-color: #fff; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); box-shadow: 0 0 12px rgba(255,255,255,.5); }
 .eth-v.is-press .eth-sq, .eth-v.is-drag .eth-sq { --rot: 45deg; }
@@ -194,7 +200,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 /* subject: the dial — duration fills it, chime marks it */
 .dial-stage { display: grid; place-items: center; min-height: 300px; }
 .dial { position: relative; width: 230px; height: 230px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #111;
-  background: conic-gradient(#111 var(--deg), transparent 0); transition: background .15s; }
+  background: conic-gradient(#111 var(--deg), transparent 0); }
 .dial-tick { position: absolute; left: 50%; top: 0; width: 2px; height: 50%; margin-left: -1px; transform-origin: 50% 100%; }
 .dial-tick::before { content: ''; position: absolute; top: -12px; left: 0; width: 2px; height: 8px; background: #111; }
 .dial-face { position: absolute; inset: 22px; border-radius: 50%; background: #f1efea; display: grid; place-content: center; text-align: center; box-shadow: inset 0 0 0 1px #dedad2; }

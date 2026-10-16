@@ -152,10 +152,10 @@ const ENERGY_SPRING = { damping: 0.5, response: 0.3 } // quick, with overshoot
 
 function EnergyTempo({ t, onChange }) {
   const s = useSlider({ t, onChange, spring: ENERGY_SPRING })
-  const bpm = Math.round(60 + t * 120)
+  const bpm = Math.round(60 + clamp(s.p) * 120) // counts with the thumb
   const stretch = 1 + Math.min(Math.abs(s.vel) * 0.08, 0.5) // the thumb stretches with speed
   return (
-    <div className={`nrg-slider ${s.state}`} {...s.bind} aria-label="Tempo" aria-valuemin={60} aria-valuemax={180} aria-valuenow={bpm} aria-valuetext={`${bpm} beats per minute`}>
+    <div className={`nrg-slider ${s.state}`} {...s.bind} aria-label="Tempo" aria-valuemin={60} aria-valuemax={180} aria-valuenow={Math.round(60 + t * 120)} aria-valuetext={`${Math.round(60 + t * 120)} beats per minute`}>
       <div className="sl-head"><span className="sl-label">Tempo</span><span className="sl-value">{bpm}<small> BPM</small></span></div>
       <div className="nrg-track" ref={s.track}>
         <span className="nrg-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
@@ -214,9 +214,10 @@ function EnergySet({ auto, offset = 0 }) {
   const [tempo, setTempo] = useState((128 - 60) / 120)
   const [level, setLevel] = useState(2)
   useAuto(auto, offset, [() => setTempo(Math.random()), () => setLevel(Math.floor(Math.random() * 5))])
+  const tempoS = useSpring(tempo, { damping: 1, response: 0.3 }).value // the heart glides to a new tempo
   return (
     <div className="screen nrg-screen">
-      <PulseOrb bpm={Math.round(60 + tempo * 120)} level={level} />
+      <PulseOrb bpm={Math.round(60 + tempoS * 120)} level={level} />
       <div className="controls">
         <EnergyTempo t={tempo} onChange={setTempo} />
         <EnergyIntensity level={level} onChange={setLevel} />
@@ -231,7 +232,7 @@ const WARPS = ['W1', 'W2', 'W3', 'W4', 'W5']
 
 function FutThrust({ t, onChange }) {
   const s = useSlider({ t, onChange, spring: FUT_SPRING })
-  const pct = (t * 100).toFixed(1).padStart(5, '0')
+  const pct = (clamp(s.p) * 100).toFixed(1).padStart(5, '0') // counts with the reticle
   return (
     <div className={`fut-slider ${s.state}`} {...s.bind} aria-label="Thrust" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(t * 100)} aria-valuetext={`${Math.round(t * 100)} percent`}>
       <div className="sl-head"><span className="sl-label">Thrust</span><span className="sl-value">{pct}<small>%</small></span></div>
@@ -303,9 +304,10 @@ function FutureSet({ auto, offset = 0 }) {
   const [thrust, setThrust] = useState(0.62)
   const [warp, setWarp] = useState(2)
   useAuto(auto, offset, [() => setThrust(Math.random()), () => setWarp(Math.floor(Math.random() * 5))])
+  const thrustS = useSpring(thrust, FUT_SPRING).value
   return (
     <div className="screen fut-screen">
-      <Reactor thrust={thrust} warp={warp} />
+      <Reactor thrust={clamp(thrustS)} warp={warp} />
       <div className="controls">
         <FutThrust t={thrust} onChange={setThrust} />
         <FutWarp warp={warp} onChange={setWarp} />
@@ -314,38 +316,52 @@ function FutureSet({ auto, offset = 0 }) {
   )
 }
 
-/* ================= Ethereal: a soft sphere drifting between phases ================= */
+/* ================= Ethereal: a soft sphere drifting between phases =================
+   One continuous value — the Phase thumb's live position — drives every element at once:
+   the sphere's colours and highlight, the field behind the slider, the readout's name and hex.
+   Dragging between stops passes through every colour in between; nothing ever cuts. */
 const PHASES = [
-  { name: 'Dawn', a: '#ffe1ee', b: '#d39af2', c: '#8a74f2' },
-  { name: 'Tide', a: '#ddefff', b: '#7ea6f6', c: '#4253e2' },
-  { name: 'Dusk', a: '#ffe4f3', b: '#e08fd8', c: '#9157e6' },
-  { name: 'Night', a: '#d4d1ff', b: '#6a60de', c: '#27207c' },
+  { name: 'Dawn', a: '#ffe1ee', b: '#d39af2', c: '#8a74f2', hx: 40, hy: 36 },
+  { name: 'Tide', a: '#ddefff', b: '#7ea6f6', c: '#4253e2', hx: 48, hy: 30 },
+  { name: 'Dusk', a: '#ffe4f3', b: '#e08fd8', c: '#9157e6', hx: 36, hy: 42 },
+  { name: 'Night', a: '#d4d1ff', b: '#6a60de', c: '#27207c', hx: 52, hy: 34 },
 ]
 const ETH_SPRING = { damping: 1, response: 0.45 } // soft, unhurried, never bounces
+const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
+const mixHex = (h1, h2, t) => '#' + hexRgb(h1).map((v, i) => Math.round(lerp(v, hexRgb(h2)[i], t)).toString(16).padStart(2, '0')).join('')
+function phaseAt(f) { // the palette at any point between two stops
+  const i = clamp(Math.floor(f), 0, 2), t = clamp(f - i), A = PHASES[i], B = PHASES[i + 1]
+  return { a: mixHex(A.a, B.a, t), b: mixHex(A.b, B.b, t), c: mixHex(A.c, B.c, t), hx: lerp(A.hx, B.hx, t), hy: lerp(A.hy, B.hy, t) }
+}
 
-function EthPhase({ phase, onChange }) {
+function EthPhase({ phase, onChange, onMorph }) {
   const s = useSlider({ t: phase / 3, onChange: (x) => onChange(Math.round(x * 3)), steps: 4, vertical: true, spring: ETH_SPRING })
+  useEffect(() => { onMorph(clamp(s.p) * 3) }, [s.p]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className={`eth-v ${s.state}`} {...s.bind} aria-label="Phase" aria-orientation="vertical" aria-valuemin={1} aria-valuemax={4} aria-valuenow={phase + 1} aria-valuetext={PHASES[phase].name}>
       <span className="eth-cap">Phase</span>
       <div className="eth-line" ref={s.track}>
         <span className="eth-line-fill" style={{ height: `${clamp(s.p) * 100}%` }} />
-        {PHASES.map((ph, i) => (
-          <span key={ph.name} className={`eth-stop ${i === phase ? 'on' : ''}`} style={{ top: `${(i / 3) * 100}%` }}>
-            <i /><b>{ph.name}</b><small>{ph.c.toUpperCase()}</small>
-          </span>
-        ))}
+        {PHASES.map((ph, i) => {
+          const near = clamp(1 - Math.abs(clamp(s.p) * 3 - i)) // each stop wakes as the thumb nears it
+          return (
+            <span key={ph.name} className="eth-stop" style={{ top: `${(i / 3) * 100}%`, '--near': near, '--sw': ph.c }}>
+              <i /><b>{ph.name}</b><small>{ph.c.toUpperCase()}</small>
+            </span>
+          )
+        })}
         <span className="eth-sq" style={{ top: `${s.p * 100}%` }} />
       </div>
     </div>
   )
 }
 
-function EthDiffusion({ t, onChange }) {
+function EthDiffusion({ t, onChange, onMorph }) {
   const s = useSlider({ t, onChange, spring: ETH_SPRING })
-  const v = Math.round(t * 100)
+  useEffect(() => { onMorph(clamp(s.p)) }, [s.p]) // eslint-disable-line react-hooks/exhaustive-deps
+  const v = Math.round(clamp(s.p) * 100)
   return (
-    <div className={`eth-h ${s.state}`} {...s.bind} aria-label="Diffusion" aria-valuemin={0} aria-valuemax={100} aria-valuenow={v}>
+    <div className={`eth-h ${s.state}`} {...s.bind} aria-label="Diffusion" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(t * 100)}>
       <div className="sl-head"><span className="eth-cap">Diffusion</span><span className="eth-num">{String(v).padStart(2, '0')}</span></div>
       <div className="eth-track" ref={s.track}>
         <span className="eth-track-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
@@ -359,15 +375,42 @@ function EthDiffusion({ t, onChange }) {
 function EtherealSet({ auto, offset = 0 }) {
   const [phase, setPhase] = useState(0)
   const [diff, setDiff] = useState(0.35)
+  const [f, setF] = useState(0)      // live phase position (0…3) from the thumb
+  const [d, setD] = useState(0.35)   // live diffusion from the thumb
+  const orb = useRef(null)
   useAuto(auto, offset, [() => setPhase(Math.floor(Math.random() * 4)), () => setDiff(Math.random())])
-  const P = PHASES[phase]
+  useEffect(() => { // the sphere is never still: its light drifts slowly
+    if (reducedMotion()) return
+    let raf
+    const tick = (now) => {
+      const t = now / 1000
+      orb.current?.style.setProperty('--dx', `${(Math.sin(t * 0.6) * 4).toFixed(2)}%`)
+      orb.current?.style.setProperty('--dy', `${(Math.cos(t * 0.45) * 3).toFixed(2)}%`)
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+  const P = phaseAt(f)
+  const lo = clamp(Math.floor(f), 0, 3), hi = clamp(Math.ceil(f), 0, 3), w = f - Math.floor(f)
   return (
-    <div className="screen eth-screen" style={{ '--a': P.a, '--b': P.b, '--c': P.c, '--d': diff }}>
+    <div className="screen eth-screen" style={{ '--a': P.a, '--b': P.b, '--c': P.c, '--hx': `${P.hx}%`, '--hy': `${P.hy}%`, '--d': d }}>
       <div className="eth-left">
-        <div className="eth-orb-wrap" aria-hidden="true"><span className="eth-orb" /></div>
-        <EthDiffusion t={diff} onChange={setDiff} />
+        <div className="eth-orb-wrap" aria-hidden="true">
+          <span ref={orb} className="eth-orb" />
+          {/* readout: the name hands over softly, the hex is the live colour, the counter tracks the stop */}
+          <div className="eth-readout">
+            <span className="eth-names">
+              <b style={{ opacity: 1 - w, filter: `blur(${w * 4}px)` }}>{PHASES[lo].name}</b>
+              {hi !== lo && <b style={{ opacity: w, filter: `blur(${(1 - w) * 4}px)` }}>{PHASES[hi].name}</b>}
+            </span>
+            <small>{P.c.toUpperCase()}</small>
+            <small>{String(Math.round(f) + 1).padStart(2, '0')} / 04</small>
+          </div>
+        </div>
+        <EthDiffusion t={diff} onChange={setDiff} onMorph={setD} />
       </div>
-      <div className="eth-field"><EthPhase phase={phase} onChange={setPhase} /></div>
+      <div className="eth-field"><EthPhase phase={phase} onChange={setPhase} onMorph={setF} /></div>
     </div>
   )
 }
@@ -376,7 +419,7 @@ function EtherealSet({ auto, offset = 0 }) {
 const CHIMES = [0, 5, 10, 15, 30] // minutes; 0 = off
 const MOF_SPRING = { damping: 1, response: 0.18 } // direct: no bounce, no lag
 
-function RowSlider({ label, valueText, t, onChange, steps = 0, aria }) {
+function RowSlider({ label, format, t, onChange, steps = 0, aria }) {
   const inset = steps ? 0.08 : 0
   const s = useSlider({ t, onChange, steps, inset, spring: MOF_SPRING })
   const n = steps ? steps - 1 : 0
@@ -387,7 +430,7 @@ function RowSlider({ label, valueText, t, onChange, steps = 0, aria }) {
         {n > 0 && Array.from({ length: steps }, (_, i) => <span key={i} className="rs-dot" style={{ left: `${s.x(i / n)}%` }} />)}
         <span className="rs-handle" style={{ left: `${s.x(s.p)}%` }} />
         <span className="rs-label">{label}</span>
-        <span className="rs-value">{valueText}</span>
+        <span className="rs-value">{steps ? format(t) : format(clamp(s.p))}</span>
       </div>
     </div>
   )
@@ -409,14 +452,15 @@ function MatterSet({ auto, offset = 0 }) {
   const [dur, setDur] = useState(25 / 60)
   const [chime, setChime] = useState(2)
   useAuto(auto, offset, [() => setDur(Math.random()), () => setChime(Math.floor(Math.random() * 5))])
+  const durS = useSpring(dur, MOF_SPRING).value // the dial sweeps and the time counts
   const minutes = Math.round(dur * 60), c = CHIMES[chime]
   return (
     <div className="screen mof-screen">
-      <TimerDial minutes={minutes} chime={c} />
+      <TimerDial minutes={Math.round(clamp(durS) * 60)} chime={c} />
       <div className="controls mof-controls">
-        <RowSlider label="Duration" valueText={`${minutes} min`} t={dur} onChange={setDur}
+        <RowSlider label="Duration" format={(x) => `${Math.round(x * 60)} min`} t={dur} onChange={setDur}
           aria={{ 'aria-label': 'Duration', 'aria-valuemin': 0, 'aria-valuemax': 60, 'aria-valuenow': minutes, 'aria-valuetext': `${minutes} minutes` }} />
-        <RowSlider label="Chime" valueText={c ? `Every ${c} min` : 'Off'} t={chime / 4} onChange={(x) => setChime(Math.round(x * 4))} steps={5}
+        <RowSlider label="Chime" format={(x) => { const k = CHIMES[Math.round(x * 4)]; return k ? `Every ${k} min` : 'Off' }} t={chime / 4} onChange={(x) => setChime(Math.round(x * 4))} steps={5}
           aria={{ 'aria-label': 'Chime', 'aria-valuemin': 0, 'aria-valuemax': 4, 'aria-valuenow': chime, 'aria-valuetext': c ? `every ${c} minutes` : 'off' }} />
       </div>
     </div>
