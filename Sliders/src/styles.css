@@ -152,7 +152,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .mys-line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(232,230,220,.55);
   -webkit-mask-image: radial-gradient(var(--reach) 12px at var(--tx) 50%, #000 35%, transparent), radial-gradient(60px 12px at var(--hx) 50%, #000 30%, transparent);
   mask-image: radial-gradient(var(--reach) 12px at var(--tx) 50%, #000 35%, transparent), radial-gradient(60px 12px at var(--hx) 50%, #000 30%, transparent); }
-.mys-star { position: absolute; top: 50%; width: 2px; height: 2px; margin: -1px 0 0 -1px; border-radius: 50%; background: #fff;
+.mys-star { position: absolute; top: calc(50% + 12px); width: 2px; height: 2px; margin: -1px 0 0 -1px; /* beneath the line, on the row of the stops */ border-radius: 50%; background: #fff;
   opacity: calc((.22 + var(--lit) * .78) * (1 - var(--dim) * .75)); scale: calc(1 + var(--lit) * .6);
   box-shadow: 0 0 calc(2px + var(--lit) * 5px) rgba(255,255,255, calc(.4 + var(--lit) * .5)); animation: path-twinkle 6s ease-in-out infinite; }
 @keyframes path-twinkle { 50% { filter: brightness(.45); } } /* twinkles without fighting the light's opacity */
