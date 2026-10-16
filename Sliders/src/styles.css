@@ -6,14 +6,11 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .page-head h1 { margin: 0 0 6px; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; }
 .page-head p { margin: 0 0 40px; color: #666; line-height: 1.5; }
 
-/* ================= a set: title + tools, one screen, a folded spec ================= */
+/* ================= a set: title + draft, one screen ================= */
 .set { border-radius: 24px; padding: 32px; margin-bottom: 32px; }
 .set-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 24px; }
 .set-head h2 { margin: 0; font-size: 44px; line-height: 1.05; }
 .head-tools { display: flex; align-items: flex-start; gap: 14px; }
-.spec-toggle { all: unset; cursor: pointer; padding: 8px 16px; border-radius: 999px; font: 600 13px/1 Inter, sans-serif; color: inherit; box-shadow: inset 0 0 0 1px currentColor; opacity: .75; transition: opacity .2s, scale .1s; }
-.spec-toggle:hover { opacity: 1; } .spec-toggle:active { scale: .95; }
-.spec-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 /* Figma draft thumbnail — the enlarged copy lives above the page */
 .draft-ref { flex: 0 0 auto; width: 132px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; outline: none; }
 .draft-ref img { display: block; width: 100%; border-radius: 10px; background: #fff; cursor: zoom-in; box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 6px 16px -10px rgba(0,0,0,.4); }
@@ -31,17 +28,6 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 [role="slider"].is-drag { cursor: grabbing; }
 .sl-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
 .sl-value { font-variant-numeric: tabular-nums; }
-
-/* spec sheet: folds open with the grid-rows trick */
-.spec { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .5s cubic-bezier(.32,.72,0,1); }
-.spec.open { grid-template-rows: 1fr; }
-.spec-inner { overflow: hidden; }
-.spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px 28px; margin-top: 24px; padding: 24px; border-radius: 20px; background: #fff; color: #1b1b1b; }
-.spec-group h3 { margin: 0 0 8px; font: 600 11px/14px Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #8a8a8a; }
-.spec-group dl { margin: 0; }
-.spec-group dl div { display: grid; grid-template-columns: 112px 1fr; gap: 10px; padding: 6px 0; border-top: 1px solid #eee; font: 400 13px/18px Inter, sans-serif; }
-.spec-group dt { color: #8a8a8a; } .spec-group dd { margin: 0; font-variant-numeric: tabular-nums; }
-.spec-note { margin: 10px 4px 0; font: 400 12px/16px Inter, sans-serif; opacity: .6; }
 
 /* ================= ENERGETIC — a drum machine in light ================= */
 .s-energy { background: #ecebf1; color: #120d1a; }
