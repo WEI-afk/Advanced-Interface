@@ -134,7 +134,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .s-mist .group-label { color: rgba(70,77,107,.62); }
 
 /* one screen holds everything: the title above, the screen spanning the whole set */
-.screen { grid-column: 1 / -1; position: relative; container: screen / inline-size; overflow: hidden; border-radius: 34px; }
+.screen { grid-column: 1 / -1; position: relative; overflow: hidden; border-radius: 34px; }
 
 /* ---------- Action Clears the Room: warm frosted screen; the tray rises and the room fades ---------- */
 .s-frost { --panel: rgba(255,250,246,.55); --light: rgba(255,255,255,.5); --check: #fff; --cb-off: rgba(255,255,255,.5); --ring: rgba(43,36,32,.35);
@@ -348,3 +348,6 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 /* Serene: Today is there only while "Add to Today" is checked */
 .room-today { display: flex; flex-direction: column; gap: 6px; transition: opacity .6s ease, transform .6s ease; }
 .room-today.is-hidden { opacity: 0; transform: translateY(6px); }
+
+/* the set (or wall tile) is the size container, so a screen can restack itself when narrow */
+.set, .wall-tile { container: screen / inline-size; }
