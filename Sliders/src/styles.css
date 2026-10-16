@@ -59,7 +59,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
   --sx: 1; --sy: 1; transform: translate(-50%, -50%) scale(var(--sx), var(--sy)); transition: transform .35s cubic-bezier(.34,1.8,.64,1), box-shadow .2s; }
 .nrg-slider.is-hover .nrg-thumb { --sx: 1.12; --sy: 1.12; }
 .nrg-slider.is-press .nrg-thumb { --sx: 1.25; --sy: .8; box-shadow: 0 0 0 6px rgba(198,255,61,.35), 0 3px 8px rgba(0,0,0,.4); }
-.nrg-slider.is-drag .nrg-thumb { --sx: calc(1.12 * var(--st)); --sy: calc(1.12 / var(--st)); box-shadow: 0 0 0 6px rgba(198,255,61,.35), 0 3px 8px rgba(0,0,0,.4); transition: transform .12s ease-out; }
+.nrg-slider.is-drag .nrg-thumb { --sx: calc(1.25 * var(--st)); --sy: calc(.8 / var(--st)); /* stays squashed while held, stretching further with speed */ box-shadow: 0 0 0 6px rgba(198,255,61,.35), 0 3px 8px rgba(0,0,0,.4); transition: transform .12s ease-out; }
 .nrg-bubble { position: absolute; bottom: calc(100% + 20px); padding: 0 10px; height: 30px; display: grid; place-items: center; border-radius: 10px; background: #c6ff3d; color: #17121f;
   font: 800 14px/18px Unbounded, sans-serif; white-space: nowrap; pointer-events: none; transform: translateX(-50%) scale(0); transform-origin: 50% 120%; transition: transform .35s cubic-bezier(.34,1.8,.64,1); }
 .nrg-bubble::after { content: ''; position: absolute; left: 50%; top: 100%; margin-left: -5px; border: 5px solid transparent; border-top-color: #c6ff3d; }

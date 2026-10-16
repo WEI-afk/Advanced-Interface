@@ -61,7 +61,7 @@ const lerp = (a, b, t) => a + (b - a) * t
 
 /* ================= the slider engine =================
    Shared by every slider on the page; each tone only decides how it looks and moves.
-   - press: instant feedback; a tap on the track springs the thumb there
+   - press: instant feedback; the thumb jumps to the finger and the value updates at once
    - drag: the thumb follows 1:1, soft past the ends; stepped sliders feel detents between stops
    - release: the spring takes over at the finger's velocity; a flick carries a stepped slider on
    - keyboard: arrows / Page Up/Down / Home / End, with the value announced */
@@ -96,6 +96,9 @@ function useSlider({ t, onChange, steps = 0, inset = 0, spring = { damping: 1, r
     setPressed(true) // feedback on press, not on release
     const raw = at(e)
     g.current = { x0: e.clientX, raw, moved: false, hist: [[raw, e.timeStamp]] }
+    pos.hold(draw(raw)) // the thumb lands under the finger the instant you press
+    const live = snap(raw)
+    if (live !== t) onChange(live)
   }
   const move = (e) => {
     const d = g.current
@@ -115,7 +118,7 @@ function useSlider({ t, onChange, steps = 0, inset = 0, spring = { damping: 1, r
     g.current = null
     setPressed(false); setDragging(false); setVel(0)
     if (!d) return
-    if (!d.moved) { onChange(snap(d.raw)); return } // a tap: the thumb springs to where you pressed
+    if (!d.moved) { onChange(snap(d.raw)); pos.release(0); return } // a tap: stays put (a stepped slider settles onto its stop)
     const [a, b] = [d.hist[0], d.hist[d.hist.length - 1]]
     const v = b[1] > a[1] ? (b[0] - a[0]) / ((b[1] - a[1]) / 1000) : 0
     onChange(n ? snap(d.raw + v * 0.06) : snap(d.raw)) // a flick carries a stepped slider on
@@ -391,7 +394,7 @@ const SETS = [
       ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 600 · 18 / 22 · tabular'], ['Bubble', 'Unbounded 800 · 14 / 18'], ['Step names', 'Unbounded 500 · 10 / 12']]],
       ['Continuous · Tempo', [['Range', '60 – 180 BPM, step 1'], ['Track', 'h 12 (16 on hover/drag), radius 8, #2A2333'], ['Fill', 'gradient #C6FF3D → #FF2D78'], ['Thumb', '30 × 30, radius 15, #FFF, shadow 0 3 8 / 40%'], ['Bubble', 'h 30, pad 0 10, radius 10, #C6FF3D, 16 above thumb']]],
       ['Stepped · Intensity', [['Stops', '5 — Easy · Steady · Push · Hard · All-out'], ['Blocks', 'h 16, radius 6, gap 6; lit = lime → pink by stop'], ['Knob', '10 × 30, radius 5, #FFF, centred on stop'], ['Bubble', 'same as Tempo']]],
-      ['States', [['Hover', 'thumb ×1.12, track 12 → 16'], ['Pressed', 'thumb squash 1.25 × 0.8 + 6 px lime glow, bubble pops in'], ['Drag', 'thumb stretches with speed (≤ 1.5×), live value bubble; each lit block pops']]],
+      ['States', [['Hover', 'thumb ×1.12, track 12 → 16'], ['Pressed', 'thumb squash 1.25 × 0.8 + 6 px lime glow, bubble pops in'], ['Drag', 'thumb stays squashed (1.25 × 0.8) and stretches further with speed (≤ 1.5×); live value bubble; each lit block pops']]],
       ['Motion', [['Spring', 'damping 0.5, response 0.3 (overshoots)'], ['Flick', 'stepped: projected 60 ms ahead, carries to next stop']]],
     ],
   },
@@ -479,7 +482,7 @@ function SetSection({ set }) {
               </div>
             ))}
           </div>
-          <p className="spec-note">px at 1×. All sliders: drag 1:1 · tap the track to jump · arrows / Page Up / Page Down / Home / End.</p>
+          <p className="spec-note">px at 1×. All sliders: press anywhere on the track and the thumb jumps there · drag 1:1 · arrows / Page Up / Page Down / Home / End.</p>
         </div>
       </div>
     </section>
