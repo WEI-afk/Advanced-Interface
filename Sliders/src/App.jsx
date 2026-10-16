@@ -216,66 +216,28 @@ function DrumTempo({ t, onChange, svgRef, gid, children }) {
   )
 }
 
-// --- Pattern: a closed loop (a racetrack) — run right, U-turn, run back, U-turn home
-const SN = { x0: 40, x1: 260, yTop: 30, r: 26 }
-const SN_RUN = SN.x1 - SN.x0, SN_ARC = Math.PI * SN.r, SN_LEN = 2 * SN_RUN + 2 * SN_ARC
-function snakePt(t) {
-  const d = (((t % 1) + 1) % 1) * SN_LEN || (t >= 1 ? 0 : 0)
-  if (d <= SN_RUN) return [SN.x0 + d, SN.yTop]
-  if (d <= SN_RUN + SN_ARC) { const a = (d - SN_RUN) / SN.r; return [SN.x1 + SN.r * Math.sin(a), SN.yTop + SN.r - SN.r * Math.cos(a)] }
-  if (d <= 2 * SN_RUN + SN_ARC) return [SN.x1 - (d - SN_RUN - SN_ARC), SN.yTop + 2 * SN.r]
-  const a = (d - 2 * SN_RUN - SN_ARC) / SN.r; return [SN.x0 - SN.r * Math.sin(a), SN.yTop + SN.r + SN.r * Math.cos(a)]
-}
-const SNAKE_D = `M${SN.x0} ${SN.yTop} H${SN.x1} A${SN.r} ${SN.r} 0 0 1 ${SN.x1} ${SN.yTop + 2 * SN.r} H${SN.x0} A${SN.r} ${SN.r} 0 0 1 ${SN.x0} ${SN.yTop} Z`
-const SNAKE_SAMPLES = Array.from({ length: 301 }, (_, i) => [i / 300, ...snakePt(i / 300)])
-const snakeUpTo = (p) => 'M' + [...SNAKE_SAMPLES.filter(([t]) => t < p).map(([, x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`), (p >= 1 ? [SN.x0, SN.yTop] : snakePt(p)).map((v) => v.toFixed(1)).join(' ')].join('L')
-// where each stop's name sits: outside the loop, on whichever side the stop is
-function stopLabel(t) {
-  const d = t * SN_LEN
-  if (d <= SN_RUN) return { x: 0, y: -20, a: 'middle' }
-  if (d <= SN_RUN + SN_ARC) return { x: -20, y: 'in', a: 'end' } // on the curved ends the name sits inside the loop, toward its middle
-  if (d <= 2 * SN_RUN + SN_ARC) return { x: 0, y: 28, a: 'middle' }
-  return { x: 20, y: 'in', a: 'start' }
-}
-
-function PatternSnake({ k, onChange }) {
-  const svg = useRef(null)
-  const gid = 'sg' + useId().replace(/:/g, '')
-  const lastRaw = useRef(null), seam = useRef(false)
-  const project = (e) => { // nearest point on the loop, unwrapped so a drag across the seam stays continuous
-    const r = svg.current.getBoundingClientRect()
-    const x = (e.clientX - r.left) * 300 / r.width, y = (e.clientY - r.top) * 110 / r.height
-    let best = 0, bd = Infinity
-    for (const [t, px, py] of SNAKE_SAMPLES) { const dd = (px - x) ** 2 + (py - y) ** 2; if (dd < bd) { bd = dd; best = t } }
-    if (e.type === 'pointerdown' || lastRaw.current == null) lastRaw.current = best % 1
-    else { const c = [best - 1, best, best + 1].reduce((a, b) => (Math.abs(b - lastRaw.current) < Math.abs(a - lastRaw.current) ? b : a)); lastRaw.current = c; best = c }
-    return best
-  }
-  // five stops round the loop at 0, ⅕ … ⅘; position 1 is Four again, reached from the far side of the seam
-  const s = useSlider({
-    t: k === 0 && seam.current ? 1 : k / 5,
-    onChange: (x) => { const i = Math.round(clamp(x) * 5); seam.current = i === 5; onChange(i % 5) },
-    steps: 6, project, spring: ENERGY_SPRING,
-  })
-  const p = clamp(s.p), [tx, ty] = p >= 1 ? [SN.x0, SN.yTop] : snakePt(p)
+// --- Pattern: a row of drum pads. The selection glides across them; landing on one hits it.
+function PatternPads({ k, onChange, step }) {
+  const s = useSlider({ t: k / 4, onChange: (x) => onChange(Math.round(x * 4)), steps: 5, inset: 0.1, spring: ENERGY_SPRING })
+  const stretch = 1 + Math.min(Math.abs(s.vel) * 0.12, 0.6) // the selection stretches with speed
   return (
-    <div className={`snake ${s.state}`} {...s.bind} aria-label="Pattern" aria-valuemin={0} aria-valuemax={4} aria-valuenow={k} aria-valuetext={PATTERNS[k].name}>
+    <div className={`pads ${s.state}`} {...s.bind} aria-label="Pattern" aria-valuemin={0} aria-valuemax={4} aria-valuenow={k} aria-valuetext={PATTERNS[k].name}>
       <div className="sl-head"><span className="sl-label">Pattern</span><span className="sl-value">{PATTERNS[k].name}</span></div>
-      <svg ref={svg} viewBox="0 0 300 110" className="snake-svg" aria-hidden="true">
-        <defs><linearGradient id={gid} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="300" y2="0"><stop offset="0" stopColor="#2ee6ff" /><stop offset="1" stopColor="#d4ff3a" /></linearGradient></defs>
-        <path d={SNAKE_D} className="groove" />
-        <path d={snakeUpTo(Math.max(p, 0.002))} className="groove-fill" stroke={`url(#${gid})`} />
-        <path d={snakeUpTo(Math.max(p, 0.002))} className="groove-flow" />
+      <div className="pad-row" ref={s.track}>
+        <span className="pad-sel" style={{ left: `${s.x(s.p)}%`, '--st': s.dragging ? stretch : 1 }} />
         {PATTERNS.map((pt, i) => {
-          const [sx, sy] = snakePt(i / 5), L = stopLabel(i / 5), peek = s.hx != null && Math.round(clamp(s.hx) * 5) % 5 === i
+          const near = s.hx == null || s.pressed ? 0 : clamp(1 - Math.abs(s.hx * 4 - i) / 1.1) // the pad under the pointer lifts
           return (
-            <g key={pt.name} transform={`translate(${sx.toFixed(1)} ${sy.toFixed(1)})`} className={`snake-stop ${i === k ? 'on' : ''} ${peek ? 'peek' : ''}`}>
-              <circle r="5" /><text x={L.x} y={L.y === 'in' ? (sy < SN.yTop + SN.r ? 22 : -14) : L.y} textAnchor={L.a}>{pt.name}</text>
-            </g>
+            <span key={`${pt.name}-${i === k}`} className={`pad ${i === k ? 'on' : ''}`} style={{ translate: `0 ${-4 * near}px` }}>
+              {/* a 4×4 preview of the pattern: kick and snare hits, lit as the playhead passes on the chosen pad */}
+              <span className="pad-dots">{Array.from({ length: 16 }, (_, j) => (
+                <i key={j} className={`${pt.k[j] === 'x' ? 'k' : ''} ${pt.s[j] === 'x' ? 's' : ''} ${i === k && j === step ? 'now' : ''}`} />
+              ))}</span>
+            </span>
           )
         })}
-        <g className="snake-knob" transform={`translate(${tx.toFixed(1)} ${ty.toFixed(1)})`}><circle r="13" /><circle r="4" className="dot" /></g>
-      </svg>
+      </div>
+      <div className="pad-names" aria-hidden="true">{PATTERNS.map((pt, i) => <span key={pt.name} className={i === k ? 'on' : ''}>{pt.name}</span>)}</div>
     </div>
   )
 }
@@ -342,7 +304,7 @@ function EnergySet({ auto, offset = 0 }) {
             </div>
           ))}
         </div>
-        <PatternSnake k={k} onChange={setK} />
+        <PatternPads k={k} onChange={setK} step={step} />
       </div>
     </div>
   )
@@ -617,9 +579,9 @@ const SETS = [
       ['Layout', [['Screen', 'padding 28 / 32, radius 34, #0D0A14 with a magenta glow behind the drum'], ['Columns', 'drum 1fr · machine 360'], ['Drum', 'head r 92 · shell r 104 · 10 lugs 10 × 16'], ['Light', 'no outlines — colour is light: acid lime #D4FF3A, hot pink #FF2E88, electric cyan #2EE6FF']]],
       ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 800 · 22 / 26'], ['BPM', 'Unbounded 800 · 44 / 44 in the drum'], ['Stops / rows', 'Unbounded 600 · 11 / 14']]],
       ['Continuous · Tempo (around the rim)', [['Range', '60 – 180 BPM, step 1'], ['Path', '270° arc, r 136, from 135° clockwise'], ['Groove', 'stroke 16 #2A2236; fill 16 → 22 on each kick, gradient #D4FF3A → #FF2E88, glow 4 → 14'], ['Flow', 'streaks 3 / 13 along the fill, moving 16 units per beat'], ['Knob', 'r 15, #FFFFFF, pink glow, bounces ×1.18 on the kick']]],
-      ['Stepped · Pattern (loop)', [['Stops', '5 — Four · Backbeat · Shuffle · Break · Blast'], ['Path', 'a closed loop: two runs of 220 joined by U-turns r 26 at both ends; stops every ⅕ of the way round'], ['Stops', 'dots r 5, outline 3; names 14 from the path'], ['Knob', 'r 13, #FFFFFF, lime glow; fill gradient #2EE6FF → #D4FF3A; stops flash on snares']]],
+      ['Stepped · Pattern (drum pads)', [['Stops', '5 pads — Four · Backbeat · Shuffle · Break · Blast'], ['Pads', 'square, gap 8, radius 12, #221A2E; chosen pad lime → pink, pulses ×1.05 on the kick'], ['Preview', '4 × 4 dots per pad, 4 px: kick #FF2E88, snare #2EE6FF; lit as the playhead passes'], ['Selection', 'glowing ring, pad width + 8, radius 16, stretches with speed (≤ 1.6×)']]],
       ['Sequencer', [['Grid', '3 rows × 16 steps, cell 14 × 20, radius 4, gap 3'], ['Rows', 'Kick #FF2E88 · Snare #2EE6FF · Hat #D4FF3A, lit cells glow'], ['Playhead', 'sixteenth notes at the tempo, outlined column']]],
-      ['States', [['Idle', 'knobs rest in their grooves; the drum keeps playing'], ['Hover', 'groove thickens; a ghost knob previews the BPM / the stop under the pointer swells'], ['Pressed', 'knob jumps to the finger and squashes; groove glows'], ['Drag', 'knob rides the curve 1:1 (projected onto the path); the beat and pattern change live'], ['Release', 'springs on with overshoot; stepped flicks carry to the next stop']]],
+      ['States', [['Idle', 'knobs rest in their grooves; the drum keeps playing'], ['Hover', 'Tempo groove thickens and a ghost knob previews the BPM; the pad under the pointer lifts 4 px'], ['Pressed', 'knob / selection jumps to the finger; the knob squashes, the pads squish (scale-y 0.9)'], ['Drag', 'the Tempo knob rides the rim 1:1; the pad selection glides and stretches; landing on a pad hits it (pop + ripple); the beat changes live'], ['Release', 'springs on with overshoot; stepped flicks carry to the next stop']]],
       ['Motion', [['Spring', 'damping 0.5, response 0.3'], ['Hits', 'kick: head ×1.06 + ring · snare: 4 px shudder · hat: rim flash'], ['Sound', 'optional, synthesized; off by default']]],
     ],
   },
@@ -649,7 +611,7 @@ const SETS = [
 
 /* ================= Figma draft thumbnail =================
    the enlarged draft is drawn above the page, so no section clips it */
-const DRAFT_VERSION = 'wire-6'
+const DRAFT_VERSION = 'wire-7'
 function DraftThumb({ set }) {
   const ref = useRef(null)
   const [box, setBox] = useState(null)
