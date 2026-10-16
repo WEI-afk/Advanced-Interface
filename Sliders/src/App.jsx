@@ -345,20 +345,42 @@ const Glyph = ({ k }) => (
   </svg>
 )
 
+// how lit a point on the track is: by the thumb's light and by the lantern under the pointer
+function lightAt(x, s, reach) {
+  const w = s.track.current?.offsetWidth || 280
+  const fromThumb = clamp(1 - (Math.abs(x - clamp(s.p)) * w) / reach)
+  const fromPointer = s.hx == null ? 0 : clamp(1 - (Math.abs(x - s.hx) * w) / 60)
+  return Math.max(fromThumb, fromPointer)
+}
+const lights = (s, reach) => ({ '--tx': `${clamp(s.p) * 100}%`, '--hx': s.hx == null ? '-200%' : `${s.hx * 100}%`, '--reach': `${reach}px` })
+
+// the Phase thumb is the moon itself, drawn in the current phase
+function MiniMoon({ k }) {
+  const id = useId().replace(/:/g, '')
+  return (
+    <svg viewBox="-10 -10 20 20" aria-hidden="true">
+      <defs><mask id={`mm${id}`}><circle r="8" fill="#fff" /><circle r="8.5" cx={-k * 17} fill="#000" /></mask></defs>
+      <circle r="8" className="mm-dark" />
+      <circle r="8" className="mm-lit" mask={`url(#mm${id})`} />
+    </svg>
+  )
+}
+
 function MoonPhase({ phase, onChange, onMorph }) {
   const s = useSlider({ t: phase / 4, onChange: (x) => onChange(Math.round(x * 4)), steps: 5, spring: MYS_SPRING })
   useEffect(() => { onMorph(clamp(s.p) * 4) }, [s.p]) // eslint-disable-line react-hooks/exhaustive-deps
   const f = clamp(s.p) * 4
+  const reach = 40 + (f / 4) * 110 // a fuller moon lights more of the path
   return (
     <div className={`mys-slider ${s.state}`} {...s.bind} aria-label="Moon phase" aria-valuemin={0} aria-valuemax={4} aria-valuenow={phase} aria-valuetext={MOON_PHASES[phase]}>
       <div className="sl-head"><span className="mys-cap">Phase</span><span className="mys-val"><Handover names={MOON_PHASES} f={f} /></span></div>
-      <div className="mys-track" ref={s.track}>
+      <div className="mys-track" ref={s.track} style={lights(s, reach)}>
+        <span className="mys-line" />
         <span className="mys-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
         {MOON_PHASES.map((n, i) => (
-          <span key={n} className="mys-stop" style={{ left: `${(i / 4) * 100}%`, '--near': clamp(1 - Math.abs(f - i)) }}><Glyph k={i} /></span>
+          <span key={n} className="mys-stop" style={{ left: `${(i / 4) * 100}%`, opacity: 0.06 + lightAt(i / 4, s, reach) * 0.94 }}><Glyph k={i} /></span>
         ))}
-        <span className="mys-pearl" style={{ left: `${s.p * 100}%` }} />
-        <span className="mys-float" style={{ left: `${s.p * 100}%` }}><Handover names={MOON_PHASES} f={f} /></span>
+        <span className="mys-pearl is-moon" style={{ left: `${s.p * 100}%` }}><MiniMoon k={f / 4} /></span>
       </div>
     </div>
   )
@@ -367,14 +389,15 @@ function MoonPhase({ phase, onChange, onMorph }) {
 function MoonVeil({ t, onChange, onMorph }) {
   const s = useSlider({ t, onChange, spring: MYS_SPRING })
   useEffect(() => { onMorph(clamp(s.p)) }, [s.p]) // eslint-disable-line react-hooks/exhaustive-deps
-  const v = Math.round(clamp(s.p) * 100)
+  const v = clamp(s.p)
+  const reach = 120 - v * 85 // the thicker the veil, the less of the path you can see
   return (
     <div className={`mys-slider ${s.state}`} {...s.bind} aria-label="Veil" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(t * 100)} aria-valuetext={`${Math.round(t * 100)} percent veil`}>
-      <div className="sl-head"><span className="mys-cap">Veil</span><span className="mys-val">{v}<small>%</small></span></div>
-      <div className="mys-track" ref={s.track}>
-        <span className="mys-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
-        <span className="mys-pearl" style={{ left: `${s.p * 100}%` }} />
-        <span className="mys-float" style={{ left: `${s.p * 100}%` }}>{v}</span>
+      <div className="sl-head"><span className="mys-cap">Veil</span><span className="mys-val">{Math.round(v * 100)}<small>%</small></span></div>
+      <div className="mys-track" ref={s.track} style={lights(s, reach)}>
+        <span className="mys-line" />
+        <span className="mys-fill" style={{ width: `${v * 100}%` }} />
+        <span className="mys-pearl" style={{ left: `${s.p * 100}%`, filter: `blur(${v * 1.6}px)`, opacity: 1 - v * 0.35 }} />
       </div>
     </div>
   )
@@ -467,10 +490,10 @@ const SETS = [
     id: 'moon', tone: 'Mysterious', Body: MysteriousSet,
     spec: [
       ['Layout', [['Screen', 'radius 34; night scene 1fr · controls 320, padding 28 / 36'], ['Moon', 'r 64 (128 Ø); halo r 82 → 112 with Veil'], ['Water', 'lower 34 % of the scene; reflection blurred 3, 35 %']]],
-      ['Type', [['Caption', 'Inter 500 · 10 / 12 · caps · tracking 0.3em'], ['Phase name', 'Cormorant Garamond italic 400 · 26 / 30'], ['Veil value', 'Cormorant Garamond 400 · 26 / 30, % at 15'], ['Float', 'Cormorant Garamond italic 400 · 18 / 22']]],
-      ['Stepped · Phase', [['Stops', '5 — New · Crescent · Half · Gibbous · Full'], ['Track', 'h 1, #E8E6DC at 18 % (40 % on hover)'], ['Stops', 'moon glyphs 12 × 12, wake by proximity (opacity 0.35 → 1)'], ['Thumb', 'pearl 14 × 14, radial #FFF → #C9C5B8, glow 12']]],
-      ['Continuous · Veil', [['Range', '0 – 100 %, step 1'], ['Fill', 'h 1, #E8E6DC at 70 %'], ['Thumb', 'same pearl']]],
-      ['States', [['Hover', 'the hidden track surfaces (18 % → 40 %), stops brighten'], ['Pressed', 'the pearl blooms a 10 px halo; the value surfaces from a blur above it'], ['Drag', 'value floats with the pearl; names hand over through a 5 px blur; the night follows live']]],
+      ['Type', [['Caption', 'Inter 500 · 10 / 12 · caps · tracking 0.3em'], ['Phase name', 'Cormorant Garamond italic 400 · 26 / 30'], ['Veil value', 'Cormorant Garamond 400 · 26 / 30, % at 15'], ['Labels', 'no text appears on press or drag — the header and the scene carry the value']]],
+      ['Stepped · Phase', [['Stops', '5 — New · Crescent · Half · Gibbous · Full'], ['Track', 'h 1, #E8E6DC at 55 %, hidden — visible only inside the pools of light'], ['Light', 'thumb reach 40 → 150 px as the moon fills'], ['Stops', 'moon glyphs 12 × 12, 6 % in the dark → 100 % when lit'], ['Thumb', 'a moon 18 × 18 drawn in the current phase']]],
+      ['Continuous · Veil', [['Range', '0 – 100 %, step 1'], ['Fill', 'a trail of light, transparent → #E8E6DC 80 %, ending at the thumb'], ['Light', 'reach 120 → 35 px as the veil thickens'], ['Thumb', 'pearl 14 × 14, blurs up to 1.6 px with the veil']]],
+      ['States', [['Hover', 'a lantern (60 px) follows the pointer and reveals the hidden track and stops beneath it'], ['Pressed', 'the thumb blooms a 10 px halo'], ['Drag', 'the pool of light travels with the thumb; names hand over through a 5 px blur; the night follows live']]],
       ['Motion', [['Spring', 'damping 1, response 0.55 (slow, no bounce)'], ['Ambient', 'stars twinkle 6 s · mist drifts 40 s · reflection shimmers 5 s']]],
     ],
   },
@@ -478,7 +501,7 @@ const SETS = [
 
 /* ================= Figma draft thumbnail =================
    the enlarged draft is drawn above the page, so no section clips it */
-const DRAFT_VERSION = 'wire-3'
+const DRAFT_VERSION = 'wire-4'
 function DraftThumb({ set }) {
   const ref = useRef(null)
   const [box, setBox] = useState(null)

@@ -147,24 +147,23 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .handover { position: relative; display: inline-grid; }
 .handover b { grid-area: 1 / 1; font-weight: inherit; white-space: nowrap; }
 .mys-val .handover { justify-items: end; }
-/* the track hides until you reach for it */
+/* the path lies in darkness: it shows only inside the thumb's light and a lantern under the pointer */
 .mys-track { position: relative; height: 34px; }
-.mys-track::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(232,230,220,.18); transition: background-color .6s ease; }
-.mys-slider.is-hover .mys-track::before, .mys-slider.is-press .mys-track::before, .mys-slider.is-drag .mys-track::before { background: rgba(232,230,220,.4); }
-.mys-fill { position: absolute; left: 0; top: 50%; height: 1px; background: rgba(232,230,220,.7); }
-.mys-stop { position: absolute; top: 50%; width: 12px; height: 12px; transform: translate(-50%, 50%); margin-top: 6px; opacity: calc(.35 + var(--near) * .65); transition: opacity .3s; }
+.mys-line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(232,230,220,.55);
+  -webkit-mask-image: radial-gradient(var(--reach) 12px at var(--tx) 50%, #000 35%, transparent), radial-gradient(60px 12px at var(--hx) 50%, #000 30%, transparent);
+  mask-image: radial-gradient(var(--reach) 12px at var(--tx) 50%, #000 35%, transparent), radial-gradient(60px 12px at var(--hx) 50%, #000 30%, transparent); }
+/* the fill: a trail of light fading back into the dark, like a comet's tail */
+.mys-fill { position: absolute; left: 0; top: 50%; height: 1.5px; margin-top: -.25px; background: linear-gradient(90deg, transparent, rgba(232,230,220,.8)); }
+.mys-stop { position: absolute; top: 50%; width: 12px; height: 12px; transform: translate(-50%, 50%); margin-top: 6px; }
 .mys-stop svg { display: block; width: 100%; height: 100%; }
 .g-dark { fill: none; stroke: rgba(232,230,220,.55); stroke-width: .8; } .g-lit { fill: #e8e6dc; }
-.mys-slider.is-hover .mys-stop { opacity: calc(.6 + var(--near) * .4); }
-/* the thumb: a small glowing pearl that blooms when pressed */
 .mys-pearl { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%);
   background: radial-gradient(circle at 38% 34%, #fff, #c9c5b8); box-shadow: 0 0 12px rgba(232,230,220,.45); transition: box-shadow .6s ease, scale .3s ease; }
+.mys-pearl.is-moon { width: 20px; height: 20px; background: none; }
+.mys-pearl.is-moon svg { display: block; width: 100%; height: 100%; }
+.mm-dark { fill: #1a1c33; stroke: rgba(232,230,220,.35); stroke-width: .6; } .mm-lit { fill: #ece9de; }
 .mys-slider.is-hover .mys-pearl { box-shadow: 0 0 16px rgba(232,230,220,.6); }
-.mys-slider.is-press .mys-pearl, .mys-slider.is-drag .mys-pearl { box-shadow: 0 0 0 10px rgba(232,230,220,.12), 0 0 22px rgba(232,230,220,.7); scale: .9; }
-/* while held, the value surfaces out of a blur above the pearl */
-.mys-float { position: absolute; bottom: calc(100% + 6px); transform: translateX(-50%); font: italic 400 18px/22px "Cormorant Garamond", serif; color: #f1eee3; white-space: nowrap;
-  pointer-events: none; opacity: 0; filter: blur(6px); transition: opacity .5s ease, filter .5s ease; }
-.mys-slider.is-press .mys-float, .mys-slider.is-drag .mys-float { opacity: 1; filter: blur(0); }
+.mys-slider.is-press .mys-pearl, .mys-slider.is-drag .mys-pearl { box-shadow: 0 0 0 10px rgba(232,230,220,.1), 0 0 22px rgba(232,230,220,.7); scale: .92; }
 /* subject: the night — sky, stars, moon, mist, water, all from one live state */
 .night { position: absolute; inset: 0; min-height: 380px; overflow: hidden; background: linear-gradient(var(--sky), var(--hz) 66%, #04050c 66%, #07081a); }
 .stars { position: absolute; inset: 0; opacity: calc((1 - var(--k) * .65) * (1 - var(--veil) * .85)); }
