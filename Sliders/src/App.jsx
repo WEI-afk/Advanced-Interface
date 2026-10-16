@@ -150,7 +150,7 @@ function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, projec
 
 /* ================= Energetic: a drum machine =================
    Sliders don't have to be straight: Tempo is a groove wrapped around the drum's rim (a dial you turn),
-   Pattern is a groove that snakes across the panel. A 16-step sequencer plays the pattern at the tempo;
+   Pattern is a mixer fader beside the sequencer. A 16-step sequencer plays the pattern at the tempo;
    the drum bounces on kicks, shudders on snares and flashes on hats. Sound is optional and off by default. */
 const ENERGY_SPRING = { damping: 0.5, response: 0.3 } // quick, with overshoot
 const PATTERNS = [
@@ -223,49 +223,24 @@ function DrumTempo({ t, onChange, svgRef, gid, children }) {
   )
 }
 
-// --- Pattern: a groove that snakes across the panel (two straights joined by a U-turn)
-const SN = { x0: 24, x1: 256, yTop: 30, r: 26 }
-const SN_LEN = 2 * (SN.x1 - SN.x0) + Math.PI * SN.r
-function snakePt(t) {
-  const d = clamp(t) * SN_LEN, run = SN.x1 - SN.x0
-  if (d <= run) return [SN.x0 + d, SN.yTop]
-  if (d <= run + Math.PI * SN.r) { const a = (d - run) / SN.r; return [SN.x1 + SN.r * Math.sin(a), SN.yTop + SN.r - SN.r * Math.cos(a)] }
-  return [SN.x1 - (d - run - Math.PI * SN.r), SN.yTop + 2 * SN.r]
-}
-const SNAKE_D = `M${SN.x0} ${SN.yTop} H${SN.x1} A${SN.r} ${SN.r} 0 0 1 ${SN.x1} ${SN.yTop + 2 * SN.r} H${SN.x0}`
-const SNAKE_SAMPLES = Array.from({ length: 241 }, (_, i) => [i / 240, ...snakePt(i / 240)])
-const snakeUpTo = (p) => 'M' + [...SNAKE_SAMPLES.filter(([t]) => t < p).map(([, x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`), snakePt(p).map((v) => v.toFixed(1)).join(' ')].join('L')
-
-function PatternSnake({ k, onChange }) {
-  const svg = useRef(null)
-  const gid = 'sg' + useId().replace(/:/g, '')
-  const project = (e) => { // nearest point on the snake
-    const r = svg.current.getBoundingClientRect()
-    const x = (e.clientX - r.left) * 300 / r.width, y = (e.clientY - r.top) * 110 / r.height
-    let best = 0, bd = Infinity
-    for (const [t, px, py] of SNAKE_SAMPLES) { const dd = (px - x) ** 2 + (py - y) ** 2; if (dd < bd) { bd = dd; best = t } }
-    return best
-  }
-  const s = useSlider({ t: k / 4, onChange: (x) => onChange(Math.round(x * 4)), steps: 5, project, spring: ENERGY_SPRING })
-  const p = clamp(s.p), [tx, ty] = snakePt(p)
+// --- Pattern: a mixer fader beside the sequencer — push it up for more energy (Four at the bottom, Blast at the top)
+function PatternFader({ k, onChange }) {
+  const s = useSlider({ t: (4 - k) / 4, onChange: (x) => onChange(4 - Math.round(x * 4)), steps: 5, vertical: true, spring: ENERGY_SPRING })
+  const p = clamp(s.p)
+  const st = s.dragging ? 1 + Math.min(Math.abs(s.vel) * 0.12, 0.5) : 1 // the cap stretches with speed
   return (
-    <div className={`snake ${s.state}`} {...s.bind} aria-label="Pattern" aria-valuemin={0} aria-valuemax={4} aria-valuenow={k} aria-valuetext={PATTERNS[k].name}>
-      <div className="sl-head"><span className="sl-label">Pattern</span><span className="sl-value">{PATTERNS[k].name}</span></div>
-      <svg ref={svg} viewBox="0 0 300 110" className="snake-svg" aria-hidden="true">
-        <defs><linearGradient id={gid} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="300" y2="0"><stop offset="0" stopColor="#2ee6ff" /><stop offset="1" stopColor="#d4ff3a" /></linearGradient></defs>
-        <path d={SNAKE_D} className="groove" />
-        <path d={snakeUpTo(Math.max(p, 0.002))} className="groove-fill" stroke={`url(#${gid})`} />
-        <path d={snakeUpTo(Math.max(p, 0.002))} className="groove-flow" />
+    <div className={`fader ${s.state}`} {...s.bind} aria-label="Pattern" aria-orientation="vertical" aria-valuemin={0} aria-valuemax={4} aria-valuenow={k} aria-valuetext={PATTERNS[k].name}>
+      <div className="fader-track" ref={s.track}>
+        <span className="fader-fill" style={{ height: `${(1 - p) * 100}%` }} />
+        {PATTERNS.map((pt, i) => <span key={pt.name} className={`fader-notch ${i <= k ? 'lit' : ''}`} style={{ top: `${((4 - i) / 4) * 100}%` }} />)}
+        <span className="fader-cap" style={{ top: `${s.p * 100}%`, '--st': st }} />
+      </div>
+      <div className="fader-names" aria-hidden="true">
         {PATTERNS.map((pt, i) => {
-          const [sx, sy] = snakePt(i / 4), peek = s.hx != null && Math.round(clamp(s.hx) * 4) === i
-          return (
-            <g key={pt.name} transform={`translate(${sx} ${sy})`} className={`snake-stop ${i === k ? 'on' : ''} ${peek ? 'peek' : ''}`}>
-              <circle r="5" /><text y={i === 2 ? 4 : sy < 50 ? -20 : 28} x={i === 2 ? -22 : 0} textAnchor={i === 2 ? 'end' : 'middle'}>{pt.name}</text>
-            </g>
-          )
+          const peek = s.hx != null && 4 - Math.round(clamp(s.hx) * 4) === i
+          return <span key={pt.name} className={`${i === k ? 'on' : ''} ${peek ? 'peek' : ''}`} style={{ top: `${((4 - i) / 4) * 100}%` }}>{pt.name}</span>
         })}
-        <g className="snake-knob" transform={`translate(${tx} ${ty})`}><circle r="13" /><circle r="4" className="dot" /></g>
-      </svg>
+      </div>
     </div>
   )
 }
@@ -324,6 +299,8 @@ function EnergySet({ auto, offset = 0 }) {
       </div>
       <div className="controls nrg-controls">
         <button className={`nrg-sound ${sound ? 'on' : ''}`} aria-pressed={sound} onClick={() => { if (!sound) ensureAudio(); setSound((v) => !v) }}>{sound ? 'Sound on' : 'Sound off'}</button>
+        <div className="sl-head mach-head"><span className="sl-label">Pattern</span><span className="sl-value">{P.name}</span></div>
+        <div className="machine">
         <div className="seq" aria-label={`${P.name} pattern`}>
           {ROWS.map(([key, label]) => (
             <div key={key} className={`seq-row r-${key}`}>
@@ -332,7 +309,8 @@ function EnergySet({ auto, offset = 0 }) {
             </div>
           ))}
         </div>
-        <PatternSnake k={k} onChange={setK} />
+        <PatternFader k={k} onChange={setK} />
+        </div>
       </div>
     </div>
   )
@@ -607,7 +585,7 @@ const SETS = [
       ['Layout', [['Screen', 'padding 28 / 32, radius 34, #0D0A14 with a magenta glow behind the drum'], ['Columns', 'drum 1fr · machine 360'], ['Drum', 'head r 92 · shell r 104 · 10 lugs 10 × 16'], ['Light', 'no outlines — colour is light: acid lime #D4FF3A, hot pink #FF2E88, electric cyan #2EE6FF']]],
       ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 800 · 22 / 26'], ['BPM', 'Unbounded 800 · 44 / 44 in the drum'], ['Stops / rows', 'Unbounded 600 · 11 / 14']]],
       ['Continuous · Tempo (around the rim)', [['Range', '60 – 180 BPM, step 1'], ['Path', '270° arc, r 136, from 135° clockwise'], ['Groove', 'stroke 16 #2A2236; fill 16 → 22 on each kick, gradient #D4FF3A → #FF2E88, glow 4 → 14'], ['Flow', 'streaks 3 / 13 along the fill, moving 16 units per beat'], ['Knob', 'r 15, #FFFFFF, pink glow, bounces ×1.18 on the kick; pressed: ×0.86, core r 5 → 7 in #FF2E88, halo r 23; dragged: stretches along the tangent (≤ 1.4×)']]],
-      ['Stepped · Pattern (snake)', [['Stops', '5 — Four · Backbeat · Shuffle · Break · Blast'], ['Path', 'two runs of 232 joined by a U-turn r 26'], ['Groove', 'stroke 16 #2A2236; fill gradient #2EE6FF → #D4FF3A, pulses on the kick, energy flows along it'], ['Knob', 'r 13, #FFFFFF, lime glow; stops flash on snares']]],
+      ['Stepped · Pattern (mixer fader)', [['Stops', '5, bottom → top — Four · Backbeat · Shuffle · Break · Blast'], ['Track', 'vertical, w 12 (16 on the kick), radius 6, #2A2236, beside the sequencer'], ['Fill', 'from the bottom, #2EE6FF → #D4FF3A, streaks flow upward with the tempo'], ['Cap', '36 × 14, radius 7, #FFFFFF, lime glow; pressed ×0.9 with a pink grip line; stretches with speed'], ['Names', 'Unbounded 600 · 10 / 12, beside each notch']]],
       ['Sequencer', [['Grid', '3 rows × 16 steps, cell 14 × 20, radius 4, gap 3'], ['Rows', 'Kick #FF2E88 · Snare #2EE6FF · Hat #D4FF3A, lit cells glow'], ['Playhead', 'sixteenth notes at the tempo, outlined column']]],
       ['States', [['Idle', 'knobs rest in their grooves; the drum keeps playing'], ['Hover', 'grooves thicken; a ghost knob previews the BPM / the stop under the pointer swells'], ['Pressed', 'the knob jumps to the finger and grips; the groove fill thickens'], ['Drag', 'knobs ride their curves 1:1 (projected onto the path); the beat and pattern change live'], ['Release', 'springs on with overshoot; stepped flicks carry to the next stop']]],
       ['Motion', [['Spring', 'damping 0.5, response 0.3'], ['Hits', 'kick: head ×1.06 + ring · snare: 4 px shudder · hat: rim flash'], ['Sound', 'optional, synthesized; off by default']]],
