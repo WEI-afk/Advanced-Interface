@@ -222,7 +222,7 @@ function DrumTempo({ t, onChange, svgRef, gid, children }) {
       <path d={arcPath(p)} className="groove-fill" stroke={`url(#${gid})`} />
       <path d={arcPath(p)} className="groove-flow" />{/* energy streams along the fill, locked to the tempo */}
       {children}
-      {s.hx != null && !s.pressed && (() => { const [gx, gy] = arcPt(clamp(s.hx)); const out = arcPt(clamp(s.hx), { ...ARC, r: ARC.r + 38 }), [lx, ly] = out[1] > 70 ? arcPt(clamp(s.hx), { ...ARC, r: ARC.r - 40 }) : out; /* low on the rim the chip tucks inside, clear of the Pattern band */ return <g className="tempo-ghost"><circle cx={gx} cy={gy} r="11" /><Chip x={lx} y={ly} text={`${Math.round(60 + clamp(s.hx) * 120)} BPM`} /></g> })()}
+      {s.hx != null && !s.pressed && (() => { const [gx, gy] = arcPt(clamp(s.hx)); const out = arcPt(clamp(s.hx), { ...ARC, r: ARC.r + 38 }), [lx, ly] = out[1] > -10 ? arcPt(clamp(s.hx), { ...ARC, r: ARC.r - 40 }) : out; /* low on the rim the chip tucks inside, clear of the Pattern band */ return <g className="tempo-ghost"><circle cx={gx} cy={gy} r="11" /><Chip x={lx} y={ly} text={`${Math.round(60 + clamp(s.hx) * 120)} BPM`} /></g> })()}
       {/* the knob: pressed, it grips (compresses, pink core, halo); dragged, it stretches along the groove's tangent */}
       <g className="tempo-knob" transform={`translate(${kx.toFixed(2)} ${ky.toFixed(2)}) rotate(${(ARC.a0 + ARC.sweep * p + 90).toFixed(2)})`}>
         <circle r="23" className="halo" />
