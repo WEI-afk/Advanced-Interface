@@ -46,7 +46,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 /* ================= ENERGETIC — a drum machine in light ================= */
 .s-energy { background: #ecebf1; color: #120d1a; }
 .s-energy .set-head h2 { font-family: Unbounded, Inter, sans-serif; font-weight: 800; letter-spacing: -0.02em; }
-.nrg-screen { --kick: 0; --snare: 0; --flow: 0; color: #fff; grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+.nrg-screen { --kick: 0; --snare: 0; --flow: 0; color: #fff; grid-template-columns: minmax(0, 1.5fr) minmax(130px, 1fr); gap: 8px 24px; align-items: stretch;
   background: radial-gradient(60% 70% at 28% 45%, #3a0f45, transparent 70%), radial-gradient(50% 60% at 90% 90%, #0f2a3a, transparent 70%), #0d0a14;
   box-shadow: 0 30px 60px -30px rgba(13,10,20,.8); }
 .nrg-screen .sl-label { font: 600 12px/16px Unbounded, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.55); }
@@ -84,9 +84,10 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .tempo-ghost text { font: 700 12px/1 Unbounded, sans-serif; text-anchor: middle; fill: #fff; }
 .drum-tempo:focus-visible .groove { stroke: #2ee6ff; }
 /* the machine */
-.nrg-controls { gap: 22px; }
+.nrg-controls { gap: 22px; grid-column: 1 / -1; }
 .nrg-sound { all: unset; align-self: flex-end; cursor: pointer; padding: 7px 14px; border-radius: 999px; font: 700 11px/1 Unbounded, sans-serif; letter-spacing: .06em; color: #fff; background: rgba(255,255,255,.08); transition: scale .1s, background-color .2s; }
 .nrg-sound.on { background: #d4ff3a; color: #0d0a14; box-shadow: 0 0 16px rgba(212,255,58,.6); } .nrg-sound:active { scale: .94; }
+.nrg-sound { position: absolute; top: 22px; right: 24px; z-index: 2; }
 .nrg-sound:focus-visible { outline: 2px solid #2ee6ff; outline-offset: 2px; }
 .seq { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.04); }
 .seq-row { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 8px; }
@@ -100,8 +101,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .r-k i.now.on { box-shadow: 0 0 12px #ff2e88; } .r-s i.now.on { box-shadow: 0 0 12px #2ee6ff; } .r-h i.now.on { box-shadow: 0 0 12px #d4ff3a; }
 /* Pattern: a mixer fader beside the sequencer */
 .mach-head { margin-bottom: -8px; }
-.machine { display: grid; grid-template-columns: minmax(0, 1fr) 118px; gap: 16px; align-items: stretch; }
-.fader { position: relative; display: grid; grid-template-columns: 30px 1fr; padding: 10px 0; cursor: grab; outline: none; touch-action: none; min-height: 150px; }
+.fader { position: relative; display: grid; grid-template-columns: 36px 1fr; align-self: stretch; padding: 40px 0; cursor: grab; outline: none; touch-action: none; min-height: 240px; justify-self: start; width: 150px; }
 .fader-track { position: relative; justify-self: center; width: calc(12px + var(--kick) * 4px); border-radius: 8px; background: #2a2236; transition: width .1s; }
 .fader.is-hover .fader-track { background: #332a42; }
 .fader-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: inherit; overflow: hidden; background: linear-gradient(to top, #2ee6ff, #d4ff3a);
@@ -117,12 +117,12 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .fader.is-press .fader-cap, .fader.is-drag .fader-cap { scale: .9; box-shadow: 0 0 0 3px rgba(255,46,136,.35), 0 0 16px rgba(255,46,136,.7); }
 .fader.is-press .fader-cap::after, .fader.is-drag .fader-cap::after { background: #ff2e88; }
 .fader-names { position: relative; }
-.fader-names span { position: absolute; left: 6px; transform: translateY(-50%); font: 600 10px/12px Unbounded, sans-serif; color: rgba(255,255,255,.45); white-space: nowrap; transition: color .2s, translate .3s cubic-bezier(.34,1.8,.64,1); }
-.fader-names span.on { color: #d4ff3a; }
-.fader-names span.peek { color: #fff; translate: 3px 0; }
+.fader-names span { position: absolute; left: 12px; transform: translateY(-50%); font: 800 18px/22px Unbounded, sans-serif; color: #d4ff3a; white-space: nowrap; text-shadow: 0 0 14px rgba(212,255,58,.5); transition: translate .3s cubic-bezier(.34,1.8,.64,1), color .2s; }
+.fader.is-hover .fader-names span { translate: 3px 0; }
+.fader.is-press .fader-names span, .fader.is-drag .fader-names span { color: #fff; translate: 6px 0; }
 .fader:focus-visible .fader-track { box-shadow: 0 0 0 2px #2ee6ff; }
 .seq { justify-content: center; }
-@container screen (max-width: 680px) { .nrg-screen { grid-template-columns: 1fr; } }
+@container screen (max-width: 520px) { .nrg-screen { grid-template-columns: minmax(0, 1fr) 96px; gap: 8px 0; padding: 56px 16px 24px; } .drum-stage { min-height: 0; } .fader { width: 96px; grid-template-columns: 24px 1fr; padding: 24px 0; min-height: 0; } .fader-names span { left: 4px; font-size: 10px; line-height: 14px; } }
 
 /* ================= FUTURISTIC ================= */
 .s-reactor { background: #e7ebf0; color: #0b1220; }

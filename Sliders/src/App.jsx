@@ -235,11 +235,9 @@ function PatternFader({ k, onChange }) {
         {PATTERNS.map((pt, i) => <span key={pt.name} className={`fader-notch ${i <= k ? 'lit' : ''}`} style={{ top: `${((4 - i) / 4) * 100}%` }} />)}
         <span className="fader-cap" style={{ top: `${s.p * 100}%`, '--st': st }} />
       </div>
+      {/* one name rides beside the cap and flips as it crosses each notch */}
       <div className="fader-names" aria-hidden="true">
-        {PATTERNS.map((pt, i) => {
-          const peek = s.hx != null && 4 - Math.round(clamp(s.hx) * 4) === i
-          return <span key={pt.name} className={`${i === k ? 'on' : ''} ${peek ? 'peek' : ''}`} style={{ top: `${((4 - i) / 4) * 100}%` }}>{pt.name}</span>
-        })}
+        <span style={{ top: `${clamp(s.p) * 100}%` }}>{PATTERNS[4 - Math.round(clamp(s.p) * 4)].name}</span>
       </div>
     </div>
   )
@@ -281,6 +279,7 @@ function EnergySet({ auto, offset = 0 }) {
   const P = PATTERNS[k]
   return (
     <div ref={root} className="screen nrg-screen">
+      <button className={`nrg-sound ${sound ? 'on' : ''}`} aria-pressed={sound} onClick={() => { if (!sound) ensureAudio(); setSound((v) => !v) }}>{sound ? 'Sound on' : 'Sound off'}</button>
       <div ref={stage} className="drum-stage">
         <svg ref={drumSvg} viewBox="-160 -160 320 320" className="drum">
           <defs>
@@ -297,10 +296,9 @@ function EnergySet({ auto, offset = 0 }) {
           <DrumTempo t={tempo} onChange={setTempo} svgRef={drumSvg} gid={`ng${uid}`} />
         </svg>
       </div>
+      <PatternFader k={k} onChange={setK} />
       <div className="controls nrg-controls">
-        <button className={`nrg-sound ${sound ? 'on' : ''}`} aria-pressed={sound} onClick={() => { if (!sound) ensureAudio(); setSound((v) => !v) }}>{sound ? 'Sound on' : 'Sound off'}</button>
-        <div className="sl-head mach-head"><span className="sl-label">Pattern</span><span className="sl-value">{P.name}</span></div>
-        <div className="machine">
+        <div className="sl-head mach-head"><span className="sl-label">Pattern</span></div>
         <div className="seq" aria-label={`${P.name} pattern`}>
           {ROWS.map(([key, label]) => (
             <div key={key} className={`seq-row r-${key}`}>
@@ -308,8 +306,6 @@ function EnergySet({ auto, offset = 0 }) {
               <span className="seq-cells">{Array.from({ length: 16 }, (_, i) => <i key={i} className={`${P[key][i] === 'x' ? 'on' : ''} ${i === step ? 'now' : ''} ${i % 4 === 0 ? 'beat' : ''}`} />)}</span>
             </div>
           ))}
-        </div>
-        <PatternFader k={k} onChange={setK} />
         </div>
       </div>
     </div>
@@ -582,7 +578,7 @@ const SETS = [
   {
     id: 'energy', tone: 'Energetic', Body: EnergySet,
     spec: [
-      ['Layout', [['Screen', 'padding 28 / 32, radius 34, #0D0A14 with a magenta glow behind the drum'], ['Columns', 'drum 1fr · machine 360'], ['Drum', 'head r 92 · shell r 104 · 10 lugs 10 × 16'], ['Light', 'no outlines — colour is light: acid lime #D4FF3A, hot pink #FF2E88, electric cyan #2EE6FF']]],
+      ['Layout', [['Screen', 'padding 28 / 32, radius 34, #0D0A14 with a magenta glow behind the drum'], ['Columns', 'drum 1fr · pattern fader 130 · sequencer full width below'], ['Drum', 'head r 92 · shell r 104 · 10 lugs 10 × 16'], ['Light', 'no outlines — colour is light: acid lime #D4FF3A, hot pink #FF2E88, electric cyan #2EE6FF']]],
       ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 800 · 22 / 26'], ['BPM', 'Unbounded 800 · 44 / 44 in the drum'], ['Stops / rows', 'Unbounded 600 · 11 / 14']]],
       ['Continuous · Tempo (around the rim)', [['Range', '60 – 180 BPM, step 1'], ['Path', '270° arc, r 136, from 135° clockwise'], ['Groove', 'stroke 16 #2A2236; fill 16 → 22 on each kick, gradient #D4FF3A → #FF2E88, glow 4 → 14'], ['Flow', 'streaks 3 / 13 along the fill, moving 16 units per beat'], ['Knob', 'r 15, #FFFFFF, pink glow, bounces ×1.18 on the kick; pressed: ×0.86, core r 5 → 7 in #FF2E88, halo r 23; dragged: stretches along the tangent (≤ 1.4×)']]],
       ['Stepped · Pattern (mixer fader)', [['Stops', '5, bottom → top — Four · Backbeat · Shuffle · Break · Blast'], ['Track', 'vertical, w 12 (16 on the kick), radius 6, #2A2236, beside the sequencer'], ['Fill', 'from the bottom, #2EE6FF → #D4FF3A, streaks flow upward with the tempo'], ['Cap', '36 × 14, radius 7, #FFFFFF, lime glow; pressed ×0.9 with a pink grip line; stretches with speed'], ['Names', 'Unbounded 600 · 10 / 12, beside each notch']]],
