@@ -123,10 +123,18 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .cell.on { background: #3ef0ff; color: #05080f; animation: boot .32s steps(4); }
 @keyframes boot { 25% { opacity: .2; } 50% { opacity: 1; } 75% { opacity: .5; } }
 .fut-cells .cell:hover:not(.on) { background: rgba(62,240,255,.3); }
-.fut-bracket { position: absolute; top: -6px; bottom: -6px; width: calc(20% - 2px); transform: translateX(-50%); pointer-events: none; --gap: 0px; }
-.fut-bracket::before, .fut-bracket::after { content: ''; position: absolute; top: var(--gap); bottom: var(--gap); width: 8px; border: 1.5px solid #3ef0ff; transition: top .15s, bottom .15s, left .15s, right .15s; filter: drop-shadow(0 0 4px rgba(62,240,255,.6)); }
-.fut-bracket::before { left: var(--gap); border-right: 0; } .fut-bracket::after { right: var(--gap); border-left: 0; }
-.fut-slider.is-press .fut-bracket, .fut-slider.is-drag .fut-bracket { --gap: 4px; }
+/* reticle: four L corners around the current cell. Cell width = (track − 4 gaps of 6) / 5;
+   centre of stop p = half a cell + p × 4 × (cell + gap) — so it always sits exactly on a cell */
+.fut-bracket { --cw: calc((100% - 24px) / 5); --g: 5px; position: absolute; top: calc(-1 * var(--g)); bottom: calc(-1 * var(--g));
+  left: calc(var(--cw) / 2 + var(--p) * 4 * (var(--cw) + 6px)); width: calc(var(--cw) + 2 * var(--g)); transform: translateX(-50%); pointer-events: none;
+  --c: #3ef0ff; --a: 7px; --t: 1.5px;
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--a) var(--t) no-repeat, linear-gradient(var(--c), var(--c)) top left / var(--t) var(--a) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--a) var(--t) no-repeat, linear-gradient(var(--c), var(--c)) top right / var(--t) var(--a) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / var(--a) var(--t) no-repeat, linear-gradient(var(--c), var(--c)) bottom left / var(--t) var(--a) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / var(--a) var(--t) no-repeat, linear-gradient(var(--c), var(--c)) bottom right / var(--t) var(--a) no-repeat;
+  filter: drop-shadow(0 0 3px rgba(62,240,255,.7)); transition: top .15s ease-out, bottom .15s ease-out, width .15s ease-out; }
+.fut-slider.is-press .fut-bracket, .fut-slider.is-drag .fut-bracket { --g: 2px; } /* locks on */
 /* subject: a reactor — thrust spins it, warp lights more rings */
 .reactor { position: relative; display: grid; place-items: center; min-height: 300px; }
 .reactor svg { width: min(100%, 300px); overflow: visible; }

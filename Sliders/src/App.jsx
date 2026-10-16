@@ -259,7 +259,7 @@ function FutWarp({ warp, onChange }) {
       <div className="sl-head"><span className="sl-label">Warp</span><span className="sl-value">{WARPS[warp]}</span></div>
       <div className="fut-cells" ref={s.track}>
         {WARPS.map((w, i) => <span key={`${w}-${i === warp}`} className={`cell ${i < warp ? 'below' : ''} ${i === warp ? 'on' : ''}`}>{w}</span>)}
-        <span className="fut-bracket" style={{ left: `${s.x(s.p)}%` }} />
+        <span className="fut-bracket" style={{ '--p': s.p }} />{/* a four-corner reticle, placed by the cells' exact geometry */}
         <span className="fut-readout" style={{ left: `${s.x(s.p)}%` }}>WARP {warp + 1}</span>
       </div>
     </div>
@@ -490,8 +490,8 @@ const SETS = [
       ['Layout', [['Screen', 'padding 28 / 32, radius 34, #05080F + 24 px grid at 4%'], ['Columns', 'subject 1fr · controls 340'], ['Slider gap', '38']]],
       ['Type', [['Label', 'Space Grotesk 500 · 11 / 14 · caps · tracking 0.24em'], ['Value', 'JetBrains Mono 500 · 18 / 22 · tabular'], ['Readout', 'JetBrains Mono 500 · 11 / 14'], ['Ruler', 'JetBrains Mono 400 · 9 / 10']]],
       ['Continuous · Thrust', [['Range', '0 – 100 %, step 1 (0.1 shown)'], ['Track', 'h 2, rgba(62,240,255,.18)'], ['Fill', '#3EF0FF + glow 0 0 8'], ['Thumb', 'diamond 14 × 14, stroke 1.5 #3EF0FF, crosshair h 30'], ['Ruler', '21 ticks every 5 %, major every 25 % (h 10 / 5)']]],
-      ['Stepped · Warp', [['Stops', '5 — W1 … W5'], ['Cells', 'h 32, gap 6, chamfer 6, stroke 1'], ['Bracket', 'cell width, corner arms 8, stroke 1.5']]],
-      ['States', [['Hover', 'diamond ×1.15; ruler ticks near the pointer brighten'], ['Pressed', 'diamond fills, brackets close 4 px'], ['Drag', 'readout chip above thumb, ticks light behind it; new cell boots with a flicker']]],
+      ['Stepped · Warp', [['Stops', '5 — W1 … W5'], ['Cells', 'h 32, gap 6, chamfer 6, stroke 1'], ['Reticle', 'four corners, arms 7, stroke 1.5, 5 outside the cell (2 when pressed)']]],
+      ['States', [['Hover', 'diamond ×1.15; ruler ticks near the pointer brighten'], ['Pressed', 'diamond fills; the reticle closes in on the cell (5 → 2)'], ['Drag', 'readout chip above thumb, ticks light behind it; new cell boots with a flicker']]],
       ['Motion', [['Spring', 'damping 0.9, response 0.22 (precise)']]],
     ],
   },
