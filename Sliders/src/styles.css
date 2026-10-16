@@ -178,6 +178,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 /* subject: a reactor — thrust spins it, warp lights more rings */
 .reactor { position: relative; display: grid; place-items: center; min-height: 300px; }
 .reactor svg { width: min(100%, 300px); overflow: visible; }
+.set .reactor svg { width: min(100%, 440px); }
 .r-scale { fill: none; stroke: rgba(62,240,255,.18); stroke-width: 1; stroke-dasharray: 1 7; }
 .r-ring { fill: none; stroke: color-mix(in oklab, #9b7bff calc(var(--warp) * 100%), #3ef0ff); stroke-width: 2; opacity: .08; transition: opacity .4s ease, stroke .4s ease; }
 .r-ring.on { opacity: .9; filter: drop-shadow(0 0 4px rgba(62,240,255,.6)); }
@@ -223,6 +224,8 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .halo { fill: rgba(232,230,220, calc(.04 + var(--k) * .08 + var(--veil) * .1)); filter: blur(14px); }
 .earthshine { fill: #1a1c33; }
 .water { position: absolute; left: 0; right: 0; top: 66%; bottom: 0; overflow: hidden; }
+.set .moon-wrap { width: 250px; height: 250px; }
+.set .moon.reflect { width: 250px; height: 250px; margin-left: -125px; top: -60px; }
 .moon.reflect { position: absolute; left: 32%; top: -40px; width: 180px; height: 180px; margin-left: -90px; transform: scaleY(-.5); transform-origin: 50% 50%; /* flipped about its centre so it stays in the water */
   opacity: calc(.38 * (1 - var(--veil) * .6)); filter: blur(3px); animation: shimmer 5s ease-in-out infinite; }
 @keyframes shimmer { 50% { translate: 3px 0; filter: blur(4px); } }
@@ -246,6 +249,8 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 .wall { height: 100vh; overflow: hidden; padding: 12px; display: flex; gap: 12px; }
 .wall-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .wall-tile .screen { min-height: 300px; }
+/* every set gets the same stage as Energetic (its drum + band + sequencer sets the height) */
+.set .screen { min-height: 672px; }
 
 /* the set (or wall tile) is the size container, so a screen can restack itself when narrow */
 .set, .wall-tile { container: screen / inline-size; }
