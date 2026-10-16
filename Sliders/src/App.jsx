@@ -627,7 +627,7 @@ const SETS = [
 
 /* ================= Figma draft thumbnail =================
    the enlarged draft is drawn above the page, so no section clips it */
-const DRAFT_VERSION = 'wire-8'
+const DRAFT_VERSION = 'wire-9'
 function DraftThumb({ set }) {
   const ref = useRef(null)
   const [box, setBox] = useState(null)
