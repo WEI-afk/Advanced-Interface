@@ -216,31 +216,48 @@ function DrumTempo({ t, onChange, svgRef, gid, children }) {
   )
 }
 
-// --- Pattern: a groove that snakes across the panel (two straights joined by a U-turn)
-const SN = { x0: 24, x1: 256, yTop: 30, r: 26 }
-const SN_LEN = 2 * (SN.x1 - SN.x0) + Math.PI * SN.r
+// --- Pattern: a closed loop (a racetrack) — run right, U-turn, run back, U-turn home
+const SN = { x0: 40, x1: 260, yTop: 30, r: 26 }
+const SN_RUN = SN.x1 - SN.x0, SN_ARC = Math.PI * SN.r, SN_LEN = 2 * SN_RUN + 2 * SN_ARC
 function snakePt(t) {
-  const d = clamp(t) * SN_LEN, run = SN.x1 - SN.x0
-  if (d <= run) return [SN.x0 + d, SN.yTop]
-  if (d <= run + Math.PI * SN.r) { const a = (d - run) / SN.r; return [SN.x1 + SN.r * Math.sin(a), SN.yTop + SN.r - SN.r * Math.cos(a)] }
-  return [SN.x1 - (d - run - Math.PI * SN.r), SN.yTop + 2 * SN.r]
+  const d = (((t % 1) + 1) % 1) * SN_LEN || (t >= 1 ? 0 : 0)
+  if (d <= SN_RUN) return [SN.x0 + d, SN.yTop]
+  if (d <= SN_RUN + SN_ARC) { const a = (d - SN_RUN) / SN.r; return [SN.x1 + SN.r * Math.sin(a), SN.yTop + SN.r - SN.r * Math.cos(a)] }
+  if (d <= 2 * SN_RUN + SN_ARC) return [SN.x1 - (d - SN_RUN - SN_ARC), SN.yTop + 2 * SN.r]
+  const a = (d - 2 * SN_RUN - SN_ARC) / SN.r; return [SN.x0 - SN.r * Math.sin(a), SN.yTop + SN.r + SN.r * Math.cos(a)]
 }
-const SNAKE_D = `M${SN.x0} ${SN.yTop} H${SN.x1} A${SN.r} ${SN.r} 0 0 1 ${SN.x1} ${SN.yTop + 2 * SN.r} H${SN.x0}`
-const SNAKE_SAMPLES = Array.from({ length: 241 }, (_, i) => [i / 240, ...snakePt(i / 240)])
-const snakeUpTo = (p) => 'M' + [...SNAKE_SAMPLES.filter(([t]) => t < p).map(([, x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`), snakePt(p).map((v) => v.toFixed(1)).join(' ')].join('L')
+const SNAKE_D = `M${SN.x0} ${SN.yTop} H${SN.x1} A${SN.r} ${SN.r} 0 0 1 ${SN.x1} ${SN.yTop + 2 * SN.r} H${SN.x0} A${SN.r} ${SN.r} 0 0 1 ${SN.x0} ${SN.yTop} Z`
+const SNAKE_SAMPLES = Array.from({ length: 301 }, (_, i) => [i / 300, ...snakePt(i / 300)])
+const snakeUpTo = (p) => 'M' + [...SNAKE_SAMPLES.filter(([t]) => t < p).map(([, x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`), (p >= 1 ? [SN.x0, SN.yTop] : snakePt(p)).map((v) => v.toFixed(1)).join(' ')].join('L')
+// where each stop's name sits: outside the loop, on whichever side the stop is
+function stopLabel(t) {
+  const d = t * SN_LEN
+  if (d <= SN_RUN) return { x: 0, y: -20, a: 'middle' }
+  if (d <= SN_RUN + SN_ARC) return { x: -20, y: 'in', a: 'end' } // on the curved ends the name sits inside the loop, toward its middle
+  if (d <= 2 * SN_RUN + SN_ARC) return { x: 0, y: 28, a: 'middle' }
+  return { x: 20, y: 'in', a: 'start' }
+}
 
 function PatternSnake({ k, onChange }) {
   const svg = useRef(null)
   const gid = 'sg' + useId().replace(/:/g, '')
-  const project = (e) => { // nearest point on the snake
+  const lastRaw = useRef(null), seam = useRef(false)
+  const project = (e) => { // nearest point on the loop, unwrapped so a drag across the seam stays continuous
     const r = svg.current.getBoundingClientRect()
     const x = (e.clientX - r.left) * 300 / r.width, y = (e.clientY - r.top) * 110 / r.height
     let best = 0, bd = Infinity
     for (const [t, px, py] of SNAKE_SAMPLES) { const dd = (px - x) ** 2 + (py - y) ** 2; if (dd < bd) { bd = dd; best = t } }
+    if (e.type === 'pointerdown' || lastRaw.current == null) lastRaw.current = best % 1
+    else { const c = [best - 1, best, best + 1].reduce((a, b) => (Math.abs(b - lastRaw.current) < Math.abs(a - lastRaw.current) ? b : a)); lastRaw.current = c; best = c }
     return best
   }
-  const s = useSlider({ t: k / 4, onChange: (x) => onChange(Math.round(x * 4)), steps: 5, project, spring: ENERGY_SPRING })
-  const p = clamp(s.p), [tx, ty] = snakePt(p)
+  // five stops round the loop at 0, ⅕ … ⅘; position 1 is Four again, reached from the far side of the seam
+  const s = useSlider({
+    t: k === 0 && seam.current ? 1 : k / 5,
+    onChange: (x) => { const i = Math.round(clamp(x) * 5); seam.current = i === 5; onChange(i % 5) },
+    steps: 6, project, spring: ENERGY_SPRING,
+  })
+  const p = clamp(s.p), [tx, ty] = p >= 1 ? [SN.x0, SN.yTop] : snakePt(p)
   return (
     <div className={`snake ${s.state}`} {...s.bind} aria-label="Pattern" aria-valuemin={0} aria-valuemax={4} aria-valuenow={k} aria-valuetext={PATTERNS[k].name}>
       <div className="sl-head"><span className="sl-label">Pattern</span><span className="sl-value">{PATTERNS[k].name}</span></div>
@@ -250,14 +267,14 @@ function PatternSnake({ k, onChange }) {
         <path d={snakeUpTo(Math.max(p, 0.002))} className="groove-fill" stroke={`url(#${gid})`} />
         <path d={snakeUpTo(Math.max(p, 0.002))} className="groove-flow" />
         {PATTERNS.map((pt, i) => {
-          const [sx, sy] = snakePt(i / 4), peek = s.hx != null && Math.round(clamp(s.hx) * 4) === i
+          const [sx, sy] = snakePt(i / 5), L = stopLabel(i / 5), peek = s.hx != null && Math.round(clamp(s.hx) * 5) % 5 === i
           return (
-            <g key={pt.name} transform={`translate(${sx} ${sy})`} className={`snake-stop ${i === k ? 'on' : ''} ${peek ? 'peek' : ''}`}>
-              <circle r="5" /><text y={i === 2 ? 4 : sy < 50 ? -20 : 28} x={i === 2 ? -22 : 0} textAnchor={i === 2 ? 'end' : 'middle'}>{pt.name}</text>
+            <g key={pt.name} transform={`translate(${sx.toFixed(1)} ${sy.toFixed(1)})`} className={`snake-stop ${i === k ? 'on' : ''} ${peek ? 'peek' : ''}`}>
+              <circle r="5" /><text x={L.x} y={L.y === 'in' ? (sy < SN.yTop + SN.r ? 22 : -14) : L.y} textAnchor={L.a}>{pt.name}</text>
             </g>
           )
         })}
-        <g className="snake-knob" transform={`translate(${tx} ${ty})`}><circle r="13" /><circle r="4" className="dot" /></g>
+        <g className="snake-knob" transform={`translate(${tx.toFixed(1)} ${ty.toFixed(1)})`}><circle r="13" /><circle r="4" className="dot" /></g>
       </svg>
     </div>
   )
@@ -600,7 +617,7 @@ const SETS = [
       ['Layout', [['Screen', 'padding 28 / 32, radius 34, #0D0A14 with a magenta glow behind the drum'], ['Columns', 'drum 1fr · machine 360'], ['Drum', 'head r 92 · shell r 104 · 10 lugs 10 × 16'], ['Light', 'no outlines — colour is light: acid lime #D4FF3A, hot pink #FF2E88, electric cyan #2EE6FF']]],
       ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 800 · 22 / 26'], ['BPM', 'Unbounded 800 · 44 / 44 in the drum'], ['Stops / rows', 'Unbounded 600 · 11 / 14']]],
       ['Continuous · Tempo (around the rim)', [['Range', '60 – 180 BPM, step 1'], ['Path', '270° arc, r 136, from 135° clockwise'], ['Groove', 'stroke 16 #2A2236; fill 16 → 22 on each kick, gradient #D4FF3A → #FF2E88, glow 4 → 14'], ['Flow', 'streaks 3 / 13 along the fill, moving 16 units per beat'], ['Knob', 'r 15, #FFFFFF, pink glow, bounces ×1.18 on the kick']]],
-      ['Stepped · Pattern (snake)', [['Stops', '5 — Four · Backbeat · Shuffle · Break · Blast'], ['Path', 'two runs of 232 joined by a U-turn r 26'], ['Stops', 'dots r 5, outline 3; names 14 from the path'], ['Knob', 'r 13, #FFFFFF, lime glow; fill gradient #2EE6FF → #D4FF3A; stops flash on snares']]],
+      ['Stepped · Pattern (loop)', [['Stops', '5 — Four · Backbeat · Shuffle · Break · Blast'], ['Path', 'a closed loop: two runs of 220 joined by U-turns r 26 at both ends; stops every ⅕ of the way round'], ['Stops', 'dots r 5, outline 3; names 14 from the path'], ['Knob', 'r 13, #FFFFFF, lime glow; fill gradient #2EE6FF → #D4FF3A; stops flash on snares']]],
       ['Sequencer', [['Grid', '3 rows × 16 steps, cell 14 × 20, radius 4, gap 3'], ['Rows', 'Kick #FF2E88 · Snare #2EE6FF · Hat #D4FF3A, lit cells glow'], ['Playhead', 'sixteenth notes at the tempo, outlined column']]],
       ['States', [['Idle', 'knobs rest in their grooves; the drum keeps playing'], ['Hover', 'groove thickens; a ghost knob previews the BPM / the stop under the pointer swells'], ['Pressed', 'knob jumps to the finger and squashes; groove glows'], ['Drag', 'knob rides the curve 1:1 (projected onto the path); the beat and pattern change live'], ['Release', 'springs on with overshoot; stepped flicks carry to the next stop']]],
       ['Motion', [['Spring', 'damping 0.5, response 0.3'], ['Hits', 'kick: head ×1.06 + ring · snare: 4 px shudder · hat: rim flash'], ['Sound', 'optional, synthesized; off by default']]],
@@ -632,7 +649,7 @@ const SETS = [
 
 /* ================= Figma draft thumbnail =================
    the enlarged draft is drawn above the page, so no section clips it */
-const DRAFT_VERSION = 'wire-5'
+const DRAFT_VERSION = 'wire-6'
 function DraftThumb({ set }) {
   const ref = useRef(null)
   const [box, setBox] = useState(null)
