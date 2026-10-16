@@ -52,24 +52,26 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .nrg-screen .sl-value small { font-size: 11px; color: rgba(255,255,255,.55); }
 .springy { transition-timing-function: cubic-bezier(.34,1.8,.64,1); }
 /* continuous: a fat track that thickens, a thumb that squashes and stretches */
-.nrg-track { position: relative; height: 12px; border-radius: 8px; background: #2a2333; transition: height .35s cubic-bezier(.34,1.8,.64,1); }
-.nrg-slider.is-hover .nrg-track, .nrg-slider.is-press .nrg-track, .nrg-slider.is-drag .nrg-track { height: 16px; }
-.nrg-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: inherit; background: linear-gradient(90deg, #c6ff3d, #ff2d78); }
-.nrg-thumb { position: absolute; top: 50%; width: 30px; height: 30px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.4);
+/* the cord: drawn as two straight runs pinned at the ends, meeting at the thumb */
+.nrg-track { position: relative; height: 40px; margin: -14px 0 -6px; }
+.nrg-cord { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.nrg-cord path { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.cord-rest { stroke: #2a2333; stroke-width: 12; } .cord-fill { stroke: url(#cord-fill); stroke-width: 12; }
+.nrg-slider.is-hover .cord-rest, .nrg-slider.is-hover .cord-fill { stroke-width: 14; }
+.nrg-thumb { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.4);
   --sx: 1; --sy: 1; transform: translate(-50%, -50%) scale(var(--sx), var(--sy)); transition: transform .35s cubic-bezier(.34,1.8,.64,1), box-shadow .2s; }
 .nrg-slider.is-hover .nrg-thumb { --sx: 1.12; --sy: 1.12; }
 .nrg-slider.is-press .nrg-thumb { --sx: 1.25; --sy: .8; box-shadow: 0 0 0 6px rgba(198,255,61,.35), 0 3px 8px rgba(0,0,0,.4); }
 .nrg-slider.is-drag .nrg-thumb { --sx: calc(1.25 * var(--st)); --sy: calc(.8 / var(--st)); /* stays squashed while held, stretching further with speed */ box-shadow: 0 0 0 6px rgba(198,255,61,.35), 0 3px 8px rgba(0,0,0,.4); transition: transform .12s ease-out; }
-.nrg-bubble { position: absolute; bottom: calc(100% + 20px); padding: 0 10px; height: 30px; display: grid; place-items: center; border-radius: 10px; background: #c6ff3d; color: #17121f;
+.nrg-bubble { position: absolute; padding: 0 10px; height: 30px; display: grid; place-items: center; border-radius: 10px; background: #c6ff3d; color: #17121f;
   font: 800 14px/18px Unbounded, sans-serif; white-space: nowrap; pointer-events: none; transform: translateX(-50%) scale(0); transform-origin: 50% 120%; transition: transform .35s cubic-bezier(.34,1.8,.64,1); }
 .nrg-bubble::after { content: ''; position: absolute; left: 50%; top: 100%; margin-left: -5px; border: 5px solid transparent; border-top-color: #c6ff3d; }
 .nrg-slider.is-press .nrg-bubble, .nrg-slider.is-drag .nrg-bubble { transform: translateX(-50%) scale(1); }
 /* stepped: chunky blocks that pop as they light */
 .nrg-blocks { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; height: 16px; }
-.blk { border-radius: 6px; background: #2a2333; transition: translate .3s cubic-bezier(.34,1.8,.64,1); }
+.blk { border-radius: 6px; background: #2a2333; transition: translate .35s cubic-bezier(.34,1.8,.64,1), scale .35s cubic-bezier(.34,1.8,.64,1); }
 .blk.lit { background: color-mix(in oklab, #ff2d78 calc(var(--i) * 25%), #c6ff3d); animation: blk-pop .45s cubic-bezier(.34,1.8,.64,1); }
 @keyframes blk-pop { 40% { transform: scale(1.12, 1.5); } }
-.nrg-slider.is-hover .blk { translate: 0 -1px; }
 .nrg-knob { position: absolute; top: 50%; width: 12px; height: 32px; border-radius: 6px; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.45);
   --sx: 1; --sy: 1; transform: translate(-50%, -50%) scale(var(--sx), var(--sy)); transition: transform .35s cubic-bezier(.34,1.8,.64,1), box-shadow .2s; }
 .nrg-slider.is-hover .nrg-knob { --sx: 1.15; --sy: 1.08; }
@@ -107,8 +109,8 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .fut-slider.is-hover .fut-thumb i { --ds: 1.15; }
 .fut-slider.is-press .fut-thumb i, .fut-slider.is-drag .fut-thumb i { --ds: .85; background: #3ef0ff; }
 .fut-ruler { position: relative; height: 26px; margin-top: 2px; }
-.fut-ruler span { position: absolute; top: 0; width: 1px; height: 5px; background: rgba(62,240,255, calc(.25 + var(--near) * .75)); transition: background-color .15s; }
-.fut-ruler span.major { height: 10px; }
+.fut-ruler span { position: absolute; top: 0; width: 1px; height: calc(5px + var(--grow, 0px)); transform-origin: 50% 0; background: rgba(62,240,255, calc(.25 + var(--near) * .75)); transition: background-color .15s, height .2s cubic-bezier(.3,1.3,.6,1), rotate .2s cubic-bezier(.3,1.3,.6,1); }
+.fut-ruler span.major { height: calc(10px + var(--grow, 0px)); }
 .fut-ruler span.on { background: #3ef0ff; box-shadow: 0 0 4px rgba(62,240,255,.6); }
 .fut-ruler em { position: absolute; top: 12px; left: 0; transform: translateX(-50%); font: 400 9px/10px "JetBrains Mono", monospace; font-style: normal; color: rgba(62,240,255,.55); }
 .fut-readout { position: absolute; bottom: calc(100% + 8px); padding: 4px 8px; border: 1px solid #3ef0ff; background: rgba(5,8,15,.9); color: #3ef0ff;
@@ -213,25 +215,18 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 /* the set (or wall tile) is the size container, so a screen can restack itself when narrow */
 .set, .wall-tile { container: screen / inline-size; }
 
-/* ================= concept line, state line, hover previews ================= */
-.set-title { display: flex; flex-direction: column; gap: 10px; max-width: 560px; }
-.set-line { margin: 0; font: 400 15px/22px Inter, sans-serif; opacity: .7; }
-.s-moon .set-line { font: italic 400 18px/24px "Cormorant Garamond", serif; }
-.s-reactor .set-line { font: 400 13px/20px "JetBrains Mono", monospace; }
-.head-tools { flex-direction: column; align-items: flex-end; gap: 12px; }
-.tool-row { display: flex; gap: 8px; }
-.spec-toggle[aria-pressed="true"] { opacity: 1; box-shadow: inset 0 0 0 2px currentColor; font-weight: 700; }
-.sl-state { display: flex; gap: 6px; margin-top: 12px; font: 500 10px/12px Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; opacity: .45; font-variant-numeric: tabular-nums; }
-.sl-state b { font-weight: 700; opacity: 1; }
-.fut-screen .sl-state { font-family: "JetBrains Mono", monospace; color: #3ef0ff; }
-.mys-screen .sl-state { opacity: .25; } /* barely there in the dark */
-/* the value, set larger — part of the slider's character */
-.nrg-screen .sl-value { font-size: 28px; line-height: 32px; }
-.fut-screen .sl-value { font-size: 26px; line-height: 30px; }
+/* ================= hover previews ================= */
 /* Energetic hover: a ghost thumb with the value it would land on */
-.nrg-ghost { position: absolute; top: 50%; width: 22px; height: 22px; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: inset 0 0 0 2px rgba(255,255,255,.45); }
+.nrg-ghost { position: absolute; top: 20px; width: 22px; height: 22px; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: inset 0 0 0 2px rgba(255,255,255,.45); }
 .nrg-ghost em { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); font: 600 12px/14px Unbounded, sans-serif; font-style: normal; color: rgba(255,255,255,.6); }
 .nrg-ticks span.peek { color: rgba(198,255,61,.55); }
 /* Futuristic hover: a crosshair that reads ahead */
 .fut-cross { position: absolute; top: -6px; bottom: -32px; width: 1px; margin-left: -.5px; pointer-events: none; background: repeating-linear-gradient(rgba(62,240,255,.6) 0 3px, transparent 3px 6px); }
 .fut-cross em { position: absolute; top: -16px; left: 4px; font: 400 10px/12px "JetBrains Mono", monospace; font-style: normal; color: rgba(62,240,255,.75); white-space: nowrap; }
+
+.fut-ghost { position: absolute; top: 50%; width: 14px; height: 14px; border: 1px solid #3ef0ff; transform: translate(-50%, -50%) rotate(45deg); pointer-events: none; }
+/* Mysterious: a smear of light behind the moving thumb */
+.mys-smear { position: absolute; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 2px; pointer-events: none; filter: blur(1px); transition: width .6s ease, left .6s ease; }
+.mys-smear.to-right { background: linear-gradient(90deg, transparent, rgba(255,255,255,.85)); }
+.mys-smear.to-left { background: linear-gradient(270deg, transparent, rgba(255,255,255,.85)); }
+.mys-stop { transition: filter .3s ease; }
