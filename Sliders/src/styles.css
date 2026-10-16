@@ -152,6 +152,10 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .mys-line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(232,230,220,.55);
   -webkit-mask-image: radial-gradient(var(--reach) 12px at var(--tx) 50%, #000 35%, transparent), radial-gradient(60px 12px at var(--hx) 50%, #000 30%, transparent);
   mask-image: radial-gradient(var(--reach) 12px at var(--tx) 50%, #000 35%, transparent), radial-gradient(60px 12px at var(--hx) 50%, #000 30%, transparent); }
+.mys-star { position: absolute; top: 50%; width: 2px; height: 2px; margin: -1px 0 0 -1px; border-radius: 50%; background: #fff;
+  opacity: calc((.22 + var(--lit) * .78) * (1 - var(--dim) * .75)); scale: calc(1 + var(--lit) * .6);
+  box-shadow: 0 0 calc(2px + var(--lit) * 5px) rgba(255,255,255, calc(.4 + var(--lit) * .5)); animation: path-twinkle 6s ease-in-out infinite; }
+@keyframes path-twinkle { 50% { filter: brightness(.45); } } /* twinkles without fighting the light's opacity */
 /* the fill: a trail of light fading back into the dark, like a comet's tail */
 .mys-fill { position: absolute; left: 0; top: 50%; height: 1.5px; margin-top: -.25px; background: linear-gradient(90deg, transparent, rgba(232,230,220,.8)); }
 .mys-stop { position: absolute; top: 50%; width: 12px; height: 12px; transform: translate(-50%, 50%); margin-top: 6px; }
@@ -183,7 +187,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 @keyframes drift { to { transform: translateX(18%); } }
 .night-read { position: absolute; left: 28px; bottom: 22px; font: italic 400 16px/20px "Cormorant Garamond", serif; color: rgba(232,230,220,.75); display: flex; gap: 6px; align-items: baseline; }
 @container screen (max-width: 680px) { .mys-screen { grid-template-columns: 1fr; } .mys-controls { grid-column: 1; margin-top: 300px; padding: 28px; background: linear-gradient(transparent, #04050c 30%); } .moon-wrap, .moon.reflect { left: 50%; } }
-@media (prefers-reduced-motion: reduce) { .stars i, .mist i, .moon.reflect { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .stars i, .mist i, .moon.reflect, .mys-star { animation: none; } }
 
 /* ================= accessibility preferences ================= */
 [role="slider"]:focus-visible { outline: 2px solid currentColor; outline-offset: 8px; border-radius: 6px; }

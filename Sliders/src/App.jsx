@@ -352,6 +352,12 @@ function lightAt(x, s, reach) {
   const fromPointer = s.hx == null ? 0 : clamp(1 - (Math.abs(x - s.hx) * w) / 60)
   return Math.max(fromThumb, fromPointer)
 }
+// star points along a path: they twinkle like the sky's stars and brighten when a light passes over them
+function PathStars({ at, s, reach, dim = 0 }) {
+  return at.map((x, i) => (
+    <span key={x} className="mys-star" style={{ left: `${x * 100}%`, '--lit': lightAt(x, s, reach), '--dim': dim, animationDelay: `${-(i * 1.7) % 6}s` }} />
+  ))
+}
 const lights = (s, reach) => ({ '--tx': `${clamp(s.p) * 100}%`, '--hx': s.hx == null ? '-200%' : `${s.hx * 100}%`, '--reach': `${reach}px` })
 
 // the Phase thumb is the moon itself, drawn in the current phase
@@ -377,6 +383,7 @@ function MoonPhase({ phase, onChange, onMorph }) {
       <div className="mys-track" ref={s.track} style={lights(s, reach)}>
         <span className="mys-line" />
         <span className="mys-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
+        <PathStars at={[0.125, 0.375, 0.625, 0.875]} s={s} reach={reach} />{/* a waypoint between each pair of phases */}
         {MOON_PHASES.map((n, i) => (
           <span key={n} className="mys-stop" style={{ left: `${(i / 4) * 100}%`, opacity: 0.06 + lightAt(i / 4, s, reach) * 0.94 }}><Glyph k={i} /></span>
         ))}
@@ -397,6 +404,7 @@ function MoonVeil({ t, onChange, onMorph }) {
       <div className="mys-track" ref={s.track} style={lights(s, reach)}>
         <span className="mys-line" />
         <span className="mys-fill" style={{ width: `${v * 100}%` }} />
+        <PathStars at={[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]} s={s} reach={reach} dim={v} />{/* the mist hides them as it thickens */}
         <span className="mys-pearl" style={{ left: `${s.p * 100}%`, filter: `blur(${v * 1.6}px)`, opacity: 1 - v * 0.35 }} />
       </div>
     </div>
@@ -491,8 +499,8 @@ const SETS = [
     spec: [
       ['Layout', [['Screen', 'radius 34; night scene 1fr · controls 320, padding 28 / 36'], ['Moon', 'r 64 (128 Ø); halo r 82 → 112 with Veil'], ['Water', 'lower 34 % of the scene; reflection blurred 3, 35 %']]],
       ['Type', [['Caption', 'Inter 500 · 10 / 12 · caps · tracking 0.3em'], ['Phase name', 'Cormorant Garamond italic 400 · 26 / 30'], ['Veil value', 'Cormorant Garamond 400 · 26 / 30, % at 15'], ['Labels', 'no text appears on press or drag — the header and the scene carry the value']]],
-      ['Stepped · Phase', [['Stops', '5 — New · Crescent · Half · Gibbous · Full'], ['Track', 'h 1, #E8E6DC at 55 %, hidden — visible only inside the pools of light'], ['Light', 'thumb reach 40 → 150 px as the moon fills'], ['Stops', 'moon glyphs 12 × 12, 6 % in the dark → 100 % when lit'], ['Thumb', 'a moon 18 × 18 drawn in the current phase']]],
-      ['Continuous · Veil', [['Range', '0 – 100 %, step 1'], ['Fill', 'a trail of light, transparent → #E8E6DC 80 %, ending at the thumb'], ['Light', 'reach 120 → 35 px as the veil thickens'], ['Thumb', 'pearl 14 × 14, blurs up to 1.6 px with the veil']]],
+      ['Stepped · Phase', [['Stops', '5 — New · Crescent · Half · Gibbous · Full'], ['Track', 'h 1, #E8E6DC at 55 %, hidden — visible only inside the pools of light'], ['Light', 'thumb reach 40 → 150 px as the moon fills'], ['Stops', 'moon glyphs 12 × 12, 6 % in the dark → 100 % when lit'], ['Waypoints', 'star points 2 × 2 midway between stops; twinkle 6 s; 22 % → 100 % and ×1.6 when lit'], ['Thumb', 'a moon 18 × 18 drawn in the current phase']]],
+      ['Continuous · Veil', [['Range', '0 – 100 %, step 1'], ['Fill', 'a trail of light, transparent → #E8E6DC 80 %, ending at the thumb'], ['Light', 'reach 120 → 35 px as the veil thickens'], ['Stars', 'a star point every 10 %, fading under the veil'], ['Thumb', 'pearl 14 × 14, blurs up to 1.6 px with the veil']]],
       ['States', [['Hover', 'a lantern (60 px) follows the pointer and reveals the hidden track and stops beneath it'], ['Pressed', 'the thumb blooms a 10 px halo'], ['Drag', 'the pool of light travels with the thumb; names hand over through a 5 px blur; the night follows live']]],
       ['Motion', [['Spring', 'damping 1, response 0.55 (slow, no bounce)'], ['Ambient', 'stars twinkle 6 s · mist drifts 40 s · reflection shimmers 5 s']]],
     ],
