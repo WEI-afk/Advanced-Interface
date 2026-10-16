@@ -203,9 +203,6 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 @keyframes path-twinkle { 50% { filter: brightness(.45); } } /* twinkles without fighting the light's opacity */
 /* the fill: a trail of light fading back into the dark, like a comet's tail */
 .mys-fill { position: absolute; left: 0; top: 50%; height: 1.5px; margin-top: -.25px; background: linear-gradient(90deg, transparent, rgba(232,230,220,.8)); }
-.mys-stop { position: absolute; top: 50%; width: 12px; height: 12px; transform: translate(-50%, 50%); margin-top: 6px; }
-.mys-stop svg { display: block; width: 100%; height: 100%; }
-.g-dark { fill: none; stroke: rgba(232,230,220,.55); stroke-width: .8; } .g-lit { fill: #e8e6dc; }
 .mys-pearl { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%);
   background: radial-gradient(circle at 38% 34%, #fff, #c9c5b8); box-shadow: 0 0 12px rgba(232,230,220,.45); transition: box-shadow .6s ease, scale .3s ease; }
 .mys-pearl.is-moon { width: 20px; height: 20px; background: none; }
@@ -260,4 +257,3 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 .mys-smear { position: absolute; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 2px; pointer-events: none; filter: blur(1px); transition: width .6s ease, left .6s ease; }
 .mys-smear.to-right { background: linear-gradient(90deg, transparent, rgba(255,255,255,.85)); }
 .mys-smear.to-left { background: linear-gradient(270deg, transparent, rgba(255,255,255,.85)); }
-.mys-stop { transition: filter .3s ease; }

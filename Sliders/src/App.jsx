@@ -457,13 +457,6 @@ function Handover({ names, f }) {
 }
 
 // a tiny drawing of a moon phase, for the stops
-const Glyph = ({ k }) => (
-  <svg viewBox="-6 -6 12 12" aria-hidden="true">
-    <circle r="5" className="g-dark" />
-    {k > 0 && <path className="g-lit" d={k === 4 ? 'M0-5A5 5 0 1 1 0 5A5 5 0 1 1 0-5' : `M0-5A5 5 0 0 1 0 5A${(5 * Math.abs(2 - k) / 2).toFixed(2)} 5 0 0 ${k < 2 ? 1 : 0} 0-5`} />}
-  </svg>
-)
-
 // how lit a point on the track is: by the thumb's light and by the lantern under the pointer
 function lightAt(x, s, reach) {
   const w = s.track.current?.offsetWidth || 280
@@ -509,9 +502,6 @@ function MoonPhase({ phase, onChange, onMorph }) {
         <span className="mys-line" />
         <span className="mys-fill" style={{ width: `${clamp(s.p) * 100}%` }} />
         <PathStars at={[0.125, 0.375, 0.625, 0.875]} s={s} reach={reach} />{/* a waypoint between each pair of phases */}
-        {MOON_PHASES.map((n, i) => (
-          <span key={n} className="mys-stop" style={{ left: `${(i / 4) * 100}%`, opacity: 0.06 + lightAt(i / 4, s, reach) * 0.94, filter: `blur(${(1 - lightAt(i / 4, s, reach)) * 2.5}px)` }}><Glyph k={i} /></span>
-        ))}
         <Smear s={s} />
         <span className="mys-pearl is-moon" style={{ left: `${s.p * 100}%` }}><MiniMoon k={f / 4} /></span>
       </div>
@@ -627,7 +617,7 @@ const SETS = [
     spec: [
       ['Layout', [['Screen', 'radius 34; night scene 1fr · controls 320, padding 28 / 36'], ['Moon', 'r 64 (128 Ø); halo r 82 → 112 with Veil'], ['Water', 'lower 34 % of the scene; reflection blurred 3, 35 %']]],
       ['Type', [['Caption', 'Inter 500 · 10 / 12 · caps · tracking 0.3em'], ['Phase name', 'Cormorant Garamond italic 400 · 26 / 30'], ['Veil value', 'Cormorant Garamond 400 · 26 / 30, % at 15'], ['Labels', 'no text appears on press or drag — the header and the scene carry the value']]],
-      ['Stepped · Phase', [['Stops', '5 — New · Crescent · Half · Gibbous · Full'], ['Track', 'h 1, #E8E6DC at 55 %, hidden — visible only inside the pools of light'], ['Light', 'thumb reach 40 → 150 px as the moon fills'], ['Stops', 'moon glyphs 12 × 12, 6 % in the dark → 100 % when lit'], ['Waypoints', 'star points 2 × 2 midway between stops, 12 below the line (in the stop row); twinkle 6 s; 22 % → 100 % and ×1.6 when lit'], ['Thumb', 'a moon 18 × 18 drawn in the current phase']]],
+      ['Stepped · Phase', [['Stops', '5 — New · Crescent · Half · Gibbous · Full'], ['Track', 'h 1, #E8E6DC at 55 %, hidden — visible only inside the pools of light'], ['Light', 'thumb reach 40 → 150 px as the moon fills'], ['Waypoints', 'star points 2 × 2 midway between stops, 12 below the line; twinkle 6 s; 22 % → 100 % and ×1.6 when lit'], ['Thumb', 'a moon 18 × 18 drawn in the current phase']]],
       ['Continuous · Veil', [['Range', '0 – 100 %, step 1'], ['Fill', 'a trail of light, transparent → #E8E6DC 80 %, ending at the thumb'], ['Light', 'reach 120 → 35 px as the veil thickens'], ['Stars', 'a star point every 10 %, 12 below the line, fading under the veil'], ['Thumb', 'pearl 14 × 14, blurs up to 1.6 px with the veil']]],
       ['States', [['Idle', 'only the thumb’s pool of light shows the path'], ['Hover', 'a lantern (60 px) follows the pointer and reveals the hidden track and stops beneath it'], ['Pressed', 'the thumb blooms a 10 px halo'], ['Drag', 'the light leaves a long-exposure smear (≤ 35 % of the track, longer with speed) that fades on release; stops pull into focus as the light reaches them (blur 2.5 → 0)'], ['Release', 'drifts into place slowly (damping 1, 0.55 s), no bounce']]],
       ['Motion', [['Spring', 'damping 1, response 0.55 (slow, no bounce)'], ['Ambient', 'stars twinkle 6 s · mist drifts 40 s · reflection shimmers 5 s']]],
