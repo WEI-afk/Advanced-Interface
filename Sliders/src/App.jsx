@@ -223,28 +223,49 @@ function DrumTempo({ t, onChange, svgRef, gid, children }) {
   )
 }
 
-// --- Pattern: a row of drum pads. The selection glides across them; landing on one hits it.
-function PatternPads({ k, onChange, step }) {
-  const s = useSlider({ t: k / 4, onChange: (x) => onChange(Math.round(x * 4)), steps: 5, inset: 0.1, spring: ENERGY_SPRING })
-  const stretch = 1 + Math.min(Math.abs(s.vel) * 0.12, 0.6) // the selection stretches with speed
+// --- Pattern: a groove that snakes across the panel (two straights joined by a U-turn)
+const SN = { x0: 24, x1: 256, yTop: 30, r: 26 }
+const SN_LEN = 2 * (SN.x1 - SN.x0) + Math.PI * SN.r
+function snakePt(t) {
+  const d = clamp(t) * SN_LEN, run = SN.x1 - SN.x0
+  if (d <= run) return [SN.x0 + d, SN.yTop]
+  if (d <= run + Math.PI * SN.r) { const a = (d - run) / SN.r; return [SN.x1 + SN.r * Math.sin(a), SN.yTop + SN.r - SN.r * Math.cos(a)] }
+  return [SN.x1 - (d - run - Math.PI * SN.r), SN.yTop + 2 * SN.r]
+}
+const SNAKE_D = `M${SN.x0} ${SN.yTop} H${SN.x1} A${SN.r} ${SN.r} 0 0 1 ${SN.x1} ${SN.yTop + 2 * SN.r} H${SN.x0}`
+const SNAKE_SAMPLES = Array.from({ length: 241 }, (_, i) => [i / 240, ...snakePt(i / 240)])
+const snakeUpTo = (p) => 'M' + [...SNAKE_SAMPLES.filter(([t]) => t < p).map(([, x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`), snakePt(p).map((v) => v.toFixed(1)).join(' ')].join('L')
+
+function PatternSnake({ k, onChange }) {
+  const svg = useRef(null)
+  const gid = 'sg' + useId().replace(/:/g, '')
+  const project = (e) => { // nearest point on the snake
+    const r = svg.current.getBoundingClientRect()
+    const x = (e.clientX - r.left) * 300 / r.width, y = (e.clientY - r.top) * 110 / r.height
+    let best = 0, bd = Infinity
+    for (const [t, px, py] of SNAKE_SAMPLES) { const dd = (px - x) ** 2 + (py - y) ** 2; if (dd < bd) { bd = dd; best = t } }
+    return best
+  }
+  const s = useSlider({ t: k / 4, onChange: (x) => onChange(Math.round(x * 4)), steps: 5, project, spring: ENERGY_SPRING })
+  const p = clamp(s.p), [tx, ty] = snakePt(p)
   return (
-    <div className={`pads ${s.state}`} {...s.bind} aria-label="Pattern" aria-valuemin={0} aria-valuemax={4} aria-valuenow={k} aria-valuetext={PATTERNS[k].name}>
+    <div className={`snake ${s.state}`} {...s.bind} aria-label="Pattern" aria-valuemin={0} aria-valuemax={4} aria-valuenow={k} aria-valuetext={PATTERNS[k].name}>
       <div className="sl-head"><span className="sl-label">Pattern</span><span className="sl-value">{PATTERNS[k].name}</span></div>
-      <div className="pad-row" ref={s.track}>
-        <span className="pad-sel" style={{ left: `${s.x(s.p)}%`, '--st': s.dragging ? stretch : 1 }} />
+      <svg ref={svg} viewBox="0 0 300 110" className="snake-svg" aria-hidden="true">
+        <defs><linearGradient id={gid} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="300" y2="0"><stop offset="0" stopColor="#2ee6ff" /><stop offset="1" stopColor="#d4ff3a" /></linearGradient></defs>
+        <path d={SNAKE_D} className="groove" />
+        <path d={snakeUpTo(Math.max(p, 0.002))} className="groove-fill" stroke={`url(#${gid})`} />
+        <path d={snakeUpTo(Math.max(p, 0.002))} className="groove-flow" />
         {PATTERNS.map((pt, i) => {
-          const near = s.hx == null || s.pressed ? 0 : clamp(1 - Math.abs(s.hx * 4 - i) / 1.1) // the pad under the pointer lifts
+          const [sx, sy] = snakePt(i / 4), peek = s.hx != null && Math.round(clamp(s.hx) * 4) === i
           return (
-            <span key={`${pt.name}-${i === k}`} className={`pad ${i === k ? 'on' : ''}`} style={{ translate: `0 ${-4 * near}px` }}>
-              {/* a 4×4 preview of the pattern: kick and snare hits, lit as the playhead passes on the chosen pad */}
-              <span className="pad-dots">{Array.from({ length: 16 }, (_, j) => (
-                <i key={j} className={`${pt.k[j] === 'x' ? 'k' : ''} ${pt.s[j] === 'x' ? 's' : ''} ${i === k && j === step ? 'now' : ''}`} />
-              ))}</span>
-            </span>
+            <g key={pt.name} transform={`translate(${sx} ${sy})`} className={`snake-stop ${i === k ? 'on' : ''} ${peek ? 'peek' : ''}`}>
+              <circle r="5" /><text y={i === 2 ? 4 : sy < 50 ? -20 : 28} x={i === 2 ? -22 : 0} textAnchor={i === 2 ? 'end' : 'middle'}>{pt.name}</text>
+            </g>
           )
         })}
-      </div>
-      <div className="pad-names" aria-hidden="true">{PATTERNS.map((pt, i) => <span key={pt.name} className={i === k ? 'on' : ''}>{pt.name}</span>)}</div>
+        <g className="snake-knob" transform={`translate(${tx} ${ty})`}><circle r="13" /><circle r="4" className="dot" /></g>
+      </svg>
     </div>
   )
 }
@@ -311,7 +332,7 @@ function EnergySet({ auto, offset = 0 }) {
             </div>
           ))}
         </div>
-        <PatternPads k={k} onChange={setK} step={step} />
+        <PatternSnake k={k} onChange={setK} />
       </div>
     </div>
   )
@@ -586,9 +607,9 @@ const SETS = [
       ['Layout', [['Screen', 'padding 28 / 32, radius 34, #0D0A14 with a magenta glow behind the drum'], ['Columns', 'drum 1fr · machine 360'], ['Drum', 'head r 92 · shell r 104 · 10 lugs 10 × 16'], ['Light', 'no outlines — colour is light: acid lime #D4FF3A, hot pink #FF2E88, electric cyan #2EE6FF']]],
       ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 800 · 22 / 26'], ['BPM', 'Unbounded 800 · 44 / 44 in the drum'], ['Stops / rows', 'Unbounded 600 · 11 / 14']]],
       ['Continuous · Tempo (around the rim)', [['Range', '60 – 180 BPM, step 1'], ['Path', '270° arc, r 136, from 135° clockwise'], ['Groove', 'stroke 16 #2A2236; fill 16 → 22 on each kick, gradient #D4FF3A → #FF2E88, glow 4 → 14'], ['Flow', 'streaks 3 / 13 along the fill, moving 16 units per beat'], ['Knob', 'r 15, #FFFFFF, pink glow, bounces ×1.18 on the kick; pressed: ×0.86, core r 5 → 7 in #FF2E88, halo r 23; dragged: stretches along the tangent (≤ 1.4×)']]],
-      ['Stepped · Pattern (drum pads)', [['Stops', '5 pads — Four · Backbeat · Shuffle · Break · Blast'], ['Pads', 'square, gap 8, radius 12, #221A2E; chosen pad lime → pink, pulses ×1.05 on the kick'], ['Preview', '4 × 4 dots per pad, 4 px: kick #FF2E88, snare #2EE6FF; lit as the playhead passes'], ['Selection', 'glowing ring, pad width + 8, radius 16, stretches with speed (≤ 1.6×)']]],
+      ['Stepped · Pattern (snake)', [['Stops', '5 — Four · Backbeat · Shuffle · Break · Blast'], ['Path', 'two runs of 232 joined by a U-turn r 26'], ['Groove', 'stroke 16 #2A2236; fill gradient #2EE6FF → #D4FF3A, pulses on the kick, energy flows along it'], ['Knob', 'r 13, #FFFFFF, lime glow; stops flash on snares']]],
       ['Sequencer', [['Grid', '3 rows × 16 steps, cell 14 × 20, radius 4, gap 3'], ['Rows', 'Kick #FF2E88 · Snare #2EE6FF · Hat #D4FF3A, lit cells glow'], ['Playhead', 'sixteenth notes at the tempo, outlined column']]],
-      ['States', [['Idle', 'knobs rest in their grooves; the drum keeps playing'], ['Hover', 'Tempo groove thickens and a ghost knob previews the BPM; the pad under the pointer lifts 4 px'], ['Pressed', 'knob / selection jumps to the finger; the knob squashes, the pads squish (scale-y 0.9)'], ['Drag', 'the Tempo knob rides the rim 1:1; the pad selection glides and stretches; landing on a pad hits it (pop + ripple); the beat changes live'], ['Release', 'springs on with overshoot; stepped flicks carry to the next stop']]],
+      ['States', [['Idle', 'knobs rest in their grooves; the drum keeps playing'], ['Hover', 'grooves thicken; a ghost knob previews the BPM / the stop under the pointer swells'], ['Pressed', 'the knob jumps to the finger and grips; the groove fill thickens'], ['Drag', 'knobs ride their curves 1:1 (projected onto the path); the beat and pattern change live'], ['Release', 'springs on with overshoot; stepped flicks carry to the next stop']]],
       ['Motion', [['Spring', 'damping 0.5, response 0.3'], ['Hits', 'kick: head ×1.06 + ring · snare: 4 px shudder · hat: rim flash'], ['Sound', 'optional, synthesized; off by default']]],
     ],
   },
@@ -618,7 +639,7 @@ const SETS = [
 
 /* ================= Figma draft thumbnail =================
    the enlarged draft is drawn above the page, so no section clips it */
-const DRAFT_VERSION = 'wire-7'
+const DRAFT_VERSION = 'wire-8'
 function DraftThumb({ set }) {
   const ref = useRef(null)
   const [box, setBox] = useState(null)
