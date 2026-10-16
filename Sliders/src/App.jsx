@@ -65,7 +65,7 @@ const lerp = (a, b, t) => a + (b - a) * t
    - drag: the thumb follows 1:1, soft past the ends; stepped sliders feel detents between stops
    - release: the spring takes over at the finger's velocity; a flick carries a stepped slider on
    - keyboard: arrows / Page Up/Down / Home / End, with the value announced */
-function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, spring = { damping: 1, response: 0.35 } }) {
+function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, project = null, spring = { damping: 1, response: 0.35 } }) {
   const pos = useSpring(t, spring)
   const track = useRef(null)
   const [hover, setHover] = useState(false)
@@ -77,6 +77,7 @@ function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, spring
   const n = steps ? steps - 1 : 0
   const snap = (x) => (n ? Math.round(clamp(x) * n) / n : clamp(x))
   const at = (e) => {
+    if (project) return project(e) // a slider along any path: the path says where the pointer falls (0…1)
     const r = track.current.getBoundingClientRect()
     const f = vertical ? (e.clientY - r.top) / r.height : (e.clientX - r.left) / r.width // vertical: first stop at the top
     return (f - inset) / (1 - 2 * inset)
@@ -93,10 +94,10 @@ function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, spring
   }
   const down = (e) => {
     if (e.button !== 0) return
-    e.currentTarget.setPointerCapture(e.pointerId)
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* pointer already gone — drag still works within the element */ }
     setPressed(true) // feedback on press, not on release
     const raw = at(e)
-    g.current = { x0: vertical ? e.clientY : e.clientX, raw, moved: false, hist: [[raw, e.timeStamp]] }
+    g.current = { x0: e.clientX, y0: e.clientY, raw, moved: false, hist: [[raw, e.timeStamp]] }
     pos.hold(draw(raw)) // the thumb lands under the finger the instant you press
     const live = snap(raw)
     if (live !== t) onChange(live)
@@ -106,7 +107,7 @@ function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, spring
     setHx(at(e)) // the pointer is tracked while hovering *and* while held, so hover-driven details keep following it
     if (!d) return
     const raw = at(e); d.raw = raw
-    if (!d.moved && Math.abs((vertical ? e.clientY : e.clientX) - d.x0) > 3) { d.moved = true; setDragging(true) }
+    if (!d.moved && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 3) { d.moved = true; setDragging(true) }
     if (!d.moved) return
     pos.hold(draw(raw))
     d.hist.push([raw, e.timeStamp]); if (d.hist.length > 6) d.hist.shift()
@@ -147,93 +148,174 @@ function useSlider({ t, onChange, steps = 0, inset = 0, vertical = false, spring
   }
 }
 
-/* ================= Energetic: a heart that beats at your tempo ================= */
-const LEVELS = ['Easy', 'Steady', 'Push', 'Hard', 'All-out']
+/* ================= Energetic: a drum machine =================
+   Sliders don't have to be straight: Tempo is a groove wrapped around the drum's rim (a dial you turn),
+   Pattern is a groove that snakes across the panel. A 16-step sequencer plays the pattern at the tempo;
+   the drum bounces on kicks, shudders on snares and flashes on hats. Sound is optional and off by default. */
 const ENERGY_SPRING = { damping: 0.5, response: 0.3 } // quick, with overshoot
+const PATTERNS = [
+  { name: 'Four', k: 'x...x...x...x...', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
+  { name: 'Backbeat', k: 'x.....x...x.....', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
+  { name: 'Shuffle', k: 'x.....x.x.....x.', s: '....x..x....x..x', h: 'x..x..x..x..x..x' },
+  { name: 'Break', k: 'x.x.......xx....', s: '....x..x.x..x...', h: 'xxx.xxx.xxx.xxx.' },
+  { name: 'Blast', k: 'xxxxxxxxxxxxxxxx', s: 'x.x.x.x.x.x.x.x.', h: 'xxxxxxxxxxxxxxxx' },
+]
+const ROWS = [['k', 'Kick'], ['s', 'Snare'], ['h', 'Hat']]
 
-function EnergyTempo({ t, onChange }) {
-  const s = useSlider({ t, onChange, spring: ENERGY_SPRING })
-  const bpm = Math.round(60 + clamp(s.p) * 120) // counts with the thumb
-  const stretch = 1 + Math.min(Math.abs(s.vel) * 0.08, 0.5) // the thumb stretches with speed
-  // the cord: hover gives a little, pressing pulls it down at the thumb, letting go makes it twang
-  const sag = useSpring(s.pressed ? 12 : s.hover ? 3 : 0, { damping: 0.16, response: 0.3 }).value
-  const xt = clamp(s.p) * 100, y = 20 + sag
+// --- sound: three tiny synthesized drums (only after the visitor turns sound on)
+let audio = null, noiseBuf = null
+function ensureAudio() {
+  if (!audio) {
+    audio = new (window.AudioContext || window.webkitAudioContext)()
+    noiseBuf = audio.createBuffer(1, audio.sampleRate, audio.sampleRate)
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
+  }
+  if (audio.state === 'suspended') audio.resume()
+}
+function hit(kind) {
+  if (!audio) return
+  const t = audio.currentTime, out = audio.createGain(); out.connect(audio.destination)
+  if (kind === 'k') {
+    const o = audio.createOscillator(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.15)
+    out.gain.setValueAtTime(0.9, t); out.gain.exponentialRampToValueAtTime(0.001, t + 0.28); o.connect(out); o.start(t); o.stop(t + 0.3)
+  } else {
+    const n = audio.createBufferSource(); n.buffer = noiseBuf
+    const f = audio.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = kind === 's' ? 1200 : 7500
+    const dur = kind === 's' ? 0.14 : 0.04
+    out.gain.setValueAtTime(kind === 's' ? 0.5 : 0.18, t); out.gain.exponentialRampToValueAtTime(0.001, t + dur)
+    n.connect(f).connect(out); n.start(t); n.stop(t + dur + 0.02)
+  }
+}
+
+// --- Tempo: a 270° groove around the drum rim
+const ARC = { r: 136, a0: 135, sweep: 270 }
+const arcPt = (t) => { const a = (ARC.a0 + ARC.sweep * t) * Math.PI / 180; return [ARC.r * Math.cos(a), ARC.r * Math.sin(a)] }
+const arcPath = (t) => { const [x0, y0] = arcPt(0), [x1, y1] = arcPt(Math.max(t, 0.0001)); return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${ARC.r} ${ARC.r} 0 ${ARC.sweep * t > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}` }
+
+function DrumTempo({ t, onChange, svgRef, children }) {
+  const project = (e) => { // the pointer's angle around the drum → a position along the groove
+    const r = svgRef.current.getBoundingClientRect()
+    const x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2)
+    const d = ((Math.atan2(y, x) * 180 / Math.PI - ARC.a0) % 360 + 360) % 360
+    return d <= ARC.sweep ? d / ARC.sweep : (d > ARC.sweep + (360 - ARC.sweep) / 2 ? 0 : 1)
+  }
+  const s = useSlider({ t, onChange, project, spring: ENERGY_SPRING })
+  const p = clamp(s.p), [kx, ky] = arcPt(p)
+  const bpm = Math.round(60 + p * 120)
   return (
-    <div className={`nrg-slider ${s.state}`} {...s.bind} aria-label="Tempo" aria-valuemin={60} aria-valuemax={180} aria-valuenow={Math.round(60 + t * 120)} aria-valuetext={`${Math.round(60 + t * 120)} beats per minute`}>
-      <div className="sl-head"><span className="sl-label">Tempo</span><span className="sl-value">{bpm}<small> BPM</small></span></div>
-      <div className="nrg-track" ref={s.track}>
-        <svg className="nrg-cord" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
-          <defs><linearGradient id="cord-fill" gradientUnits="userSpaceOnUse" x1="0" x2="100"><stop offset="0" stopColor="#c6ff3d" /><stop offset="1" stopColor="#ff2d78" /></linearGradient></defs>
-          <path d={`M1 20 L${xt} ${y} L99 20`} className="cord-rest" />
-          <path d={`M1 20 L${xt} ${y}`} className="cord-fill" />
-        </svg>
-        <span className="nrg-thumb" style={{ left: `${s.x(s.p)}%`, top: `${y}px`, '--st': s.dragging ? stretch : 1 }} />
-        <span className="nrg-bubble" style={{ left: `${s.x(s.p)}%`, top: `${y - 52}px` }}>{bpm}</span>
-        {/* hover previews the value under the pointer: a ghost thumb with the number it would land on */}
-        {s.hx != null && !s.pressed && <span className="nrg-ghost" style={{ left: `${clamp(s.hx) * 100}%` }}><em>{Math.round(60 + clamp(s.hx) * 120)}</em></span>}
-      </div>
-    </div>
+    <g className={`drum-tempo ${s.state}`} {...s.bind} aria-label="Tempo" aria-valuemin={60} aria-valuemax={180} aria-valuenow={Math.round(60 + t * 120)} aria-valuetext={`${Math.round(60 + t * 120)} beats per minute`}>
+      <path d={arcPath(1)} className="groove-out" />
+      <path d={arcPath(1)} className="groove" />
+      <path d={arcPath(p)} className="groove-fill" />
+      {children}
+      {s.hx != null && !s.pressed && (() => { const [gx, gy] = arcPt(clamp(s.hx)); return <g className="tempo-ghost" transform={`translate(${gx} ${gy})`}><circle r="11" /><text y="-20">{Math.round(60 + clamp(s.hx) * 120)}</text></g> })()}
+      <g className="tempo-knob" transform={`translate(${kx} ${ky})`}><circle r="15" /><circle r="5" className="dot" /></g>
+      <text className="drum-bpm" y="12">{bpm}</text>
+      <text className="drum-bpm-u" y="38">BPM</text>
+    </g>
   )
 }
 
-function EnergyIntensity({ level, onChange }) {
-  const s = useSlider({ t: level / 4, onChange: (x) => onChange(Math.round(x * 4)), steps: 5, inset: 0.1, spring: ENERGY_SPRING })
+// --- Pattern: a groove that snakes across the panel (two straights joined by a U-turn)
+const SN = { x0: 24, x1: 256, yTop: 30, r: 26 }
+const SN_LEN = 2 * (SN.x1 - SN.x0) + Math.PI * SN.r
+function snakePt(t) {
+  const d = clamp(t) * SN_LEN, run = SN.x1 - SN.x0
+  if (d <= run) return [SN.x0 + d, SN.yTop]
+  if (d <= run + Math.PI * SN.r) { const a = (d - run) / SN.r; return [SN.x1 + SN.r * Math.sin(a), SN.yTop + SN.r - SN.r * Math.cos(a)] }
+  return [SN.x1 - (d - run - Math.PI * SN.r), SN.yTop + 2 * SN.r]
+}
+const SNAKE_D = `M${SN.x0} ${SN.yTop} H${SN.x1} A${SN.r} ${SN.r} 0 0 1 ${SN.x1} ${SN.yTop + 2 * SN.r} H${SN.x0}`
+const SNAKE_SAMPLES = Array.from({ length: 241 }, (_, i) => [i / 240, ...snakePt(i / 240)])
+
+function PatternSnake({ k, onChange }) {
+  const svg = useRef(null)
+  const project = (e) => { // nearest point on the snake
+    const r = svg.current.getBoundingClientRect()
+    const x = (e.clientX - r.left) * 300 / r.width, y = (e.clientY - r.top) * 110 / r.height
+    let best = 0, bd = Infinity
+    for (const [t, px, py] of SNAKE_SAMPLES) { const dd = (px - x) ** 2 + (py - y) ** 2; if (dd < bd) { bd = dd; best = t } }
+    return best
+  }
+  const s = useSlider({ t: k / 4, onChange: (x) => onChange(Math.round(x * 4)), steps: 5, project, spring: ENERGY_SPRING })
+  const p = clamp(s.p), [tx, ty] = snakePt(p)
   return (
-    <div className={`nrg-slider ${s.state}`} {...s.bind} aria-label="Intensity" aria-valuemin={0} aria-valuemax={4} aria-valuenow={level} aria-valuetext={LEVELS[level]}>
-      <div className="sl-head"><span className="sl-label">Intensity</span><span className="sl-value">{LEVELS[level]}</span></div>
-      <div className="nrg-blocks" ref={s.track}>
-        {LEVELS.map((_, i) => {
-          const near = s.hx == null || s.pressed ? 0 : clamp(1 - Math.abs(s.hx * 4 - i) / 1.3) // blocks rise toward the pointer
-          return <span key={`${i}-${i <= level}`} className={`blk ${i <= level ? 'lit' : ''}`}
-            style={{ '--i': i, translate: `0 ${-5 * near}px`, scale: `1 ${s.pressed ? 0.75 : 1 + 0.35 * near}` }} />
+    <div className={`snake ${s.state}`} {...s.bind} aria-label="Pattern" aria-valuemin={0} aria-valuemax={4} aria-valuenow={k} aria-valuetext={PATTERNS[k].name}>
+      <div className="sl-head"><span className="sl-label">Pattern</span><span className="sl-value">{PATTERNS[k].name}</span></div>
+      <svg ref={svg} viewBox="0 0 300 110" className="snake-svg" aria-hidden="true">
+        <path d={SNAKE_D} className="groove-out" />
+        <path d={SNAKE_D} className="groove" />
+        <path d={SNAKE_D} className="groove-fill" pathLength="1" style={{ strokeDasharray: `${p} 1` }} />
+        {PATTERNS.map((pt, i) => {
+          const [sx, sy] = snakePt(i / 4), peek = s.hx != null && Math.round(clamp(s.hx) * 4) === i
+          return (
+            <g key={pt.name} transform={`translate(${sx} ${sy})`} className={`snake-stop ${i === k ? 'on' : ''} ${peek ? 'peek' : ''}`}>
+              <circle r="5" /><text y={i === 2 ? 4 : sy < 50 ? -20 : 28} x={i === 2 ? -22 : 0} textAnchor={i === 2 ? 'end' : 'middle'}>{pt.name}</text>
+            </g>
+          )
         })}
-        <span className="nrg-knob" style={{ left: `${s.x(s.p)}%` }} />
-      </div>
-      <div className="nrg-ticks" aria-hidden="true">{LEVELS.map((l, i) => <span key={l} className={`${i === level ? 'on' : ''} ${s.hx != null && !s.pressed && Math.round(clamp(s.hx) * 4) === i && i !== level ? 'peek' : ''}`}>{l}</span>)}</div>
-    </div>
-  )
-}
-
-function PulseOrb({ bpm, level }) {
-  const orb = useRef(null), stage = useRef(null)
-  const live = useRef({}); live.current = { bpm, level }
-  useEffect(() => {
-    if (reducedMotion()) return
-    let raf, last = performance.now(), ph = 0
-    const tick = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000); last = now
-      const { bpm, level } = live.current
-      const prev = ph; ph += dt * bpm / 60
-      const e = Math.exp(-(ph % 1) * 7) // a sharp beat, then a quick decay
-      if (orb.current) orb.current.style.transform = `translate(-50%, -50%) scale(${1 + e * (0.06 + level * 0.035)})`
-      if (Math.floor(ph) !== Math.floor(prev) && level >= 1 && stage.current) { // each beat rings out — harder at higher intensity
-        const r = document.createElement('span'); r.className = 'pulse-ring'
-        r.style.setProperty('--reach', 1.4 + level * 0.25)
-        r.addEventListener('animationend', () => r.remove()); stage.current.appendChild(r)
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [])
-  return (
-    <div ref={stage} className="pulse-stage" style={{ '--heat': level / 4, '--size': `${110 + level * 16}px` }} aria-hidden="true">
-      <span ref={orb} className="pulse-orb"><b>{bpm}</b><small>BPM</small></span>
+        <g className="snake-knob" transform={`translate(${tx} ${ty})`}><circle r="13" /><circle r="4" className="dot" /></g>
+      </svg>
     </div>
   )
 }
 
 function EnergySet({ auto, offset = 0 }) {
   const [tempo, setTempo] = useState((128 - 60) / 120)
-  const [level, setLevel] = useState(2)
-  useAuto(auto, offset, [() => setTempo(Math.random()), () => setLevel(Math.floor(Math.random() * 5))])
-  const tempoS = useSpring(tempo, { damping: 1, response: 0.3 }).value // the heart glides to a new tempo
+  const [k, setK] = useState(1)
+  const [sound, setSound] = useState(false)
+  const [step, setStep] = useState(0)
+  const drumSvg = useRef(null), head = useRef(null), rim = useRef(null), stage = useRef(null)
+  const tempoS = useSpring(tempo, { damping: 1, response: 0.3 }).value
+  const live = useRef({}); live.current = { bpm: 60 + tempoS * 120, k, sound }
+  useAuto(auto, offset, [() => setTempo(Math.random()), () => setK(Math.floor(Math.random() * 5))])
+  useEffect(() => { // the playhead: sixteenth notes at the tempo; each hit moves the drum (and sounds, if on)
+    let raf, last = performance.now(), ph = 0, kick = 0, snare = 0, hat = 0
+    const tick = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now
+      const { bpm, k, sound } = live.current, P = PATTERNS[k]
+      const prev = ph; ph += dt * (bpm / 60) * 4
+      if (Math.floor(ph) !== Math.floor(prev)) {
+        const st = Math.floor(ph) % 16
+        setStep(st)
+        if (P.k[st] === 'x') { kick = 1; if (sound) hit('k'); if (!reducedMotion() && stage.current) { const r = document.createElement('span'); r.className = 'drum-ring'; r.addEventListener('animationend', () => r.remove()); stage.current.appendChild(r) } }
+        if (P.s[st] === 'x') { snare = 1; if (sound) hit('s') }
+        if (P.h[st] === 'x') { hat = 1; if (sound) hit('h') }
+      }
+      kick *= Math.exp(-dt * 14); snare *= Math.exp(-dt * 18); hat *= Math.exp(-dt * 26)
+      if (head.current && !reducedMotion()) head.current.setAttribute('transform', `translate(${(Math.sin(now / 9) * snare * 4).toFixed(2)} 0) scale(${(1 + kick * 0.06).toFixed(4)})`)
+      if (rim.current) rim.current.style.opacity = (0.25 + hat * 0.75).toFixed(3)
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+  const P = PATTERNS[k]
   return (
     <div className="screen nrg-screen">
-      <PulseOrb bpm={Math.round(60 + tempoS * 120)} level={level} />
-      <div className="controls">
-        <EnergyTempo t={tempo} onChange={setTempo} />
-        <EnergyIntensity level={level} onChange={setLevel} />
+      <div ref={stage} className="drum-stage">
+        <svg ref={drumSvg} viewBox="-160 -160 320 320" className="drum">
+          <g ref={head} aria-hidden="true">
+            <circle r="104" className="drum-shell" />
+            {Array.from({ length: 10 }, (_, i) => <rect key={i} x="-5" y="-112" width="10" height="16" rx="3" className="drum-lug" transform={`rotate(${i * 36})`} />)}
+            <circle r="92" className="drum-head" />
+            <circle r="62" className="drum-ring-mark" />
+            <circle ref={rim} r="98" className="drum-hat" />
+          </g>
+          <DrumTempo t={tempo} onChange={setTempo} svgRef={drumSvg} />
+        </svg>
+      </div>
+      <div className="controls nrg-controls">
+        <button className={`nrg-sound ${sound ? 'on' : ''}`} aria-pressed={sound} onClick={() => { if (!sound) ensureAudio(); setSound((v) => !v) }}>{sound ? 'Sound on' : 'Sound off'}</button>
+        <div className="seq" aria-label={`${P.name} pattern`}>
+          {ROWS.map(([key, label]) => (
+            <div key={key} className={`seq-row r-${key}`}>
+              <span className="seq-name">{label}</span>
+              <span className="seq-cells">{Array.from({ length: 16 }, (_, i) => <i key={i} className={`${P[key][i] === 'x' ? 'on' : ''} ${i === step ? 'now' : ''} ${i % 4 === 0 ? 'beat' : ''}`} />)}</span>
+            </div>
+          ))}
+        </div>
+        <PatternSnake k={k} onChange={setK} />
       </div>
     </div>
   )
@@ -505,12 +587,13 @@ const SETS = [
   {
     id: 'energy', tone: 'Energetic', Body: EnergySet,
     spec: [
-      ['Layout', [['Screen', 'padding 28 / 32, radius 34, #17121F'], ['Columns', 'subject 1fr · controls 340'], ['Slider gap', '34'], ['Label → track', '14']]],
-      ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 600 · 18 / 22 · tabular'], ['Bubble', 'Unbounded 800 · 14 / 18'], ['Step names', 'Unbounded 500 · 10 / 12']]],
-      ['Continuous · Tempo', [['Range', '60 – 180 BPM, step 1'], ['Track', 'an elastic cord, stroke 12 (14 on hover), round caps, #2A2333, pinned at both ends'], ['Fill', 'gradient #C6FF3D → #FF2D78'], ['Thumb', '30 × 30, radius 15, #FFF, shadow 0 3 8 / 40%'], ['Bubble', 'h 30, pad 0 10, radius 10, #C6FF3D, 16 above thumb']]],
-      ['Stepped · Intensity', [['Stops', '5 — Easy · Steady · Push · Hard · All-out'], ['Blocks', 'h 16, radius 6, gap 6; lit = lime → pink by stop'], ['Knob', '10 × 30, radius 5, #FFF, centred on stop'], ['Value', 'shown in the header and the label row — no bubble over the blocks']]],
-      ['States', [['Idle', 'thumb 30, track 12, value in the header'], ['Hover', 'the cord gives 3 px at the thumb; thumb ×1.12; a ghost thumb + value previews the pointer; blocks rise up to 5 px toward the pointer'], ['Pressed', 'the cord is pulled 12 px down at the thumb; squash 1.25 × 0.8 + lime glow; bubble pops in; blocks brace (scale-y 0.75)'], ['Drag', 'stays squashed, stretches with speed (≤ 1.5×); live bubble; each lit block pops'], ['Release', 'the cord twangs (damping 0.16, response 0.3); stepped flicks carry to the next stop']]],
-      ['Motion', [['Spring', 'damping 0.5, response 0.3 (overshoots)'], ['Flick', 'stepped: projected 60 ms ahead, carries to next stop']]],
+      ['Layout', [['Screen', 'padding 28 / 32, radius 34, #F6EFE4, outline 3 #17121F'], ['Columns', 'drum 1fr · machine 360'], ['Drum', 'head r 92 · shell r 104 · 10 lugs 10 × 16'], ['Outline', 'every shape 3 #17121F — poster style']]],
+      ['Type', [['Label', 'Unbounded 600 · 12 / 16 · caps · tracking 0.1em'], ['Value', 'Unbounded 800 · 22 / 26'], ['BPM', 'Unbounded 800 · 44 / 44 in the drum'], ['Stops / rows', 'Unbounded 600 · 11 / 14']]],
+      ['Continuous · Tempo (around the rim)', [['Range', '60 – 180 BPM, step 1'], ['Path', '270° arc, r 136, from 135° clockwise'], ['Groove', 'stroke 22 #17121F outline + 16 #FFFFFF; fill 16 #C6FF3D'], ['Knob', 'r 15, #FF4FA3, outline 3, centre dot r 5']]],
+      ['Stepped · Pattern (snake)', [['Stops', '5 — Four · Backbeat · Shuffle · Break · Blast'], ['Path', 'two runs of 232 joined by a U-turn r 26'], ['Stops', 'dots r 5, outline 3; names 14 from the path'], ['Knob', 'r 13, #3D6BFF, outline 3']]],
+      ['Sequencer', [['Grid', '3 rows × 16 steps, cell 14 × 20, radius 4, gap 3'], ['Rows', 'Kick #FF4FA3 · Snare #3D6BFF · Hat #FFD23D'], ['Playhead', 'sixteenth notes at the tempo, outlined column']]],
+      ['States', [['Idle', 'knobs rest in their grooves; the drum keeps playing'], ['Hover', 'groove thickens; a ghost knob previews the BPM / the stop under the pointer swells'], ['Pressed', 'knob jumps to the finger and squashes; groove glows'], ['Drag', 'knob rides the curve 1:1 (projected onto the path); the beat and pattern change live'], ['Release', 'springs on with overshoot; stepped flicks carry to the next stop']]],
+      ['Motion', [['Spring', 'damping 0.5, response 0.3'], ['Hits', 'kick: head ×1.06 + ring · snare: 4 px shudder · hat: rim flash'], ['Sound', 'optional, synthesized; off by default']]],
     ],
   },
   {
@@ -539,7 +622,7 @@ const SETS = [
 
 /* ================= Figma draft thumbnail =================
    the enlarged draft is drawn above the page, so no section clips it */
-const DRAFT_VERSION = 'wire-4'
+const DRAFT_VERSION = 'wire-5'
 function DraftThumb({ set }) {
   const ref = useRef(null)
   const [box, setBox] = useState(null)

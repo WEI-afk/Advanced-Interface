@@ -43,51 +43,66 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 .spec-group dt { color: #8a8a8a; } .spec-group dd { margin: 0; font-variant-numeric: tabular-nums; }
 .spec-note { margin: 10px 4px 0; font: 400 12px/16px Inter, sans-serif; opacity: .6; }
 
-/* ================= ENERGETIC ================= */
+/* ================= ENERGETIC — a drum machine, poster style ================= */
 .s-energy { background: #eeecf2; color: #17121f; }
 .s-energy .set-head h2 { font-family: Unbounded, Inter, sans-serif; font-weight: 800; letter-spacing: -0.02em; }
-.nrg-screen { background: #17121f; color: #fff; box-shadow: 0 30px 60px -30px rgba(23,18,31,.6); }
-.nrg-screen .sl-label { font: 600 12px/16px Unbounded, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.55); }
-.nrg-screen .sl-value { font: 600 18px/22px Unbounded, sans-serif; }
-.nrg-screen .sl-value small { font-size: 11px; color: rgba(255,255,255,.55); }
-.springy { transition-timing-function: cubic-bezier(.34,1.8,.64,1); }
-/* continuous: a fat track that thickens, a thumb that squashes and stretches */
-/* the cord: drawn as two straight runs pinned at the ends, meeting at the thumb */
-.nrg-track { position: relative; height: 40px; margin: -14px 0 -6px; }
-.nrg-cord { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.nrg-cord path { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.cord-rest { stroke: #2a2333; stroke-width: 12; } .cord-fill { stroke: url(#cord-fill); stroke-width: 12; }
-.nrg-slider.is-hover .cord-rest, .nrg-slider.is-hover .cord-fill { stroke-width: 14; }
-.nrg-thumb { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.4);
-  --sx: 1; --sy: 1; transform: translate(-50%, -50%) scale(var(--sx), var(--sy)); transition: transform .35s cubic-bezier(.34,1.8,.64,1), box-shadow .2s; }
-.nrg-slider.is-hover .nrg-thumb { --sx: 1.12; --sy: 1.12; }
-.nrg-slider.is-press .nrg-thumb { --sx: 1.25; --sy: .8; box-shadow: 0 0 0 6px rgba(198,255,61,.35), 0 3px 8px rgba(0,0,0,.4); }
-.nrg-slider.is-drag .nrg-thumb { --sx: calc(1.25 * var(--st)); --sy: calc(.8 / var(--st)); /* stays squashed while held, stretching further with speed */ box-shadow: 0 0 0 6px rgba(198,255,61,.35), 0 3px 8px rgba(0,0,0,.4); transition: transform .12s ease-out; }
-.nrg-bubble { position: absolute; padding: 0 10px; height: 30px; display: grid; place-items: center; border-radius: 10px; background: #c6ff3d; color: #17121f;
-  font: 800 14px/18px Unbounded, sans-serif; white-space: nowrap; pointer-events: none; transform: translateX(-50%) scale(0); transform-origin: 50% 120%; transition: transform .35s cubic-bezier(.34,1.8,.64,1); }
-.nrg-bubble::after { content: ''; position: absolute; left: 50%; top: 100%; margin-left: -5px; border: 5px solid transparent; border-top-color: #c6ff3d; }
-.nrg-slider.is-press .nrg-bubble, .nrg-slider.is-drag .nrg-bubble { transform: translateX(-50%) scale(1); }
-/* stepped: chunky blocks that pop as they light */
-.nrg-blocks { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; height: 16px; }
-.blk { border-radius: 6px; background: #2a2333; transition: translate .35s cubic-bezier(.34,1.8,.64,1), scale .35s cubic-bezier(.34,1.8,.64,1); }
-.blk.lit { background: color-mix(in oklab, #ff2d78 calc(var(--i) * 25%), #c6ff3d); animation: blk-pop .45s cubic-bezier(.34,1.8,.64,1); }
-@keyframes blk-pop { 40% { transform: scale(1.12, 1.5); } }
-.nrg-knob { position: absolute; top: 50%; width: 12px; height: 32px; border-radius: 6px; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.45);
-  --sx: 1; --sy: 1; transform: translate(-50%, -50%) scale(var(--sx), var(--sy)); transition: transform .35s cubic-bezier(.34,1.8,.64,1), box-shadow .2s; }
-.nrg-slider.is-hover .nrg-knob { --sx: 1.15; --sy: 1.08; }
-.nrg-slider.is-press .nrg-knob, .nrg-slider.is-drag .nrg-knob { --sx: 1.4; --sy: .85; box-shadow: 0 0 0 6px rgba(198,255,61,.35), 0 3px 8px rgba(0,0,0,.45); }
-.nrg-ticks { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 12px; text-align: center; font: 500 10px/12px Unbounded, sans-serif; color: rgba(255,255,255,.4); }
-.nrg-ticks .on { color: #c6ff3d; }
-/* subject: a heart beating at the tempo, ringing out with intensity */
-.pulse-stage { position: relative; min-height: 300px; }
-.pulse-orb { position: absolute; left: 50%; top: 50%; width: var(--size); height: var(--size); border-radius: 50%; transform: translate(-50%, -50%); transition: width .5s cubic-bezier(.34,1.8,.64,1), height .5s cubic-bezier(.34,1.8,.64,1);
-  display: grid; place-content: center; text-align: center; color: #17121f;
-  background: radial-gradient(circle at 35% 30%, color-mix(in oklab, #ffd1e3 calc(var(--heat) * 100%), #f1ffc9), color-mix(in oklab, #ff2d78 calc(var(--heat) * 100%), #c6ff3d) 70%);
-  box-shadow: 0 0 calc(30px + var(--heat) * 40px) color-mix(in oklab, #ff2d78 calc(var(--heat) * 100%), #c6ff3d); }
-.pulse-orb b { font: 800 26px/1 Unbounded, sans-serif; } .pulse-orb small { font: 600 10px/1.4 Unbounded, sans-serif; opacity: .6; }
-.pulse-ring { position: absolute; left: 50%; top: 50%; width: var(--size); height: var(--size); border-radius: 50%; pointer-events: none;
-  box-shadow: 0 0 0 2px color-mix(in oklab, #ff2d78 calc(var(--heat) * 100%), #c6ff3d); animation: pulse-ring .8s cubic-bezier(.2,.7,.3,1) forwards; }
-@keyframes pulse-ring { from { transform: translate(-50%, -50%) scale(1); opacity: .8; } to { transform: translate(-50%, -50%) scale(var(--reach)); opacity: 0; } }
+.nrg-screen { background: #f6efe4; color: #17121f; box-shadow: inset 0 0 0 3px #17121f, 0 24px 50px -30px rgba(23,18,31,.5); grid-template-columns: minmax(0, 1fr) minmax(0, 360px); }
+.nrg-screen .sl-label { font: 600 12px/16px Unbounded, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.nrg-screen .sl-value { font: 800 22px/26px Unbounded, sans-serif; }
+/* the drum */
+.drum-stage { position: relative; display: grid; place-items: center; min-height: 340px; }
+.drum { width: min(100%, 360px); overflow: visible; }
+.drum-shell { fill: #ff5b2e; stroke: #17121f; stroke-width: 3; }
+.drum-lug { fill: #17121f; }
+.drum-head { fill: #fff8ec; stroke: #17121f; stroke-width: 3; }
+.drum-ring-mark { fill: none; stroke: #17121f; stroke-width: 2; stroke-dasharray: 3 7; opacity: .35; }
+.drum-hat { fill: none; stroke: #ffd23d; stroke-width: 6; opacity: .25; }
+.drum-bpm { font: 800 44px/1 Unbounded, sans-serif; text-anchor: middle; fill: #17121f; pointer-events: none; }
+.drum-bpm-u { font: 600 11px/1 Unbounded, sans-serif; letter-spacing: .14em; text-anchor: middle; fill: #17121f; opacity: .6; pointer-events: none; }
+.drum-ring { position: absolute; left: 50%; top: 50%; width: 184px; height: 184px; margin: -92px 0 0 -92px; border-radius: 50%; border: 3px solid #17121f; pointer-events: none; animation: drum-ring .6s cubic-bezier(.2,.7,.3,1) forwards; }
+@keyframes drum-ring { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.7); } }
+/* grooves: an outlined channel the knob rides in (shared by the rim dial and the snake) */
+.groove-out, .groove, .groove-fill { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.groove-out { stroke: #17121f; stroke-width: 22; transition: stroke-width .3s cubic-bezier(.34,1.8,.64,1); }
+.groove { stroke: #fff; stroke-width: 16; transition: stroke-width .3s cubic-bezier(.34,1.8,.64,1); }
+.groove-fill { stroke: #c6ff3d; stroke-width: 16; transition: stroke-width .3s cubic-bezier(.34,1.8,.64,1); }
+.drum-tempo, .snake { cursor: grab; outline: none; }
+.drum-tempo.is-hover .groove-out, .snake.is-hover .groove-out { stroke-width: 26; }
+.drum-tempo.is-hover .groove, .drum-tempo.is-hover .groove-fill, .snake.is-hover .groove, .snake.is-hover .groove-fill { stroke-width: 20; }
+.drum-tempo.is-press .groove-fill, .drum-tempo.is-drag .groove-fill, .snake.is-press .groove-fill, .snake.is-drag .groove-fill { stroke: #b4f51f; filter: drop-shadow(0 0 6px rgba(198,255,61,.9)); }
+/* knobs squash on press — springy */
+.tempo-knob circle, .snake-knob circle { stroke: #17121f; stroke-width: 3; }
+.tempo-knob circle:first-child { fill: #ff4fa3; } .snake-knob circle:first-child { fill: #3d6bff; }
+.tempo-knob .dot, .snake-knob .dot { fill: #17121f; stroke: none; }
+.tempo-knob > circle:first-child, .snake-knob > circle:first-child { transition: transform .35s cubic-bezier(.34,1.8,.64,1); transform-box: fill-box; transform-origin: center; }
+.drum-tempo.is-hover .tempo-knob > circle:first-child, .snake.is-hover .snake-knob > circle:first-child { transform: scale(1.15); }
+.drum-tempo.is-press .tempo-knob > circle:first-child, .drum-tempo.is-drag .tempo-knob > circle:first-child,
+.snake.is-press .snake-knob > circle:first-child, .snake.is-drag .snake-knob > circle:first-child { transform: scale(1.25, .8); }
+.tempo-ghost circle { fill: none; stroke: #17121f; stroke-width: 2; stroke-dasharray: 3 3; }
+.tempo-ghost text { font: 700 12px/1 Unbounded, sans-serif; text-anchor: middle; fill: #17121f; }
+.drum-tempo:focus-visible .groove-out, .snake:focus-visible .groove-out { stroke: #3d6bff; }
+/* the machine: sound toggle, sequencer, snake */
+.nrg-controls { gap: 22px; }
+.nrg-sound { all: unset; align-self: flex-end; cursor: pointer; padding: 7px 14px; border-radius: 999px; font: 700 11px/1 Unbounded, sans-serif; letter-spacing: .06em; box-shadow: inset 0 0 0 3px #17121f; transition: scale .1s; }
+.nrg-sound.on { background: #c6ff3d; } .nrg-sound:active { scale: .94; }
+.nrg-sound:focus-visible { outline: 3px solid #3d6bff; outline-offset: 2px; }
+.seq { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 3px #17121f; }
+.seq-row { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 8px; }
+.seq-name { font: 600 10px/1 Unbounded, sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+.seq-cells { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; }
+.seq-cells i { height: 20px; border-radius: 4px; background: #efe8dc; box-shadow: inset 0 0 0 1.5px rgba(23,18,31,.25); transition: transform .12s cubic-bezier(.34,1.8,.64,1); }
+.seq-cells i.beat { box-shadow: inset 0 0 0 1.5px rgba(23,18,31,.5); }
+.r-k i.on { background: #ff4fa3; } .r-s i.on { background: #3d6bff; } .r-h i.on { background: #ffd23d; }
+.seq-cells i.on { box-shadow: inset 0 0 0 2px #17121f; }
+.seq-cells i.now { transform: translateY(-3px); }
+.seq-cells i.now.on { transform: translateY(-3px) scale(1.15); }
+.snake-svg { display: block; width: 100%; aspect-ratio: 300 / 110; overflow: visible; touch-action: none; }
+.snake-stop circle { fill: #fff; stroke: #17121f; stroke-width: 3; transition: transform .3s cubic-bezier(.34,1.8,.64,1); transform-box: fill-box; transform-origin: center; }
+.snake-stop.on circle { fill: #17121f; }
+.snake-stop.peek circle { transform: scale(1.5); }
+.snake-stop text { font: 600 11px/1 Unbounded, sans-serif; fill: #17121f; opacity: .55; }
+.snake-stop.on text { opacity: 1; }
+@container screen (max-width: 680px) { .nrg-screen { grid-template-columns: 1fr; } }
 
 /* ================= FUTURISTIC ================= */
 .s-reactor { background: #e7ebf0; color: #0b1220; }
@@ -202,8 +217,8 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
 /* ================= accessibility preferences ================= */
 [role="slider"]:focus-visible { outline: 2px solid currentColor; outline-offset: 8px; border-radius: 6px; }
 @media (prefers-reduced-motion: reduce) {
-  .blk.lit, .cell.on { animation: none; }
-  .pulse-ring { display: none; }
+  .cell.on { animation: none; }
+  .drum-ring { display: none; }
 }
 
 /* ================= WALL (Sliders/?wall) ================= */
@@ -216,10 +231,6 @@ body:has(.wall) { overflow: hidden; background: #ece8e1; }
 .set, .wall-tile { container: screen / inline-size; }
 
 /* ================= hover previews ================= */
-/* Energetic hover: a ghost thumb with the value it would land on */
-.nrg-ghost { position: absolute; top: 20px; width: 22px; height: 22px; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: inset 0 0 0 2px rgba(255,255,255,.45); }
-.nrg-ghost em { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); font: 600 12px/14px Unbounded, sans-serif; font-style: normal; color: rgba(255,255,255,.6); }
-.nrg-ticks span.peek { color: rgba(198,255,61,.55); }
 /* Futuristic hover: a crosshair that reads ahead */
 .fut-cross { position: absolute; top: -6px; bottom: -32px; width: 1px; margin-left: -.5px; pointer-events: none; background: repeating-linear-gradient(rgba(62,240,255,.6) 0 3px, transparent 3px 6px); }
 .fut-cross em { position: absolute; top: -16px; left: 4px; font: 400 10px/12px "JetBrains Mono", monospace; font-style: normal; color: rgba(62,240,255,.75); white-space: nowrap; }
