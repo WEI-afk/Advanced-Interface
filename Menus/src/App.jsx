@@ -893,7 +893,7 @@ function CampSet({ auto, offset = 0 }) {
 const SETS = [
   { id: 'deck', tone: 'Futuristic, Quick Access', Body: DeckSet },
   { id: 'ring', tone: 'Dramatic, Full Turn', Body: RingSet },
-  { id: 'camp', tone: 'Rebellious, Base Camp', Body: CampSet },
+  { id: 'camp', tone: 'Rebellious, Base Camp', Body: CampSet, vibe: true },
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
@@ -975,7 +975,7 @@ export default function App() {
         <section key={set.id} className={`set s-${set.id}`}>
           <div className="set-head">
             <h2>{set.tone}</h2>
-            <DraftThumb set={set} />
+            {set.vibe ? <span className="vibe-only">Vibe only</span> : <DraftThumb set={set} />}
           </div>
           <div className={set.id === 'deck' ? 'frame' : ''}><set.Body /></div>
         </section>
