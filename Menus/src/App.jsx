@@ -652,7 +652,7 @@ function GameBoySet({ auto, offset }) {
   )
 }
 
-/* ----- FUTURISTIC · Quick Access: a wide handheld PC. A focus ring snaps between rows; the trackpad really swipes ----- */
+/* ----- FUTURISTIC · Quick Access: no hardware, no panel. Each row is a small frame holding its icon, with the text outside it; one glowing ring snaps between the frames ----- */
 const DECK_ICON = {
   lib: li(['M3 4h6v12H3z', 'M11 4h6v5h-6z', 'M11 11h6v5h-6z']),
   down: li(['M10 3v10', 'M6 9.500l4 4 4-4', 'M4 17h12']),
@@ -663,36 +663,6 @@ const DECK_ICON = {
 const ACCENTS = [{ name: 'Signal Blue', c: '#1a9fff' }, { name: 'Violet', c: '#a06bff' }, { name: 'Mint', c: '#2fd6a6' }]
 const DECK_CFG = { sticky: true, commitMs: 260, open: { damping: 0.9, response: 0.34 }, bar: { damping: 0.86, response: 0.2 } }
 
-// swipe to move the selection, tap to select; every touch and step leaves a haptic ring
-function Trackpad({ d, cls, swipes }) {
-  const [rings, setRings] = useState([])
-  const st = useRef({ y: 0, acc: 0, moved: false, on: false })
-  const n = useRef(0)
-  const ring = (e) => {
-    const r = e.currentTarget.getBoundingClientRect()
-    const id = ++n.current
-    setRings((v) => [...v.slice(-3), { id, x: (e.clientX - r.left) / r.width * 100, y: (e.clientY - r.top) / r.height * 100 }])
-  }
-  return (
-    <div className={`pad ${cls}`} aria-hidden="true"
-      onPointerDown={swipes ? (e) => { e.preventDefault(); st.current = { y: e.clientY, acc: 0, moved: false, on: true }; ring(e); try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* pointer already gone */ } } : undefined}
-      onPointerMove={swipes ? (e) => {
-        const s = st.current
-        if (!s.on) return
-        s.acc += e.clientY - s.y; s.y = e.clientY
-        if (Math.abs(s.acc) >= 16) { d.ctl.current?.key(s.acc > 0 ? 'ArrowDown' : 'ArrowUp'); s.acc = 0; s.moved = true; ring(e) }
-      } : undefined}
-      onPointerUp={swipes ? () => {
-        const s = st.current
-        if (s.on && !s.moved) { d.ctl.current?.down(); setTimeout(() => d.ctl.current?.up(), 90) }
-        s.on = false
-      } : undefined}>
-      <i className="pad-mark" />
-      {rings.map((r) => <span key={r.id} className="pad-ring" style={{ left: `${r.x}%`, top: `${r.y}%` }} onAnimationEnd={() => setRings((v) => v.filter((q) => q.id !== r.id))} />)}
-    </div>
-  )
-}
-
 function DeckSet({ auto, offset }) {
   const d = useDevice(auto)
   const [accent, setAccent] = useState(0)
@@ -701,49 +671,18 @@ function DeckSet({ auto, offset }) {
   const [home, setHome] = useState(false)
   const sections = [
     { label: 'Browse', items: [
-      { id: 'home', label: home ? 'Back to Home' : 'Home', run: () => setHome((v) => !v) },
-      { id: 'lib', label: 'Library', left: DECK_ICON.lib, shortcut: 'X' },
+      { id: 'home', label: home ? 'Back to Home' : 'Home', left: <i className="tile-dot" />, run: () => setHome((v) => !v) },
+      { id: 'lib', label: 'Library', left: DECK_ICON.lib, shortcut: '⌘L' },
       { id: 'dl', label: 'Downloads', left: DECK_ICON.down, badge: dl || undefined, run: () => setDl(dl ? 0 : 2) },
     ] },
     { label: 'System', items: [
-      { id: 'wifi', label: 'Wi-Fi', right: wifi ? DECK_ICON.wifi : DECK_ICON.off, run: () => setWifi((v) => !v) },
-      { id: 'accent', label: 'Accent Color', sub: [{ items: ACCENTS.map((a, i) => ({ id: a.name, label: a.name, left: accent === i ? DECK_ICON.check : <span className="mi-blank" />, run: () => setAccent(i) })) }] },
+      { id: 'wifi', label: 'Wi-Fi', left: <i className="tile-dot" />, right: wifi ? DECK_ICON.wifi : DECK_ICON.off, run: () => setWifi((v) => !v) },
+      { id: 'accent', label: 'Accent Color', left: <i className="tile-dot" />, sub: [{ items: ACCENTS.map((a, i) => ({ id: a.name, label: a.name, left: accent === i ? DECK_ICON.check : <i className="tile-dot" />, run: () => setAccent(i) })) }] },
     ] },
   ]
-  const stick = { ArrowUp: [0, -6], ArrowDown: [0, 6], ArrowLeft: [-6, 0], ArrowRight: [6, 0] }[d.held] || [0, 0]
   return (
-    <div className="stage">
-      <div className="deck" ref={d.ref} style={{ '--acc': ACCENTS[accent].c }}>
-        <i className="deck-bump l" aria-hidden="true" /><i className="deck-bump r" aria-hidden="true" />
-        <div className="deck-vents" aria-hidden="true"><i /><i /></div>
-        <div className="deck-side">
-          <div className="deck-top">
-            <Dpad d={d} />
-            <div className="stick" aria-hidden="true"><i style={{ transform: `translate(${stick[0]}px, ${stick[1]}px)` }} /></div>
-          </div>
-          <Trackpad d={d} cls="pad-l" />
-          <div className="deck-mini" aria-hidden="true"><i className="ring" /><i className="dash" /></div>
-        </div>
-        <div className="deck-screen">
-          <div className="deck-covers" aria-hidden="true">
-            {Array.from({ length: 12 }, (_, i) => <i key={i} style={{ '--h': (i * 47) % 360 }} />)}
-          </div>
-          <Menu sections={sections} cfg={DECK_CFG} auto={auto} offset={offset} ctl={d.ctl} />
-        </div>
-        <div className="deck-side">
-          <div className="deck-top rev">
-            <div className="stick" aria-hidden="true"><i /></div>
-            <div className="abxy">
-              <span className="y" aria-hidden="true">Y</span>
-              <button className="x" {...d.btn('row:lib', 'X, open Library')}>X</button>
-              <button className="b" {...d.btn('b', 'B, back')}>B</button>
-              <button className="a" {...d.btn('a', 'A, select')}>A</button>
-            </div>
-          </div>
-          <Trackpad d={d} cls="pad-r" swipes />
-          <div className="deck-mini rev" aria-hidden="true"><i className="dots" /></div>
-        </div>
-      </div>
+    <div className="stage" ref={d.ref} style={{ '--acc': ACCENTS[accent].c }}>
+      <Menu sections={sections} cfg={DECK_CFG} auto={auto} offset={offset} ctl={d.ctl} />
     </div>
   )
 }
