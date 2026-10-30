@@ -626,7 +626,7 @@ function RingSet({ auto, offset = 0 }) {
         </div>
         <div className="rw-arc" aria-hidden="true" style={{ left: cx + xR * 0.05, top: cy - yR * 1.1, width: xR * 2, height: yR * 2.2 }} />
         <div className="rw-cards">{cards}</div>
-        <div className={`rw-sub ${cur.sub && !drag.current ? 'on' : ''}`} style={{ left: cx + xR + cardW + 18 * k, top: cy - 66 * k }}>
+        <div className={`rw-sub ${cur.sub && !drag.current ? 'on' : ''}`} style={{ left: cx + xR + cardW + 18 * k, top: cy + 14 * k }}>
           {WEATHER.map((w, i) => (
             <button key={w} type="button" className={`rs ${weather === i ? 'is-sel' : ''} ${subFocus === i ? 'is-focus' : ''}`} tabIndex={-1}
               onClick={() => { setWeather(i); openFull() }}>
