@@ -376,7 +376,7 @@ const DECK_ICON = {
   check: li(['M5 10.500l3.500 3.500L15 6.500']),
 }
 const ACCENTS = [{ name: 'Signal Blue', c: '#1a9fff' }, { name: 'Violet', c: '#a06bff' }, { name: 'Mint', c: '#2fd6a6' }]
-const DECK_CFG = { sticky: true, commitMs: 260, open: { damping: 0.9, response: 0.34 }, bar: { damping: 0.86, response: 0.2 } }
+const DECK_CFG = { sticky: true, commitMs: 60, open: { damping: 0.9, response: 0.34 }, bar: { damping: 0.86, response: 0.2 } }
 
 function DeckSet({ auto, offset }) {
   const d = useDevice(auto)
