@@ -1,6 +1,6 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #f4f4f2; color: #1b1b1b; -webkit-font-smoothing: antialiased; }
-main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
+main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; overflow-x: clip; }
 .back { display: inline-block; margin-bottom: 14px; font-size: 14px; font-weight: 600; color: #666; text-decoration: none; }
 .back:hover { color: #1b1b1b; }
 .page-head h1 { margin: 0 0 6px; font-size: 32px; font-weight: 600; letter-spacing: -0.02em; }
@@ -90,6 +90,120 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; }
   .s-lux .menu-root { width: 272px; }
   .s-lux .menu-sub { left: 48px; width: 216px; top: calc(var(--sub-top) + 48px); }
   .s-lux .mi { padding: 12px 8px; font-size: 20px; }
+}
+
+/* ================= ENERGETIC: anime battle command =================
+   row 52 · label Bangers 28/32 · icon 22 · skew -10° · stroke 3 · hard shadow 6,6 */
+.s-anime { color: #0d0d10; background: radial-gradient(circle, rgba(13,13,16,.16) 1.4px, transparent 1.6px) 0 0 / 9px 9px, #fbf7ea; overflow: hidden; }
+.s-anime .set-head h2 { font: 400 54px/1 Bangers, Impact, sans-serif; letter-spacing: .02em; color: #e8132a; text-shadow: 3px 3px 0 #0d0d10; }
+.s-anime .stage { position: relative; min-height: 500px; padding-top: 12px; }
+.s-anime .menu-wrap { width: 616px; height: 470px; }
+.s-anime .menu-wrap::before { content: ''; position: absolute; left: -40%; top: -30%; width: 180%; height: 160%; pointer-events: none; opacity: 0; transition: opacity .12s;
+  background: repeating-conic-gradient(from 3deg at 32% 45%, #0d0d10 0 1.2deg, transparent 1.2deg 7deg);
+  mask-image: radial-gradient(ellipse at 32% 45%, transparent 34%, #000 62%); -webkit-mask-image: radial-gradient(ellipse at 32% 45%, transparent 34%, #000 62%); animation: speed .18s steps(3) infinite; }
+.s-anime .menu-wrap.has-hover::before { opacity: .55; }
+@keyframes speed { 33% { transform: rotate(1.2deg); } 66% { transform: rotate(-.8deg); } }
+.s-anime .menu { width: 340px; }
+.s-anime .menu-sub { left: 372px; width: 244px; top: calc(var(--sub-top) - 6px); }
+.s-anime .m-sec + .m-sec { margin-top: 10px; }
+.s-anime .m-label { --k: clamp(0, calc(var(--p) * 1.7 - var(--i) * .1), 1); display: inline-block; margin: 0 0 8px 6px; padding: 3px 12px; background: #0d0d10; color: #ffd60a; font: 400 13px/18px "Dela Gothic One", sans-serif; letter-spacing: .04em; transform: skewX(-10deg) translateX(calc((1 - var(--k)) * -130%)); opacity: var(--k); }
+.s-anime .m-rule { display: none; }
+.s-anime .mi { --k: clamp(0, calc(var(--p) * 1.7 - var(--i) * .1), 1); height: 52px; margin: 0 0 6px calc(var(--i) * 7px); padding: 0 18px; gap: 12px; background: #0d0d10; color: #fff; font: 400 28px/32px Bangers, Impact, sans-serif; letter-spacing: .05em; z-index: 2;
+  box-shadow: 6px 6px 0 rgba(13,13,16,.22);
+  opacity: var(--k); transform: translateX(calc((1 - var(--k)) * -140% + var(--near) * 26px)) skewX(-10deg) scale(calc(1 + var(--near) * .04)); }
+.s-anime .mi > span { transform: skewX(10deg); }
+.s-anime .mi-left, .s-anime .mi-right { width: 22px; height: 22px; color: #ffd60a; }
+.s-anime .mi svg { width: 22px; height: 22px; stroke-width: 2.2; }
+.s-anime .mi-short { font: 400 14px/1 "Dela Gothic One", sans-serif; color: #ffd60a; }
+.s-anime .mi-badge { min-width: 28px; height: 28px; padding: 0 7px; background: #ffd60a; color: #0d0d10; font: 400 20px/1 Bangers, sans-serif; clip-path: polygon(50% 0, 62% 18%, 86% 8%, 80% 32%, 100% 50%, 80% 66%, 86% 92%, 62% 82%, 50% 100%, 38% 82%, 14% 92%, 20% 66%, 0 50%, 20% 32%, 14% 8%, 38% 18%); }
+/* the shard: colour is drawn on the hovered row itself so it keeps the row's slant */
+.s-anime .mi-hl { display: none; }
+.s-anime .mi.is-hover, .s-anime .mi.is-parent { background: #e8132a; }
+.s-anime .mi.is-hover .mi-short, .s-anime .mi.is-hover .mi-left, .s-anime .mi.is-hover .mi-right { color: #fff; }
+/* impact frame */
+.s-anime .mi.is-press { background: #fff; color: #0d0d10; box-shadow: 0 0 0 3px #0d0d10, 8px 8px 0 #e8132a; }
+.s-anime .mi.is-press .mi-short, .s-anime .mi.is-press .mi-left, .s-anime .mi.is-press .mi-right { color: #e8132a; }
+.s-anime .mi.is-press::before { content: ''; position: absolute; z-index: -1; right: -150px; top: 50%; width: 170px; height: 170px; margin-top: -85px; background: #ffd60a; pointer-events: none;
+  clip-path: polygon(50% 0, 58% 30%, 82% 6%, 72% 36%, 100% 30%, 76% 50%, 100% 72%, 70% 66%, 80% 96%, 56% 72%, 46% 100%, 40% 70%, 14% 90%, 28% 62%, 0 58%, 28% 44%, 8% 18%, 36% 30%); animation: burst-in .22s cubic-bezier(.2,1.8,.4,1) both; }
+.s-anime .mi.is-press::after { content: attr(data-sfx); position: absolute; right: -132px; top: 50%; transform: translateY(-50%) skewX(10deg) rotate(-8deg); font: 400 34px/1 "Dela Gothic One", sans-serif; color: #e8132a; -webkit-text-stroke: 1.5px #0d0d10; white-space: nowrap; pointer-events: none; animation: sfx-in .24s cubic-bezier(.2,1.9,.4,1) both; }
+@keyframes burst-in { from { transform: scale(.2) rotate(-30deg); opacity: .4; } }
+@keyframes sfx-in { from { transform: translateY(-50%) skewX(10deg) rotate(-8deg) scale(2.4); opacity: 0; } }
+.s-anime .menu-wrap.is-impact { animation: shake .42s linear; }
+@keyframes shake { 0%, 100% { transform: none; } 12% { transform: translate(-7px, 4px); } 28% { transform: translate(6px, -5px); } 44% { transform: translate(-4px, -3px); } 62% { transform: translate(3px, 3px); } 80% { transform: translate(-2px, 1px); } }
+
+/* ================= MYSTERIOUS: one body of ink =================
+   row 44 · label Instrument Serif 21/24 · icon 20 · pad 12 · radius 26 · a bead that stretches with its speed */
+.s-ink { background: #efeae0; color: #121214; }
+.s-ink .set-head h2 { font: italic 400 50px/1.05 "Instrument Serif", Georgia, serif; }
+.s-ink .stage { min-height: 400px; padding-top: 12px; }
+.s-ink .menu-wrap { width: 510px; height: 360px; }
+.goo { position: absolute; inset: -40px; filter: url(#ink-goo); pointer-events: none; }
+.goo i { position: absolute; display: block; background: #121214; }
+.g-root { left: 40px; top: 40px; width: 310px; height: var(--root-h); border-radius: 26px; transform-origin: 40px 30px; transform: scale(var(--rp)); }
+.g-bud { left: 322px; top: calc(40px + var(--sub-top) - 8px); width: 76px; height: 60px; border-radius: 30px; transform: scaleX(var(--sp)); transform-origin: 0 50%; }
+.g-sub { left: 380px; top: calc(40px + var(--sub-top) - 12px); width: 176px; height: calc(var(--sub-n) * 44px + 24px); border-radius: 26px; transform: scale(var(--sp)); transform-origin: 0 34px; }
+.s-ink .menu { width: 310px; padding: 12px; background: none; color: #f4f0e6; opacity: min(1, calc(var(--p) * 1.3)); isolation: isolate; }
+.s-ink .menu-sub { left: 340px; width: 176px; top: calc(var(--sub-top) - 12px); opacity: clamp(0, calc(var(--p) * 2 - 1), 1); }
+.s-ink .mi { height: 44px; padding: 0 14px; gap: 12px; font: 400 21px/24px "Instrument Serif", Georgia, serif; }
+.s-ink .mi-left, .s-ink .mi-right { width: 20px; height: 20px; }
+.s-ink .mi-short { font: 400 12px/16px Inter, sans-serif; letter-spacing: .08em; opacity: .75; }
+.s-ink .mi-badge { min-width: 22px; height: 22px; border-radius: 11px; background: #f4f0e6; color: #121214; font: italic 400 16px/1 "Instrument Serif", serif; }
+.s-ink .m-label { padding: 6px 14px 4px; font: italic 400 15px/18px "Instrument Serif", serif; opacity: .55; }
+.s-ink .m-rule { height: 1px; margin: 6px 14px; background: rgba(244,240,230,.16); }
+/* the bead inverts what it covers and stretches with its speed */
+.s-ink .mi-hl { z-index: 3; left: 12px; right: 12px; background: #f1eddf; border-radius: 22px; mix-blend-mode: difference; opacity: 0; transition: opacity .25s ease, scale .2s ease;
+  transform: scaleX(calc(1 - min(var(--v) / 6000, .22))) scaleY(calc(1 + min(var(--v) / 1400, .9))); }
+.s-ink .mi-hl.on { opacity: 1; }
+.s-ink .mi-hl.is-press { scale: 1.035 .84; }
+.s-ink .mi.is-press::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px; border-radius: 50%; box-shadow: 0 0 0 1px #f1eddf; pointer-events: none; animation: ink-ring .5s ease-out both; }
+@keyframes ink-ring { to { transform: scale(7); opacity: 0; } }
+
+/* ================= SERENE: folded washi =================
+   row 40 · label Shippori Mincho 17/24 · icon 18 · pad 16 · fold 90° · a wave that fades over 3 rows */
+.s-washi { background: #dfe3d8; color: #2c322a; }
+.s-washi .set-head h2 { font: 400 42px/1.15 "Shippori Mincho", Georgia, serif; letter-spacing: .01em; }
+.s-washi .stage { min-height: 370px; padding-top: 12px; }
+.s-washi .menu-wrap { width: 510px; height: 340px; perspective: 900px; }
+.s-washi .menu { width: 300px; transform-style: preserve-3d; filter: drop-shadow(0 14px 16px rgba(50,60,45,.22)); }
+.s-washi .menu-sub { left: 306px; width: 180px; top: var(--sub-top); }
+.s-washi .m-sec { transform-style: preserve-3d; }
+.s-washi .m-label, .s-washi .m-rule, .s-washi .mi { background: #fbf8ef; }
+.s-washi .m-label { height: calc(32px * var(--p)); overflow: hidden; padding: 0 16px; font: 500 11px/36px Inter, sans-serif; letter-spacing: .2em; text-transform: uppercase; color: #79806f; }
+.s-washi .m-rule { height: calc(9px * var(--p)); background: linear-gradient(#d9d6c9, #d9d6c9) 16px 4px / calc(100% - 32px) 1px no-repeat, #fbf8ef; }
+/* every row is one fold: closed they stack flat, opening swings them out alternately */
+.s-washi .mi { height: calc(40px * var(--p)); padding: 0 16px; gap: 12px; overflow: hidden; font: 400 17px/24px "Shippori Mincho", Georgia, serif; transform-origin: 50% calc(50% + var(--sgn) * 50%);
+  transform: rotateX(calc((1 - var(--p)) * var(--sgn) * 84deg + clamp(-1.5, var(--d), 1.5) * var(--pres) * (1 - var(--near)) * -9deg)) translateZ(calc(var(--near) * 16px)); }
+.s-washi .mi::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(calc(90deg + var(--sgn) * 90deg), rgba(70,80,60,.34), transparent 70%); opacity: calc(1 - var(--p) + var(--pres) * (1 - var(--near)) * .22); }
+.s-washi .mi-left, .s-washi .mi-right { width: 18px; height: 18px; color: #6c7560; }
+.s-washi .mi svg { width: 18px; height: 18px; }
+.s-washi .mi-short { font: 400 11px/16px Inter, sans-serif; letter-spacing: .08em; color: #79806f; }
+.s-washi .mi-badge { min-width: 20px; height: 20px; border-radius: 10px; box-shadow: inset 0 0 0 1px #79806f; color: #4e5647; font: 400 12px/1 Inter, sans-serif; }
+.s-washi .mi-hl { display: none; }
+.s-washi .mi.is-hover, .s-washi .mi.is-parent { background: #fffdf6; }
+/* pressed: the paper creases inward */
+.s-washi .mi.is-press { background: #efeadb; transform: rotateX(calc(var(--sgn) * 10deg)) translateZ(-10px); }
+.s-washi .mi.is-off { opacity: .45; }
+
+@container set (max-width: 640px) {
+  .s-anime .set-head h2 { font-size: 36px; }
+  .s-anime .menu-wrap { width: 270px; height: 530px; }
+  .s-anime .menu-root { width: 270px; }
+  .s-anime .mi { font-size: 24px; margin-left: calc(var(--i) * 3px); }
+  .s-anime .menu-sub { left: 24px; width: 230px; top: calc(var(--sub-top) + 56px); }
+  .s-anime .stage { min-height: 560px; }
+  .s-ink .menu-wrap { width: 300px; height: 440px; }
+  .s-ink .menu-root { width: 290px; }
+  .g-root { width: 290px; }
+  .s-ink .menu-sub { left: 90px; top: calc(var(--sub-top) + 44px); }
+  .g-sub { left: 130px; top: calc(40px + var(--sub-top) + 44px); }
+  .g-bud { left: 180px; top: calc(40px + var(--sub-top) + 16px); width: 80px; height: 70px; transform-origin: 50% 0; transform: scaleY(var(--sp)); }
+  .s-ink .stage { min-height: 460px; }
+  .s-ink .set-head h2 { font-size: 36px; }
+  .s-washi .menu-wrap { width: 290px; height: 420px; }
+  .s-washi .menu-root { width: 290px; }
+  .s-washi .menu-sub { left: 90px; top: calc(var(--sub-top) + 40px); }
+  .s-washi .stage { min-height: 440px; }
+  .s-washi .set-head h2 { font-size: 30px; }
 }
 
 /* ================= WALL ================= */

@@ -35,6 +35,7 @@ function useSpring(target, { damping = 1, response = 0.3 } = {}) {
   useEffect(() => () => cancelAnimationFrame(raf.current), [])
   return {
     value: s.current.x,
+    velocity: s.current.v,
     snap(x) { cancelAnimationFrame(raf.current); s.current.x = x; s.current.v = 0 },
   }
 }
@@ -46,10 +47,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
    [left icon] label ............ [badge | shortcut | right icon | submenu chevron]
    Sections group rows, with an optional label. Both sets render this same structure;
    only the styling tokens and the commit moment differ. */
-function Row({ item, active, pressed, parent, rowRef, m, level, i, gutter }) {
+function Row({ item, active, pressed, parent, rowRef, m, level, i, gutter, fx }) {
   return (
     <div
       ref={rowRef}
+      style={fx}
+      data-sfx={item.sfx}
       role="menuitem"
       aria-disabled={item.disabled || undefined}
       aria-haspopup={item.sub ? 'menu' : undefined}
@@ -71,6 +74,13 @@ function Row({ item, active, pressed, parent, rowRef, m, level, i, gutter }) {
 
 const Chevron = () => <svg viewBox="0 0 8 12" width="8" height="12"><path d="M1.5 1.5 6.5 6l-5 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
 
+// a row's top inside its panel, whatever intermediate containers exist
+const topOf = (el) => {
+  let y = 0, n = el
+  while (n && !n.classList.contains('menu')) { y += n.offsetTop; n = n.offsetParent }
+  return y
+}
+
 function Panel({ sections, flat, open, active, pressed, parentOpen, commit, level, m, className, style, rowsRef }) {
   const rows = useRef([])
   if (rowsRef) rowsRef.current = rows.current
@@ -78,12 +88,14 @@ function Panel({ sections, flat, open, active, pressed, parentOpen, commit, leve
   const [box, setBox] = useState({ top: 0, h: 0 })
   const hl = useSpring(box.top, m.cfg.bar)
   const hSpring = useSpring(box.h, m.cfg.bar)
+  // how much the moving highlight is present, so rows can react to their distance from it
+  const presence = useSpring(active >= 0 ? 1 : 0, { damping: 1, response: 0.28 })
   const prev = useRef(-1)
   useLayoutEffect(() => {
     const el = rows.current[active]
     if (active >= 0 && el) {
-      if (prev.current < 0) { hl.snap(el.offsetTop); hSpring.snap(el.offsetHeight) } // appears in place, then glides
-      setBox({ top: el.offsetTop, h: el.offsetHeight })
+      if (prev.current < 0) { hl.snap(topOf(el)); hSpring.snap(el.offsetHeight) } // appears in place, then glides
+      setBox({ top: topOf(el), h: el.offsetHeight })
     }
     prev.current = active
   }, [active, open]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -91,19 +103,24 @@ function Panel({ sections, flat, open, active, pressed, parentOpen, commit, leve
   let n = -1
   // one left gutter per panel: if any row has an icon, every label lines up after it
   const gutter = flat.some((it) => it.left !== undefined)
+  const rowFx = (i) => {
+    const el = rows.current[i]
+    const d = el && hSpring.value > 1 ? (topOf(el) - hl.value) / hSpring.value : 9
+    return { '--i': i, '--sgn': i % 2 ? 1 : -1, '--d': Math.max(-3, Math.min(3, d)).toFixed(3), '--near': (Math.max(0, 1 - Math.abs(d)) * presence.value).toFixed(3), '--pres': presence.value.toFixed(3) }
+  }
   return (
-    <div className={`menu ${className} ${commit ? 'is-commit' : ''}`} role="menu" style={{ ...style, '--p': p.value, pointerEvents: open ? undefined : 'none' }}
+    <div className={`menu ${className} ${commit ? 'is-commit' : ''}`} role="menu" style={{ ...style, '--p': p.value, '--v': Math.abs(hl.velocity).toFixed(0), pointerEvents: open ? undefined : 'none' }}
       onPointerLeave={() => m.leave(level)}>
       <span aria-hidden="true" className={`mi-hl ${active >= 0 ? 'on' : ''} ${pressed >= 0 ? 'is-press' : ''} ${parentOpen ? 'is-parent' : ''}`}
         style={{ top: hl.value, height: hSpring.value }} />
       {sections.map((sec, si) => (
         <div className="m-sec" role="group" aria-label={sec.label} key={si}>
           {si > 0 && <div className="m-rule" />}
-          {sec.label && <div className="m-label">{sec.label}</div>}
+          {sec.label && <div className="m-label" style={{ '--i': n + 1 }}>{sec.label}</div>}
           {sec.items.map((item) => {
             n += 1
             const i = n
-            return <Row key={item.id} item={item} i={i} level={level} m={m} gutter={gutter} active={active === i} pressed={pressed === i}
+            return <Row key={item.id} item={item} i={i} level={level} m={m} gutter={gutter} fx={rowFx(i)} active={active === i} pressed={pressed === i}
               parent={!!item.sub && parentOpen && active === i} rowRef={(el) => { rows.current[i] = el }} />
           })}
         </div>
@@ -116,7 +133,8 @@ const flatten = (sections) => sections.flatMap((s) => s.items)
 
 function Menu({ sections, cfg, auto, offset = 0 }) {
   const flat = flatten(sections)
-  const open = true // the component is the whole presentation, so it stays open
+  // stays open by default; sets with cfg.returnMs close on a choice and come back, and enter when scrolled into view
+  const [open, setOpen] = useState(!cfg.returnMs || !!auto)
   const [idx, setIdx] = useState(-1)
   const [subIdx, setSubIdx] = useState(-1)
   const [subOpen, setSubOpen] = useState(false)
@@ -138,10 +156,24 @@ function Menu({ sections, cfg, auto, offset = 0 }) {
   const clear = (k) => clearTimeout(timers.current[k])
   useEffect(() => () => Object.values(timers.current).forEach(clearTimeout), [])
 
-  const place = (i) => { const el = rootRows.current[i]; if (el) setSubTop(el.offsetTop) }
+  const place = (i) => { const el = rootRows.current[i]; if (el) setSubTop(topOf(el)) }
   const showSub = (i) => { place(i); setSubOpen(true); setSubIdx(-1) }
 
-  const reset = () => { setIdx(-1); setSubIdx(-1); setSubOpen(false); setPressed(null); setCommit(null) }
+  const reset = () => { setIdx(-1); setSubIdx(-1); setSubOpen(false); setPressed(null); setCommit(null); setOpen(true) }
+  useEffect(() => {
+    if (!cfg.returnMs || auto || !wrapRef.current) return
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setOpen(true); io.disconnect() } }, { threshold: 0.15 })
+    io.observe(wrapRef.current)
+    return () => io.disconnect()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const rootSpring = useSpring(open ? 1 : 0, cfg.open)
+  const subSpring = useSpring(open && subOpen ? 1 : 0, cfg.open)
+  const [rootH, setRootH] = useState(0)
+  useLayoutEffect(() => {
+    if (!cfg.goo) return
+    const el = wrapRef.current?.querySelector('.menu-root')
+    if (el && rootSpring.value > 0.98 && el.offsetHeight !== rootH) setRootH(el.offsetHeight)
+  })
 
   // moving toward the open submenu: don't let a row crossed on the way steal it
   const aiming = (e) => {
@@ -187,6 +219,10 @@ function Menu({ sections, cfg, auto, offset = 0 }) {
         busy.current = false
         item.run?.()
         setPressed(null); setCommit(null) // the row stays hovered so the result can be seen
+        if (cfg.returnMs) {
+          setOpen(false); setIdx(-1); setSubIdx(-1); setSubOpen(false)
+          timers.current.back = setTimeout(() => setOpen(true), cfg.returnMs)
+        }
       }, cfg.commitMs)
     },
   }
@@ -221,6 +257,26 @@ function Menu({ sections, cfg, auto, offset = 0 }) {
     }
   }
 
+  /* ⌘ shortcuts press their row while the pointer or focus is on this menu */
+  const shortcutRef = useRef()
+  shortcutRef.current = { flat, m, setIdx, setSubOpen }
+  useEffect(() => {
+    if (auto) return
+    const onKey = (e) => {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return
+      const el = wrapRef.current
+      if (!el || !(el.matches(':hover') || el.contains(document.activeElement))) return
+      const { flat: list, m: api, setIdx: si, setSubOpen: so } = shortcutRef.current
+      const i = list.findIndex((it) => it.shortcut && it.shortcut.slice(-1).toLowerCase() === e.key.toLowerCase())
+      if (i < 0) return
+      e.preventDefault()
+      si(i); so(false); api.press(0, i)
+      setTimeout(() => shortcutRef.current.m.choose(0, i), 90)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
+
   /* wall: the menu operates itself */
   const latest = useRef()
   latest.current = { flat, m, setIdx, setSubIdx, showSub, setPressed, reset }
@@ -248,7 +304,7 @@ function Menu({ sections, cfg, auto, offset = 0 }) {
               latest.current.m.press(1, (n + 1) % sub.length); latest.current.setSubIdx((n + 1) % sub.length)
               await sleep(240)
               latest.current.m.choose(1, (n + 1) % sub.length)
-              await sleep(cfg.commitMs + 900)
+              await sleep(cfg.commitMs + (cfg.returnMs || 0) + 1100)
               n += 1
               break
             }
@@ -261,32 +317,19 @@ function Menu({ sections, cfg, auto, offset = 0 }) {
   }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div ref={wrapRef} className="menu-wrap" tabIndex={0} aria-label="Menu" onKeyDown={onKeyDown}
+    <div ref={wrapRef} className={`menu-wrap ${commit != null ? 'is-impact' : ''} ${idx >= 0 ? 'has-hover' : ''}`} tabIndex={0} aria-label="Menu" onKeyDown={onKeyDown}
       onFocus={(e) => { if (e.target.matches(':focus-visible') && idx < 0 && !auto) setIdx(nextOn(flat, -1, 1)) }}>
+      {cfg.goo && (
+        <div className="goo" aria-hidden="true" style={{ '--rp': rootSpring.value, '--sp': subSpring.value, '--root-h': `${rootH || 300}px`, '--sub-top': `${subTop}px`, '--sub-n': subFlat.length }}>
+          <i className="g-root" /><i className="g-bud" /><i className="g-sub" />
+        </div>
+      )}
       <Panel sections={sections} flat={flat} open={open} level={0} m={m} className="menu-root" rowsRef={rootRows}
         active={flat[idx]?.disabled ? -1 : idx} pressed={pressed?.level === 0 ? pressed.i : -1} commit={commit === 0} parentOpen={subOpen} />
       <Panel sections={subSections} flat={subFlat} open={open && subOpen} level={1} m={m} className="menu-sub"
         style={{ '--sub-top': `${subTop}px` }} active={subIdx} pressed={pressed?.level === 1 ? pressed.i : -1} commit={commit === 1} />
     </div>
   )
-}
-
-/* ⌘ shortcuts work while the pointer or focus is inside this set */
-function useShortcuts(ref, map, auto) {
-  const latest = useRef(map)
-  latest.current = map
-  useEffect(() => {
-    if (auto) return
-    const onKey = (e) => {
-      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return
-      const el = ref.current
-      if (!el || !(el.matches(':hover') || el.contains(document.activeElement))) return
-      const fn = latest.current[e.key.toLowerCase()]
-      if (fn) { e.preventDefault(); fn() }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [auto, ref])
 }
 
 /* ================= NOSTALGIC · Every Choice Inverts =================
@@ -314,8 +357,6 @@ function NostalgicSet({ auto, offset }) {
   const [trash, setTrash] = useState(3)
   const [muted, setMuted] = useState(false)
   const tidyUp = () => setTidy((v) => { if (v) setTrash(3); return !v })
-
-  useShortcuts(ref, { k: tidyUp }, auto)
 
   const sections = [
     { label: 'Desk', items: [
@@ -362,8 +403,6 @@ function LuxuriousSet({ auto, offset }) {
   const [bottle, setBottle] = useState(false)
   const drawCurtains = () => setCurtains((v) => !v)
 
-  useShortcuts(ref, { u: drawCurtains }, auto)
-
   const sections = [
     { label: 'The Suite', items: [
       { id: 'curtains', label: curtains ? 'Open the Curtains' : 'Draw the Curtains', left: LI.curtain, shortcut: '⌘U', run: drawCurtains },
@@ -382,10 +421,124 @@ function LuxuriousSet({ auto, offset }) {
   return <div className="stage" ref={ref}><Menu sections={sections} cfg={LUX_CFG} auto={auto} offset={offset} /></div>
 }
 
+/* ================= ENERGETIC · Final Attack! =================
+   A shonen battle command menu. Rows slam in, the shard snaps with overshoot, a press is an impact frame. */
+const BOLD = {
+  shield: li(['M10 2l7 3v5c0 4-3 6.5-7 8-4-1.5-7-4-7-8V5z']),
+  potion: li(['M8 2h4', 'M8.5 2v5L4 15a2 2 0 0 0 2 3h8a2 2 0 0 0 2-3l-4.5-8V2', 'M6 12h8']),
+  eye: li(['M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z', 'M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z']),
+  closed: li(['M2 9s3 5 8 5 8-5 8-5', 'M5 13l-1.500 2M15 13l1.500 2M10 14v2.500']),
+  check: li(['M4 10.500l4 4L16 5.500']),
+}
+const TECH = ['Flame Fang', 'Thunder Step', 'Void Slash']
+const ANIME_CFG = { commitMs: 520, returnMs: 620, open: { damping: 0.82, response: 0.42 }, bar: { damping: 0.58, response: 0.24 } }
+
+function AnimeSet({ auto, offset }) {
+  const ref = useRef(null)
+  const [tech, setTech] = useState(0)
+  const [items, setItems] = useState(3)
+  const [focus, setFocus] = useState(false)
+  const sections = [
+    { label: 'コマンド · Command', items: [
+      { id: 'strike', label: 'Strike', shortcut: '⌘E', sfx: 'ドン!' },
+      { id: 'guard', label: 'Guard', left: BOLD.shield, shortcut: '⌘G', sfx: 'ガキン!' },
+      { id: 'items', label: 'Items', left: BOLD.potion, badge: items, sfx: 'シュッ!', run: () => setItems((n) => (n > 0 ? n - 1 : 3)) },
+    ] },
+    { label: '必殺 · Special', items: [
+      { id: 'focus', label: 'Focus', right: focus ? BOLD.eye : BOLD.closed, sfx: 'ゴゴゴ', run: () => setFocus((v) => !v) },
+      { id: 'tech', label: 'Technique', sub: [{ items: TECH.map((name, i) => ({
+        id: name, label: name, sfx: 'ズバッ!', left: tech === i ? BOLD.check : <span className="mi-blank" />, run: () => setTech(i),
+      })) }] },
+    ] },
+  ]
+  return <div className="stage" ref={ref}><Menu sections={sections} cfg={ANIME_CFG} auto={auto} offset={offset} /></div>
+}
+
+/* ================= MYSTERIOUS · Ink Divides =================
+   The menu is one body of ink. A paper bead stretches as it travels; the submenu buds off like a cell. */
+const INK = {
+  cards: li(['M4 4l7-1.500 3 12-7 1.500z', 'M14 5l3 1-3 11-4-1']),
+  ear: li(['M6 8a4.500 4.500 0 1 1 8 3c-1.500 1.500-2 2-2 3.500a2.500 2.500 0 0 1-5 .500', 'M8.500 8a2 2 0 0 1 3.500 1']),
+  lock: li(['M5 9h10v8H5z', 'M7 9V6.500a3 3 0 0 1 6 0V9']),
+  open: li(['M5 9h10v8H5z', 'M7 9V6.500a3 3 0 0 1 5.800-1']),
+  check: li(['M5 10.500l3.500 3.500L15 6.500']),
+}
+const FAMILIARS = ['Moth', 'Raven', 'Fox']
+const INK_CFG = { goo: true, commitMs: 380, returnMs: 700, open: { damping: 0.74, response: 0.62 }, bar: { damping: 0.62, response: 0.42 } }
+
+function InkSet({ auto, offset }) {
+  const ref = useRef(null)
+  const [lit, setLit] = useState(false)
+  const [sealed, setSealed] = useState(true)
+  const [whispers, setWhispers] = useState(7)
+  const [fam, setFam] = useState(0)
+  const sections = [
+    { label: 'The Ritual', items: [
+      { id: 'candle', label: lit ? 'Snuff the Candle' : 'Light the Candle', run: () => setLit((v) => !v) },
+      { id: 'cards', label: 'Read the Cards', left: INK.cards, shortcut: '⌘E' },
+      { id: 'whisper', label: 'Whispers', left: INK.ear, badge: whispers || undefined, run: () => setWhispers(whispers ? 0 : 7) },
+    ] },
+    { label: 'The Door', items: [
+      { id: 'seal', label: sealed ? 'Unseal the Door' : 'Seal the Door', right: sealed ? INK.lock : INK.open, run: () => setSealed((v) => !v) },
+      { id: 'summon', label: 'Summon', sub: [{ items: FAMILIARS.map((name, i) => ({
+        id: name, label: name, left: fam === i ? INK.check : <span className="mi-blank" />, run: () => setFam(i),
+      })) }] },
+    ] },
+  ]
+  return (
+    <div className="stage" ref={ref}>
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+        <filter id="ink-goo" colorInterpolationFilters="sRGB">
+          <feGaussianBlur stdDeviation="9" />
+          <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11" />
+        </filter>
+      </svg>
+      <Menu sections={sections} cfg={INK_CFG} auto={auto} offset={offset} />
+    </div>
+  )
+}
+
+/* ================= SERENE · Paper Unfolds =================
+   A strip of folded washi. Every row is a fold: it opens in 3D, tilts in a wave around the pointer, creases when pressed. */
+const WASHI = {
+  leaf: li(['M4 16C4 8 9 4 17 3c0 8-4 13-11 13', 'M4 16l7-7']),
+  cup: li(['M4 8h10v4a5 5 0 0 1-10 0z', 'M14 9h1.500a2 2 0 0 1 0 4H14', 'M7 2.500c-1 1.500 1 2 0 3.500M10.500 2.500c-1 1.500 1 2 0 3.500']),
+  hush: li(['M15.500 12.500A6.500 6.500 0 0 1 7.500 4.500a6.500 6.500 0 1 0 8 8z']),
+  sound: li(['M3 10c1.500-3 3-3 4.500 0s3 3 4.500 0 3-3 4.500 0']),
+  check: li(['M5 10.500l3.500 3.500L15 6.500']),
+}
+const SEASONS = ['Spring', 'Rain', 'Snow']
+const WASHI_CFG = { commitMs: 420, returnMs: 900, open: { damping: 1, response: 0.95 }, bar: { damping: 1, response: 0.5 } }
+
+function WashiSet({ auto, offset }) {
+  const ref = useRef(null)
+  const [boiled, setBoiled] = useState(false)
+  const [cups, setCups] = useState(2)
+  const [quiet, setQuiet] = useState(false)
+  const [season, setSeason] = useState(1)
+  const sections = [
+    { label: 'Tea', items: [
+      { id: 'boil', label: boiled ? 'Let the Water Rest' : 'Boil the Water', run: () => setBoiled((v) => !v) },
+      { id: 'steep', label: 'Steep Sencha', left: WASHI.leaf, shortcut: '⌘E' },
+      { id: 'cups', label: 'Pour', left: WASHI.cup, badge: cups, run: () => setCups((n) => (n > 0 ? n - 1 : 2)) },
+    ] },
+    { label: 'The Room', items: [
+      { id: 'quiet', label: 'Quiet', right: quiet ? WASHI.hush : WASHI.sound, run: () => setQuiet((v) => !v) },
+      { id: 'season', label: 'Season', sub: [{ items: SEASONS.map((name, i) => ({
+        id: name, label: name, left: season === i ? WASHI.check : <span className="mi-blank" />, run: () => setSeason(i),
+      })) }] },
+    ] },
+  ]
+  return <div className="stage" ref={ref}><Menu sections={sections} cfg={WASHI_CFG} auto={auto} offset={offset} /></div>
+}
+
 /* ================= page ================= */
 const SETS = [
   { id: 'classic', tone: 'Nostalgic, Every Choice Inverts', Body: NostalgicSet },
   { id: 'lux', tone: 'Luxurious, At Your Service', Body: LuxuriousSet },
+  { id: 'anime', tone: 'Energetic, Final Attack!', Body: AnimeSet },
+  { id: 'ink', tone: 'Mysterious, Ink Divides', Body: InkSet },
+  { id: 'washi', tone: 'Serene, Paper Unfolds', Body: WashiSet },
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
