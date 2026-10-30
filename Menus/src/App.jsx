@@ -423,6 +423,7 @@ function RingSet({ auto, offset = 0 }) {
   const [wishes, setWishes] = useState(3)
   const [weather, setWeather] = useState(0)
   const [subFocus, setSubFocus] = useState(-1)
+  const [subFor, setSubFor] = useState(-1) // the card whose second layer was opened by clicking it
 
   const items = [
     { id: 'dawn', section: 'Day', label: 'Dawn', title: 'Dawn', line: 'The first light finds the edge of everything.' },
@@ -516,9 +517,42 @@ function RingSet({ auto, offset = 0 }) {
     if (d.moved) { setTarget((t) => Math.round(t - d.v * 2.2)); return }
     const isCenter = mod(d.i, N) === active
     spinTo(d.i)
+    if (items[mod(d.i, N)].sub) setSubFor((v) => (full && isCenter && v === active ? -1 : mod(d.i, N)))
     if (!full) openFull()
     else if (isCenter) cur.act?.()
   }
+
+  /* trackpad: two fingers roll the wheel, and it settles on the nearest card once they stop.
+     At page size it only takes over after the pointer has moved onto it, so scrolling the page never gets caught here */
+  const engaged = useRef(false)
+  const fullRef = useRef(full)
+  fullRef.current = full
+  useEffect(() => {
+    const el = stage.current
+    if (auto || !el) return
+    let settle
+    const onWheel = (e) => {
+      if (e.ctrlKey || !(fullRef.current || engaged.current)) { engaged.current = false; return }
+      e.preventDefault()
+      const px = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1
+      const delta = (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * px
+      setSubFor(-1)
+      setTarget((t) => t + delta / 110)
+      clearTimeout(settle)
+      settle = setTimeout(() => setTarget((t) => Math.round(t)), 130)
+    }
+    const onMove = (e) => { if (e.movementX || e.movementY) engaged.current = true }
+    const onLeave = () => { engaged.current = false }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('pointermove', onMove)
+    el.addEventListener('pointerleave', onLeave)
+    return () => {
+      clearTimeout(settle)
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('pointermove', onMove)
+      el.removeEventListener('pointerleave', onLeave)
+    }
+  }, [auto])
 
   /* keyboard works while the pointer or focus is on it, or always when full screen */
   const latest = useRef()
@@ -526,7 +560,7 @@ function RingSet({ auto, offset = 0 }) {
   useEffect(() => {
     if (auto) return
     const onKey = (e) => {
-      const { full: isFull, cur: c, subFocus: sf, items: list } = latest.current
+      const { full: isFull, cur: c, subFocus: sf, active: at, items: list } = latest.current
       const el = stage.current
       if (!el || !(isFull || el.matches(':hover') || el.contains(document.activeElement))) return
       if (e.metaKey || e.ctrlKey) {
@@ -538,15 +572,15 @@ function RingSet({ auto, offset = 0 }) {
       if (sf >= 0) {
         if (e.key === 'ArrowDown') { stop(); setSubFocus((v) => mod(v + 1, WEATHER.length)) }
         else if (e.key === 'ArrowUp') { stop(); setSubFocus((v) => mod(v - 1, WEATHER.length)) }
-        else if (e.key === 'ArrowLeft' || e.key === 'Escape') { stop(); setSubFocus(-1) }
+        else if (e.key === 'ArrowLeft' || e.key === 'Escape') { stop(); setSubFocus(-1); setSubFor(-1) }
         else if (e.key === 'Enter' || e.key === ' ') { stop(); setWeather(sf) }
         return
       }
       if (e.key === 'ArrowDown') { stop(); setTarget((t) => Math.round(t) + 1) }
       else if (e.key === 'ArrowUp') { stop(); setTarget((t) => Math.round(t) - 1) }
-      else if (e.key === 'ArrowRight' && c.sub) { stop(); setSubFocus(0) }
-      else if (e.key === 'Enter' || e.key === ' ') { stop(); if (!isFull) openFullRef.current(); else if (c.sub) setSubFocus(0); else c.act?.() }
-      else if (e.key === 'Escape' && isFull) { stop(); setFull(false) }
+      else if (e.key === 'ArrowRight' && c.sub) { stop(); setSubFor(at); setSubFocus(0) }
+      else if (e.key === 'Enter' || e.key === ' ') { stop(); if (c.sub) setSubFor(at); if (!isFull) openFullRef.current(); else if (c.sub) setSubFocus(0); else c.act?.() }
+      else if (e.key === 'Escape' && isFull) { stop(); setFull(false); setSubFor(-1) }
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
@@ -626,7 +660,7 @@ function RingSet({ auto, offset = 0 }) {
         </div>
         <div className="rw-arc" aria-hidden="true" style={{ left: cx + xR * 0.05, top: cy - yR * 1.1, width: xR * 2, height: yR * 2.2 }} />
         <div className="rw-cards">{cards}</div>
-        <div className={`rw-sub ${cur.sub && !drag.current ? 'on' : ''}`} style={{ left: cx + xR + cardW + 18 * k, top: cy + 14 * k }}>
+        <div className={`rw-sub ${cur.sub && subFor === active && !drag.current ? 'on' : ''}`} style={{ left: cx + xR + cardW + 18 * k, top: cy + 14 * k }}>
           {WEATHER.map((w, i) => (
             <button key={w} type="button" className={`rs ${weather === i ? 'is-sel' : ''} ${subFocus === i ? 'is-focus' : ''}`} tabIndex={-1}
               onClick={() => { setWeather(i); openFull() }}>
@@ -634,7 +668,7 @@ function RingSet({ auto, offset = 0 }) {
             </button>
           ))}
         </div>
-        {g > 0.5 && <button type="button" className="rw-close" onClick={() => setFull(false)}>Close <kbd>Esc</kbd></button>}
+        {g > 0.5 && <button type="button" className="rw-close" onClick={() => { setFull(false); setSubFor(-1) }}>Close <kbd>Esc</kbd></button>}
       </div>
     </div>
   )
