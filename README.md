@@ -10,6 +10,7 @@ Live: https://wei-afk.github.io/Advanced-Interface/
 | `Progress-Bar/` | Week 1 · Progress indicators |
 | `Badges-Tooltips/` | Week 2 · Badges & tooltips |
 | `Selectors/` | Week 3 · Switches, checkboxes & radio buttons |
+| `Menus/` | Week 6 · Menus |
 
 ## Adding a component (e.g. Button)
 
