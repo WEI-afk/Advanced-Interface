@@ -133,8 +133,7 @@ const flatten = (sections) => sections.flatMap((s) => s.items)
 
 function Menu({ sections, cfg, auto, offset = 0, ctl, onActive }) {
   const flat = flatten(sections)
-  // stays open by default; sets with cfg.returnMs close on a choice and come back, and enter when scrolled into view
-  const [open, setOpen] = useState(!cfg.returnMs || !!auto)
+  const [open, setOpen] = useState(true)
   const [idx, setIdx] = useState(cfg.sticky ? 0 : -1)
   const [subIdx, setSubIdx] = useState(-1)
   const [subOpen, setSubOpen] = useState(false)
@@ -160,20 +159,6 @@ function Menu({ sections, cfg, auto, offset = 0, ctl, onActive }) {
   const showSub = (i) => { place(i); setSubOpen(true); setSubIdx(-1) }
 
   const reset = () => { setIdx(cfg.sticky ? 0 : -1); setSubIdx(-1); setSubOpen(false); setPressed(null); setCommit(null); setOpen(true) }
-  useEffect(() => {
-    if (!cfg.returnMs || auto || !wrapRef.current) return
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setOpen(true); io.disconnect() } }, { threshold: 0.15 })
-    io.observe(wrapRef.current)
-    return () => io.disconnect()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  const rootSpring = useSpring(open ? 1 : 0, cfg.open)
-  const subSpring = useSpring(open && subOpen ? 1 : 0, cfg.open)
-  const [rootH, setRootH] = useState(0)
-  useLayoutEffect(() => {
-    if (!cfg.goo) return
-    const el = wrapRef.current?.querySelector('.menu-root')
-    if (el && rootSpring.value > 0.98 && el.offsetHeight !== rootH) setRootH(el.offsetHeight)
-  })
 
   // moving toward the open submenu: don't let a row crossed on the way steal it
   const aiming = (e) => {
@@ -219,10 +204,6 @@ function Menu({ sections, cfg, auto, offset = 0, ctl, onActive }) {
         busy.current = false
         item.run?.()
         setPressed(null); setCommit(null) // the row stays hovered so the result can be seen
-        if (cfg.returnMs) {
-          setOpen(false); setIdx(-1); setSubIdx(-1); setSubOpen(false)
-          timers.current.back = setTimeout(() => setOpen(true), cfg.returnMs)
-        }
       }, cfg.commitMs)
     },
   }
@@ -322,7 +303,7 @@ function Menu({ sections, cfg, auto, offset = 0, ctl, onActive }) {
               latest.current.m.press(1, (n + 1) % sub.length); latest.current.setSubIdx((n + 1) % sub.length)
               await sleep(240)
               latest.current.m.choose(1, (n + 1) % sub.length)
-              await sleep(cfg.commitMs + (cfg.returnMs || 0) + 1100)
+              await sleep(cfg.commitMs + 1100)
               n += 1
               break
             }
@@ -337,11 +318,6 @@ function Menu({ sections, cfg, auto, offset = 0, ctl, onActive }) {
   return (
     <div ref={wrapRef} className={`menu-wrap ${commit != null ? 'is-impact' : ''} ${idx >= 0 ? 'has-hover' : ''} ${subOpen ? 'has-sub' : ''}`} tabIndex={0} aria-label="Menu" onKeyDown={onKeyDown}
       onFocus={(e) => { if (e.target.matches(':focus-visible') && idx < 0 && !auto) setIdx(nextOn(flat, -1, 1)) }}>
-      {cfg.goo && (
-        <div className="goo" aria-hidden="true" style={{ '--rp': rootSpring.value, '--sp': subSpring.value, '--root-h': `${rootH || 300}px`, '--sub-top': `${subTop}px`, '--sub-n': subFlat.length }}>
-          <i className="g-root" /><i className="g-bud" /><i className="g-sub" />
-        </div>
-      )}
       <Panel sections={sections} flat={flat} open={open} level={0} m={m} className="menu-root" rowsRef={rootRows}
         active={flat[idx]?.disabled ? -1 : idx} pressed={pressed?.level === 0 ? pressed.i : -1} commit={commit === 0} parentOpen={subOpen} />
       <Panel sections={subSections} flat={subFlat} open={open && subOpen} level={1} m={m} className="menu-sub"
@@ -350,207 +326,14 @@ function Menu({ sections, cfg, auto, offset = 0, ctl, onActive }) {
   )
 }
 
-/* ================= NOSTALGIC · Every Choice Inverts =================
-   1-bit, 1984. One bar glides between rows and inverts everything it passes. */
-const px = (rects, size = 16) => (
-  <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} shapeRendering="crispEdges" aria-hidden="true">
-    {rects.map(([x, y, w, h], i) => <rect key={i} x={x} y={y} width={w} height={h} fill="currentColor" />)}
-  </svg>
-)
-const PX = {
-  check: px([[3, 8, 2, 2], [5, 10, 2, 2], [7, 8, 2, 2], [9, 6, 2, 2], [11, 4, 2, 2]]),
-  note: px([[3, 1, 10, 1], [3, 14, 10, 1], [3, 1, 1, 14], [12, 1, 1, 14], [5, 4, 6, 1], [5, 7, 6, 1], [5, 10, 4, 1]]),
-  trash: px([[6, 1, 4, 1], [2, 3, 12, 1], [3, 5, 1, 10], [12, 5, 1, 10], [3, 14, 10, 1], [6, 6, 1, 7], [9, 6, 1, 7]]),
-  sound: px([[2, 6, 3, 4], [5, 5, 1, 6], [6, 4, 1, 8], [7, 3, 1, 10], [10, 6, 1, 4], [12, 4, 1, 8]]),
-  mute: px([[2, 6, 3, 4], [5, 5, 1, 6], [6, 4, 1, 8], [7, 3, 1, 10], [10, 6, 1, 1], [13, 6, 1, 1], [11, 7, 2, 2], [10, 9, 1, 1], [13, 9, 1, 1]]),
-}
-
-const PATTERNS = ['Checker', 'Pinstripe', 'Bricks', 'Plain']
-const CLASSIC_CFG = { commitMs: 300, open: { damping: 1, response: 0.2 }, bar: { damping: 1, response: 0.16 } }
-
-function NostalgicSet({ auto, offset }) {
-  const ref = useRef(null)
-  const [pattern, setPattern] = useState(0)
-  const [tidy, setTidy] = useState(false)
-  const [trash, setTrash] = useState(3)
-  const [muted, setMuted] = useState(false)
-  const tidyUp = () => setTidy((v) => { if (v) setTrash(3); return !v })
-
-  const sections = [
-    { label: 'Desk', items: [
-      { id: 'tidy', label: tidy ? 'Scatter Desk' : 'Clean Up Desk', shortcut: '⌘K', run: tidyUp },
-      { id: 'note', label: 'Note Pad', left: PX.note, shortcut: '⌘J' },
-      { id: 'trash', label: 'Empty Trash', left: PX.trash, badge: trash || undefined, disabled: trash === 0, run: () => setTrash(0) },
-    ] },
-    { items: [
-      { id: 'sound', label: 'Sound', right: muted ? PX.mute : PX.sound, run: () => setMuted((v) => !v) },
-      { id: 'pattern', label: 'Desktop Pattern', sub: [{ items: PATTERNS.map((name, i) => ({
-        id: name, label: name, left: pattern === i ? PX.check : <span className="mi-blank" />, run: () => setPattern(i),
-      })) }] },
-    ] },
-  ]
-
-  return <div className="stage" ref={ref}><Menu sections={sections} cfg={CLASSIC_CFG} auto={auto} offset={offset} /></div>
-}
-
-/* ================= LUXURIOUS · At Your Service =================
-   Nothing is hurried: a gold hairline moves between rows and a press gilds the row. */
+/* line icons */
 const li = (d) => (
   <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     {d.map((p, i) => <path key={i} d={p} />)}
   </svg>
 )
-const LI = {
-  curtain: li(['M3 3h14', 'M5 3c0 6 1 10 3 14', 'M15 3c0 6-1 10-3 14', 'M5 17h3M12 17h3']),
-  lamp: li(['M10 2v4', 'M6 6h8l2 6H4z', 'M10 12v5', 'M7 17.5h6']),
-  letter: li(['M3 5.5h14v10H3z', 'M3 6l7 5.5L17 6']),
-  moon: li(['M15.5 12.5A6.5 6.5 0 0 1 7.5 4.5a6.5 6.5 0 1 0 8 8z']),
-  bell: li(['M4 14h12', 'M5 14a5 5 0 0 1 10 0', 'M10 9V7.5', 'M8.5 7h3', 'M3 16.5h14']),
-  check: li(['M5 10.5l3.5 3.5L15 6.5']),
-}
 
-const LIGHT = ['Candlelight', 'Dusk', 'Daylight']
-const LUX_CFG = { commitMs: 460, open: { damping: 1, response: 0.5 }, bar: { damping: 1, response: 0.38 } }
-
-function LuxuriousSet({ auto, offset }) {
-  const ref = useRef(null)
-  const [curtains, setCurtains] = useState(false)
-  const [light, setLight] = useState(0)
-  const [dnd, setDnd] = useState(false)
-  const [letters, setLetters] = useState(2)
-  const [bottle, setBottle] = useState(false)
-  const drawCurtains = () => setCurtains((v) => !v)
-
-  const sections = [
-    { label: 'The Suite', items: [
-      { id: 'curtains', label: curtains ? 'Open the Curtains' : 'Draw the Curtains', left: LI.curtain, shortcut: '⌘U', run: drawCurtains },
-      { id: 'light', label: 'Lighting', left: LI.lamp, sub: [{ items: LIGHT.map((name, i) => ({
-        id: name, label: name, left: light === i ? LI.check : <span className="mi-blank" />, run: () => setLight(i),
-      })) }] },
-      { id: 'dnd', label: 'Do Not Disturb', right: dnd ? LI.moon : <span className="mi-ring" />, run: () => setDnd((v) => !v) },
-    ] },
-    { label: 'Service', items: [
-      { id: 'bottle', label: bottle ? 'Clear the Champagne' : 'Champagne on Ice', run: () => setBottle((v) => !v) },
-      { id: 'letters', label: 'Correspondence', left: LI.letter, badge: letters || undefined, run: () => setLetters(letters ? 0 : 2) },
-      { id: 'late', label: 'Late Departure', left: LI.bell, shortcut: '⌘I' },
-    ] },
-  ]
-
-  return <div className="stage" ref={ref}><Menu sections={sections} cfg={LUX_CFG} auto={auto} offset={offset} /></div>
-}
-
-/* ================= ENERGETIC · Final Attack! =================
-   A shonen battle command menu. Rows slam in, the shard snaps with overshoot, a press is an impact frame. */
-const BOLD = {
-  shield: li(['M10 2l7 3v5c0 4-3 6.5-7 8-4-1.5-7-4-7-8V5z']),
-  potion: li(['M8 2h4', 'M8.5 2v5L4 15a2 2 0 0 0 2 3h8a2 2 0 0 0 2-3l-4.5-8V2', 'M6 12h8']),
-  eye: li(['M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z', 'M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z']),
-  closed: li(['M2 9s3 5 8 5 8-5 8-5', 'M5 13l-1.500 2M15 13l1.500 2M10 14v2.500']),
-  check: li(['M4 10.500l4 4L16 5.500']),
-}
-const TECH = ['Flame Fang', 'Thunder Step', 'Void Slash']
-const ANIME_CFG = { commitMs: 520, returnMs: 620, open: { damping: 0.82, response: 0.42 }, bar: { damping: 0.58, response: 0.24 } }
-
-function AnimeSet({ auto, offset }) {
-  const ref = useRef(null)
-  const [tech, setTech] = useState(0)
-  const [items, setItems] = useState(3)
-  const [focus, setFocus] = useState(false)
-  const sections = [
-    { label: 'コマンド · Command', items: [
-      { id: 'strike', label: 'Strike', shortcut: '⌘E', sfx: 'ドン!' },
-      { id: 'guard', label: 'Guard', left: BOLD.shield, shortcut: '⌘G', sfx: 'ガキン!' },
-      { id: 'items', label: 'Items', left: BOLD.potion, badge: items, sfx: 'シュッ!', run: () => setItems((n) => (n > 0 ? n - 1 : 3)) },
-    ] },
-    { label: '必殺 · Special', items: [
-      { id: 'focus', label: 'Focus', right: focus ? BOLD.eye : BOLD.closed, sfx: 'ゴゴゴ', run: () => setFocus((v) => !v) },
-      { id: 'tech', label: 'Technique', sub: [{ items: TECH.map((name, i) => ({
-        id: name, label: name, sfx: 'ズバッ!', left: tech === i ? BOLD.check : <span className="mi-blank" />, run: () => setTech(i),
-      })) }] },
-    ] },
-  ]
-  return <div className="stage" ref={ref}><Menu sections={sections} cfg={ANIME_CFG} auto={auto} offset={offset} /></div>
-}
-
-/* ================= MYSTERIOUS · Ink Divides =================
-   The menu is one body of ink. A paper bead stretches as it travels; the submenu buds off like a cell. */
-const INK = {
-  cards: li(['M4 4l7-1.500 3 12-7 1.500z', 'M14 5l3 1-3 11-4-1']),
-  ear: li(['M6 8a4.500 4.500 0 1 1 8 3c-1.500 1.500-2 2-2 3.500a2.500 2.500 0 0 1-5 .500', 'M8.500 8a2 2 0 0 1 3.500 1']),
-  lock: li(['M5 9h10v8H5z', 'M7 9V6.500a3 3 0 0 1 6 0V9']),
-  open: li(['M5 9h10v8H5z', 'M7 9V6.500a3 3 0 0 1 5.800-1']),
-  check: li(['M5 10.500l3.500 3.500L15 6.500']),
-}
-const FAMILIARS = ['Moth', 'Raven', 'Fox']
-const INK_CFG = { goo: true, commitMs: 380, returnMs: 700, open: { damping: 0.74, response: 0.62 }, bar: { damping: 0.62, response: 0.42 } }
-
-function InkSet({ auto, offset }) {
-  const ref = useRef(null)
-  const [lit, setLit] = useState(false)
-  const [sealed, setSealed] = useState(true)
-  const [whispers, setWhispers] = useState(7)
-  const [fam, setFam] = useState(0)
-  const sections = [
-    { label: 'The Ritual', items: [
-      { id: 'candle', label: lit ? 'Snuff the Candle' : 'Light the Candle', run: () => setLit((v) => !v) },
-      { id: 'cards', label: 'Read the Cards', left: INK.cards, shortcut: '⌘E' },
-      { id: 'whisper', label: 'Whispers', left: INK.ear, badge: whispers || undefined, run: () => setWhispers(whispers ? 0 : 7) },
-    ] },
-    { label: 'The Door', items: [
-      { id: 'seal', label: sealed ? 'Unseal the Door' : 'Seal the Door', right: sealed ? INK.lock : INK.open, run: () => setSealed((v) => !v) },
-      { id: 'summon', label: 'Summon', sub: [{ items: FAMILIARS.map((name, i) => ({
-        id: name, label: name, left: fam === i ? INK.check : <span className="mi-blank" />, run: () => setFam(i),
-      })) }] },
-    ] },
-  ]
-  return (
-    <div className="stage" ref={ref}>
-      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
-        <filter id="ink-goo" colorInterpolationFilters="sRGB">
-          <feGaussianBlur stdDeviation="9" />
-          <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11" />
-        </filter>
-      </svg>
-      <Menu sections={sections} cfg={INK_CFG} auto={auto} offset={offset} />
-    </div>
-  )
-}
-
-/* ================= SERENE · Paper Unfolds =================
-   A strip of folded washi. Every row is a fold: it opens in 3D, tilts in a wave around the pointer, creases when pressed. */
-const WASHI = {
-  leaf: li(['M4 16C4 8 9 4 17 3c0 8-4 13-11 13', 'M4 16l7-7']),
-  cup: li(['M4 8h10v4a5 5 0 0 1-10 0z', 'M14 9h1.500a2 2 0 0 1 0 4H14', 'M7 2.500c-1 1.500 1 2 0 3.500M10.500 2.500c-1 1.500 1 2 0 3.500']),
-  hush: li(['M15.500 12.500A6.500 6.500 0 0 1 7.500 4.500a6.500 6.500 0 1 0 8 8z']),
-  sound: li(['M3 10c1.500-3 3-3 4.500 0s3 3 4.500 0 3-3 4.500 0']),
-  check: li(['M5 10.500l3.500 3.500L15 6.500']),
-}
-const SEASONS = ['Spring', 'Rain', 'Snow']
-const WASHI_CFG = { commitMs: 420, returnMs: 900, open: { damping: 1, response: 0.95 }, bar: { damping: 1, response: 0.5 } }
-
-function WashiSet({ auto, offset }) {
-  const ref = useRef(null)
-  const [boiled, setBoiled] = useState(false)
-  const [cups, setCups] = useState(2)
-  const [quiet, setQuiet] = useState(false)
-  const [season, setSeason] = useState(1)
-  const sections = [
-    { label: 'Tea', items: [
-      { id: 'boil', label: boiled ? 'Let the Water Rest' : 'Boil the Water', run: () => setBoiled((v) => !v) },
-      { id: 'steep', label: 'Steep Sencha', left: WASHI.leaf, shortcut: '⌘E' },
-      { id: 'cups', label: 'Pour', left: WASHI.cup, badge: cups, run: () => setCups((n) => (n > 0 ? n - 1 : 2)) },
-    ] },
-    { label: 'The Room', items: [
-      { id: 'quiet', label: 'Quiet', right: quiet ? WASHI.hush : WASHI.sound, run: () => setQuiet((v) => !v) },
-      { id: 'season', label: 'Season', sub: [{ items: SEASONS.map((name, i) => ({
-        id: name, label: name, left: season === i ? WASHI.check : <span className="mi-blank" />, run: () => setSeason(i),
-      })) }] },
-    ] },
-  ]
-  return <div className="stage" ref={ref}><Menu sections={sections} cfg={WASHI_CFG} auto={auto} offset={offset} /></div>
-}
-
-/* ================= game devices: the hardware's buttons really operate the menu ================= */
+/* arrows, Enter and Esc work while the pointer or focus is on the menu */
 function useDevice(auto) {
   const ref = useRef(null)
   const ctl = useRef(null)
@@ -578,78 +361,7 @@ function useDevice(auto) {
     window.addEventListener('keyup', onUp, true)
     return () => { window.removeEventListener('keydown', onDown, true); window.removeEventListener('keyup', onUp, true) }
   }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
-  // props for one physical button
-  const btn = (k, label) => ({
-    type: 'button', 'aria-label': label, tabIndex: -1,
-    onPointerDown: (e) => { e.preventDefault(); press(k); try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* pointer already gone */ } },
-    onPointerUp: () => release(k), onPointerCancel: () => release(k),
-    'data-held': held === k ? '' : undefined,
-  })
-  return { ref, ctl, held, btn }
-}
-
-function Dpad({ d }) {
-  const tilt = { ArrowUp: 'rotateX(16deg)', ArrowDown: 'rotateX(-16deg)', ArrowLeft: 'rotateY(-16deg)', ArrowRight: 'rotateY(16deg)' }[d.held] || 'none'
-  return (
-    <div className="dpad">
-      <div className="dpad-cross" style={{ transform: tilt }}>
-        <button className="d-up" {...d.btn('ArrowUp', 'Up')} /><button className="d-down" {...d.btn('ArrowDown', 'Down')} />
-        <button className="d-left" {...d.btn('ArrowLeft', 'Back out')} /><button className="d-right" {...d.btn('ArrowRight', 'Open submenu')} />
-      </div>
-    </div>
-  )
-}
-
-/* ----- NOSTALGIC · Press Start: a grey brick with four shades of green ----- */
-const GB = {
-  save: px([[2, 2, 12, 12], [4, 2, 8, 4], [5, 9, 6, 5]]),
-  party: px([[6, 2, 4, 4], [4, 7, 8, 6], [5, 13, 2, 2], [9, 13, 2, 2]]),
-  sound: PX.sound, mute: PX.mute, check: PX.check,
-}
-const SPEEDS = ['Slow', 'Mid', 'Fast']
-const GB_CFG = { sticky: true, commitMs: 260, open: { damping: 1, response: 0.16 }, bar: { damping: 1, response: 0.1 } }
-
-function GameBoySet({ auto, offset }) {
-  const d = useDevice(auto)
-  const [mon, setMon] = useState(6)
-  const [muted, setMuted] = useState(false)
-  const [speed, setSpeed] = useState(1)
-  const [fresh, setFresh] = useState(false)
-  const sections = [
-    { label: 'Game', items: [
-      { id: 'new', label: fresh ? 'New Game +' : 'New Game', run: () => setFresh((v) => !v) },
-      { id: 'cont', label: 'Continue', left: GB.save, shortcut: 'START' },
-      { id: 'party', label: 'Party', left: GB.party, badge: mon, run: () => setMon((n) => (n > 1 ? n - 1 : 6)) },
-    ] },
-    { label: 'Option', items: [
-      { id: 'snd', label: 'Sound', right: muted ? GB.mute : GB.sound, run: () => setMuted((v) => !v) },
-      { id: 'spd', label: 'Text Speed', sub: [{ items: SPEEDS.map((name, i) => ({ id: name, label: name, left: speed === i ? GB.check : <span className="mi-blank" />, run: () => setSpeed(i) })) }] },
-    ] },
-  ]
-  return (
-    <div className="stage">
-      <div className="gb" ref={d.ref}>
-        <div className="gb-lines" aria-hidden="true"><i /><i /></div>
-        <div className="gb-bezel">
-          <div className="gb-led" aria-hidden="true"><i className={d.held ? 'on' : ''} /><span>BATTERY</span></div>
-          <div className="gb-lcd"><Menu sections={sections} cfg={GB_CFG} auto={auto} offset={offset} ctl={d.ctl} /></div>
-          <div className="gb-print" aria-hidden="true">DOT MATRIX · 4 SHADES</div>
-        </div>
-        <div className="gb-controls">
-          <Dpad d={d} />
-          <div className="gb-ab">
-            <button className="gb-b" {...d.btn('b', 'B, back')}>B</button>
-            <button className="gb-a" {...d.btn('a', 'A, select')}>A</button>
-          </div>
-        </div>
-        <div className="gb-pills">
-          <span><button {...d.btn('ArrowDown', 'Select, next row')} />SELECT</span>
-          <span><button {...d.btn('a', 'Start')} />START</span>
-        </div>
-        <div className="gb-speaker" aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <i key={i} />)}</div>
-      </div>
-    </div>
-  )
+  return { ref, ctl }
 }
 
 /* ----- FUTURISTIC · Quick Access: no hardware, no panel. Each row is a small frame holding its icon, with the text outside it; one glowing ring snaps between the frames ----- */
@@ -687,213 +399,9 @@ function DeckSet({ auto, offset }) {
   )
 }
 
-/* ----- DRAMATIC · Wild Encounter: Y2K silver hardware, staircase tabs, and the menu fights a turn-based battle ----- */
-const Y2K_ICON = {
-  guard: li(['M10 2l7 3v5c0 4-3 6.500-7 8-4-1.500-7-4-7-8V5z']),
-  bag: li(['M5 7h10l1.500 10h-13z', 'M7.500 7V5a2.500 2.500 0 0 1 5 0v2']),
-  eye: li(['M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z', 'M10 12.500a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5z']),
-  shut: li(['M2 9s3 5 8 5 8-5 8-5', 'M5 13l-1.500 2M15 13l1.500 2M10 14v2.500']),
-  spark: li(['M11 2L5 11h4l-1 7 6-9h-4z']),
-  hop: li(['M3 15c3-9 11-9 14 0', 'M14 12l3 3 2-4']),
-  nap: li(['M4 4h6L4 11h6', 'M12 10h4l-4 5h4']),
-}
-
-// original creatures, drawn on a pixel grid: . empty, letters index the palette
-const SPRITES = {
-  mothling: { pal: { a: '#6d5aa8', b: '#b7a6e8', c: '#2a2140', d: '#f5e88a' }, map: ['.bb.......bb.', 'bbbb.c.c.bbbb', 'bbbbb.c.bbbbb', 'bbdbbaaabbdbb', 'bbbbaaaaabbbb', '.bbaacaca.bb.', '.bbaaaaaaabb.', 'bb.aadddaa.bb', 'b...aaaaa...b', '....a...a....'] },
-  pebblet: { pal: { a: '#8b8f98', b: '#c3c7cd', c: '#23252b', d: '#e0725a' }, map: ['....bbbbb....', '..bbbbbbbbb..', '.bbbaaaaabbb.', '.baaaaaaaaab.', 'baaacaaacaaab', 'baaacaaacaaab', 'baaaaaaaaaaab', 'baaaaddddaaab', '.aaaaaaaaaaa.', '..aa.....aa..'] },
-  flarelet: { pal: { a: '#e8622c', b: '#ffb347', c: '#3a1408', d: '#ffe9a8' }, map: ['......b......', '....b.bb.....', '...bb.abb.b..', '...babaaabb..', '..baaaaaaab..', '..aacaaacaa..', '.baacaaacaab.', '.baaaaddaaab.', '..baaaaaaab..', '...aa...aa...'] },
-  zapkit: { pal: { a: '#3f7fd6', b: '#a9d3ff', c: '#16233c', d: '#ffe14d' }, map: ['.bb.......bb.', '.bab.....bab.', '.baab...baab.', '..aaaaaaaaa..', '.aaaaaaaaaaa.', '.aaabbbbbaaa.', 'daaabbbbbaaad', 'ddaaaaaaaaadd', '.d.aaaaaaa...', '...aa...aa...'] },
-}
-function Sprite({ name, size = 7 }) {
-  const { pal, map } = SPRITES[name]
-  return (
-    <svg className="sprite" viewBox={`0 0 ${map[0].length} ${map.length}`} width={map[0].length * size} height={map.length * size} shapeRendering="crispEdges" aria-hidden="true">
-      {map.flatMap((row, y) => [...row].map((ch, x) => (ch === '.' ? null : <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={pal[ch]} />)))}
-    </svg>
-  )
-}
-
-function HpCard({ who, name, lv, hp, ghost = 0, exp, cls }) {
-  const shown = useSpring(hp, { damping: 1, response: 0.75 })
-  const pct = Math.max(0, shown.value)
-  const tone = pct > 50 ? 'ok' : pct > 20 ? 'warn' : 'low'
-  return (
-    <div className={`hp-card ${cls}`}>
-      <div className="hp-top"><b>{name}</b><span>Lv{lv}</span></div>
-      <div className="hp-row">
-        <i>HP</i>
-        <div className="hp-track">
-          <span className={`hp-fill ${tone}`} style={{ width: `${pct}%` }} />
-          {ghost > 0 && <span className="hp-ghost" style={{ left: `${Math.max(0, hp - ghost)}%`, width: `${Math.min(hp, ghost)}%` }} />}
-        </div>
-      </div>
-      {who === 'me' && <div className="hp-num">{Math.round(pct)} / 100</div>}
-      {exp != null && <div className="exp-track"><span style={{ width: `${exp}%` }} /></div>}
-    </div>
-  )
-}
-
-const WILD = [['mothling', 'Mothling', 9], ['pebblet', 'Pebblet', 11], ['flarelet', 'Flarelet', 13]]
-const MOVES = [
-  { id: 'spark', label: 'Spark Tail', icon: Y2K_ICON.spark, dmg: 24, pp: 8, say: 'It crackles across the field.' },
-  { id: 'hop', label: 'Quick Hop', icon: Y2K_ICON.hop, dmg: 14, pp: 15, say: 'A fast, light hit.' },
-  { id: 'nap', label: 'Thunder Nap', icon: Y2K_ICON.nap, dmg: 40, pp: 3, say: 'Huge, but it can only be used a few times.' },
-]
-const Y2K_CFG = { sticky: true, commitMs: 300, open: { damping: 0.9, response: 0.4 }, bar: { damping: 0.8, response: 0.28 } }
-
-function useTyped(text) {
-  const [n, setN] = useState(0)
-  useEffect(() => {
-    setN(0)
-    const i = setInterval(() => setN((v) => { if (v >= text.length) { clearInterval(i); return v } return v + 1 }), 22)
-    return () => clearInterval(i)
-  }, [text])
-  return text.slice(0, n)
-}
-
-function Y2kSet({ auto, offset }) {
-  const d = useDevice(auto)
-  const [active, setActive] = useState(null)
-  const [wild, setWild] = useState(offset ? offset % WILD.length : 0)
-  const [foe, setFoe] = useState(100)
-  const [me, setMe] = useState(100)
-  const [exp, setExp] = useState(35)
-  const [potions, setPotions] = useState(3)
-  const [pp, setPp] = useState(() => Object.fromEntries(MOVES.map((m) => [m.id, m.pp])))
-  const [aim, setAim] = useState(false)
-  const [guard, setGuard] = useState(false)
-  const [fx, setFx] = useState('enter') // which animation is playing on the field
-  const [log, setLog] = useState(`A wild ${WILD[wild][1]} appeared!`)
-  const busy = useRef(false)
-  const timers = useRef([])
-  const at = (ms, fn) => timers.current.push(setTimeout(fn, ms))
-  useEffect(() => () => timers.current.forEach(clearTimeout), [])
-  // always act on the latest numbers, even from a delayed step
-  const now = useRef()
-  now.current = { foe, me, guard, wild }
-
-  const encounter = (i) => {
-    setWild(i); setFoe(100); setFx('enter'); setAim(false); setGuard(false)
-    setLog(`A wild ${WILD[i][1]} appeared!`)
-    at(700, () => { busy.current = false })
-  }
-  const enemyTurn = () => {
-    const name = WILD[now.current.wild][1]
-    setFx('foe-attack')
-    setLog(`${name} strikes back!`)
-    at(360, () => {
-      const hit = (now.current.guard ? 7 : 15) + Math.floor(Math.random() * 6)
-      setMe((v) => Math.max(0, v - hit)); setFx('me-hit')
-      if (now.current.guard) setLog('Your guard held!')
-      setGuard(false)
-      at(760, () => {
-        setFx('')
-        if (now.current.me <= 0) {
-          setLog('Zapkit needs a rest… fully restored!')
-          at(1000, () => { setMe(100); setPp(Object.fromEntries(MOVES.map((m) => [m.id, m.pp]))); busy.current = false })
-        } else { setLog('What will Zapkit do?'); busy.current = false }
-      })
-    })
-  }
-  const attack = (m) => {
-    if (busy.current) return
-    busy.current = true
-    setPp((v) => ({ ...v, [m.id]: v[m.id] - 1 }))
-    setFx('me-attack')
-    setLog(`Zapkit used ${m.label}!`)
-    const power = aim ? 1.5 : 1
-    setAim(false)
-    at(360, () => {
-      const left = Math.max(0, now.current.foe - Math.round(m.dmg * power))
-      setFoe(left); setFx('foe-hit')
-      if (power > 1) setLog('A focused hit!')
-      at(800, () => {
-        if (left <= 0) {
-          const name = WILD[now.current.wild][1]
-          setFx('faint'); setLog(`${name} fainted! Zapkit gained EXP.`)
-          setExp((v) => (v + 45 >= 100 ? v + 45 - 100 : v + 45))
-          setPotions((n) => Math.min(3, n + 1))
-          setPp((v) => Object.fromEntries(MOVES.map((m) => [m.id, Math.min(m.pp, v[m.id] + Math.ceil(m.pp / 3))])))
-          at(1500, () => encounter((now.current.wild + 1) % WILD.length))
-        } else enemyTurn()
-      })
-    })
-  }
-  const heal = () => {
-    if (busy.current) return
-    busy.current = true
-    setPotions((n) => n - 1); setMe((v) => Math.min(100, v + 35)); setFx('heal'); setLog('Zapkit drank a potion.')
-    at(900, enemyTurn)
-  }
-  const doGuard = () => {
-    if (busy.current) return
-    busy.current = true
-    setGuard(true); now.current.guard = true; setFx('guard'); setLog('Zapkit braces for impact.')
-    at(700, enemyTurn)
-  }
-  const doAim = () => {
-    if (busy.current) return
-    setAim((v) => { setLog(v ? 'Zapkit relaxes.' : 'Zapkit takes aim. Next hit is stronger.'); return !v })
-  }
-  const run = () => {
-    if (busy.current) return
-    busy.current = true
-    setFx('flee'); setLog('Got away safely!')
-    at(900, () => encounter((now.current.wild + 1) % WILD.length))
-  }
-
-  const sections = [
-    { label: 'Trainer', items: [
-      { id: 'bag', label: 'Bag', left: Y2K_ICON.bag, badge: potions, disabled: potions === 0, hint: 'A potion restores 35 HP.', run: heal },
-      { id: 'guard', label: 'Guard', left: Y2K_ICON.guard, shortcut: 'R1', hint: 'Halves the next hit.', run: doGuard },
-      { id: 'run', label: 'Run', hint: 'Flee and find another encounter.', run },
-    ] },
-    { label: 'Battle', items: [
-      { id: 'aim', label: 'Take Aim', right: aim ? Y2K_ICON.eye : Y2K_ICON.shut, hint: 'Your next attack hits 1.5× harder.', run: doAim },
-      { id: 'fight', label: 'Fight', hint: 'Choose a move.', sub: [{ items: MOVES.map((m) => ({
-        id: m.id, label: m.label, left: m.icon, badge: pp[m.id], disabled: pp[m.id] === 0, hint: m.say, dmg: Math.round(m.dmg * (aim ? 1.5 : 1)), run: () => attack(m),
-      })) }] },
-    ] },
-  ]
-  const fighting = busy.current || fx === 'enter'
-  const typed = useTyped(!fighting && active?.hint && log === 'What will Zapkit do?' ? active.hint : log)
-  const [sprite, name, lv] = WILD[wild]
-  return (
-    <div className="stage">
-      <div className="y2k" ref={d.ref}>
-        <i className="y2k-sheen" aria-hidden="true" />
-        <div className="y2k-arm" aria-hidden="true" />
-        <div className="y2k-dial"><Dpad d={d} /></div>
-        <div className={`field fx-${fx} ${guard ? 'guarding' : ''} ${aim ? 'aiming' : ''}`} aria-hidden="true">
-          <HpCard who="foe" name={name} lv={lv} hp={foe} ghost={active?.dmg && !busy.current ? active.dmg : 0} cls="foe-card" />
-          <i className="ground g-foe" /><i className="ground g-me" />
-          <div className="mon foe" key={`${sprite}-${wild}`}><Sprite name={sprite} /></div>
-          <div className="mon me"><Sprite name="zapkit" size={9} /><i className="shield" /></div>
-          <i className="bolt-fx" />
-          <HpCard who="me" name="Zapkit" lv={12} hp={me} exp={exp} cls="me-card" />
-        </div>
-        <div className="y2k-screen"><Menu sections={sections} cfg={Y2K_CFG} auto={auto} offset={offset} ctl={d.ctl} onActive={setActive} /></div>
-        <div className="y2k-log" aria-live="polite"><p>{typed}<i /></p></div>
-        <div className="y2k-keys">
-          <button {...d.btn('b', 'Back')}>BACK</button>
-          <button {...d.btn('a', 'Select')}>SELECT</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 /* ================= page ================= */
 const SETS = [
-  { id: 'classic', tone: 'Nostalgic, Every Choice Inverts', Body: NostalgicSet },
-  { id: 'lux', tone: 'Luxurious, At Your Service', Body: LuxuriousSet },
-  { id: 'anime', tone: 'Energetic, Final Attack!', Body: AnimeSet },
-  { id: 'ink', tone: 'Mysterious, Ink Divides', Body: InkSet },
-  { id: 'washi', tone: 'Serene, Paper Unfolds', Body: WashiSet },
-  { id: 'gb', tone: 'Nostalgic, Press Start', Body: GameBoySet },
   { id: 'deck', tone: 'Futuristic, Quick Access', Body: DeckSet },
-  { id: 'y2k', tone: 'Dramatic, Wild Encounter', Body: Y2kSet },
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
@@ -932,7 +440,7 @@ function DraftThumb({ set }) {
   )
 }
 
-/* wall (home page hover background): every set operating itself, repeated to fill the screen */
+/* wall (home page hover background): the menu operating itself, repeated to fill the screen */
 function Wall() {
   const embedded = window.parent !== window
   const [active, setActive] = useState(true)
@@ -953,8 +461,8 @@ function Wall() {
       {active && Array.from({ length: layout.cols }, (_, c) => (
         <div key={c} className="wall-col">
           {Array.from({ length: layout.rows }, (_, r) => {
-            const set = SETS[(c * 3 + r + 5) % SETS.length]
-            return <div key={r} className={`wall-tile s-${set.id}`}><set.Body auto offset={c * 2 + r} /></div>
+            const set = SETS[0]
+            return <div key={r} className={`wall-tile s-${set.id}`}><div className="frame"><set.Body auto offset={c * 2 + r} /></div></div>
           })}
         </div>
       ))}
@@ -977,7 +485,7 @@ export default function App() {
             <h2>{set.tone}</h2>
             <DraftThumb set={set} />
           </div>
-          <set.Body />
+          <div className="frame"><set.Body /></div>
         </section>
       ))}
     </main>
