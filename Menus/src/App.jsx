@@ -640,10 +640,106 @@ function RingSet({ auto, offset = 0 }) {
   )
 }
 
+/* ----- REBELLIOUS · The Hunt: a torn black slash on red, ransom-note letters, one jagged highlight that leans as it moves; the quarry morphs behind the menu ----- */
+const HUNT_ICON = {
+  quest: li(['M4 3h12v14H4z', 'M7 7h6', 'M7 10h6', 'M7 13h3']),
+  target: li(['M10 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12z', 'M10 1v5', 'M10 14v5', 'M1 10h5', 'M14 10h5']),
+  blade: li(['M16 3l1 1-9 9-2-2z', 'M5 10l5 5', 'M6.500 13.500L3 17']),
+  book: li(['M4 3h12v14H4z', 'M8 3v14', 'M11 7h3']),
+  sharp: li(['M3 17L17 3', 'M12 3h5v5']),
+  dull: li(['M3 15h14', 'M3 15v-3h14v3']),
+  check: li(['M5 10.500l3.500 3.500L15 6.500']),
+}
+// every outline has the same 20 points, so one beast can morph into the next
+const QUARRY = [
+  { id: 'emberjaw', name: 'Emberjaw', line: 'Sleeps in the caldera. Wakes angry.', eye: [40, 40],
+    shape: 'polygon(8% 40%,22% 34%,30% 28%,38% 30%,46% 8%,50% 28%,60% 24%,78% 4%,72% 30%,92% 38%,100% 70%,84% 100%,58% 100%,54% 76%,44% 82%,40% 68%,14% 74%,26% 62%,34% 56%,12% 52%)' },
+  { id: 'frostmaw', name: 'Frostmaw', line: 'Hunts by the sound of your breath.', eye: [38, 54],
+    shape: 'polygon(4% 58%,18% 46%,26% 26%,34% 42%,42% 16%,50% 38%,60% 12%,66% 38%,90% 30%,100% 62%,92% 100%,60% 100%,56% 84%,44% 90%,38% 78%,6% 84%,16% 74%,28% 70%,30% 66%,8% 68%)' },
+  { id: 'rotwing', name: 'Rotwing', line: 'You will smell it before you see it.', eye: [44, 42],
+    shape: 'polygon(2% 46%,24% 36%,36% 20%,40% 34%,58% 2%,58% 30%,84% 0%,74% 32%,100% 22%,90% 54%,100% 92%,72% 100%,56% 100%,54% 80%,46% 78%,40% 62%,22% 62%,30% 56%,34% 52%,6% 50%)' },
+]
+const HUNT_CFG = { sticky: true, commitMs: 340, open: { damping: 0.8, response: 0.3 }, bar: { damping: 0.7, response: 0.24 } }
+
+// cut-out letters: which paper each letter gets is fixed by its position, so a label never reshuffles
+function Ransom({ text }) {
+  return (
+    <span className="rn">
+      <span className="sr">{text}</span>
+      <span aria-hidden="true">
+        {[...text].map((c, i) => {
+          if (c === ' ') return <i key={i} className="rn-gap" />
+          const h = c.charCodeAt(0) * 7 + i * 13
+          return <b key={i} className={`rn-${i ? 'abcd'[h % 4] : 'a'}`} style={{ '--r': `${((h % 7) - 3) * 1.6}deg` }}>{c}</b>
+        })}
+      </span>
+    </span>
+  )
+}
+
+function HuntSet({ auto, offset = 0 }) {
+  const d = useDevice(auto)
+  const [quests, setQuests] = useState(3)
+  const [target, setTarget] = useState(offset % QUARRY.length)
+  const [sharp, setSharp] = useState(true)
+  const [notes, setNotes] = useState([{ id: 'quest', key: 0 }])
+  const seq = useRef(0)
+  const q = QUARRY[target]
+
+  const sections = [
+    { label: 'Hunt', items: [
+      { id: 'quest', label: <Ransom text="Quest Board" />, left: HUNT_ICON.quest, badge: quests || undefined, run: () => setQuests((n) => (n ? n - 1 : 3)) },
+      { id: 'target', label: <Ransom text="Target" />, left: HUNT_ICON.target, sub: [{ items: QUARRY.map((m, i) => ({ id: m.id, label: <Ransom text={m.name} />, left: target === i ? HUNT_ICON.check : null, run: () => setTarget(i) })) }] },
+      { id: 'loadout', label: <Ransom text="Loadout" />, left: HUNT_ICON.blade, shortcut: '⌘L' },
+    ] },
+    { label: 'Camp', items: [
+      { id: 'bestiary', label: <Ransom text="Bestiary" />, left: HUNT_ICON.book, shortcut: '⌘B' },
+      { id: 'whet', label: <Ransom text="Whetstone" />, right: sharp ? HUNT_ICON.sharp : HUNT_ICON.dull, run: () => setSharp((v) => !v) },
+      { id: 'retreat', label: <Ransom text="Retreat" /> },
+    ] },
+  ]
+  const note = (id) => {
+    const m = QUARRY.find((x) => x.id === id)
+    if (m) return [m.name, m.line]
+    return {
+      quest: ['Quest Board', quests ? `${quests} contracts posted. Press to take one.` : 'Board is clear. Press to post more.'],
+      target: [q.name, q.line],
+      loadout: ['Loadout', 'One greatblade, two traps, no regrets.'],
+      bestiary: ['Bestiary', 'Every scar has its own page.'],
+      whet: ['Whetstone', sharp ? 'The edge is keen. Press to dull it.' : 'The edge is dull. Press to hone it.'],
+      retreat: ['Retreat', 'Live to hunt another day.'],
+    }[id]
+  }
+  const onActive = (item) => {
+    if (item) setNotes((v) => (v[v.length - 1].id === item.id ? v : [...v.slice(-1), { id: item.id, key: ++seq.current }]))
+  }
+  const aiming = notes[notes.length - 1].id === 'target' || QUARRY.some((m) => m.id === notes[notes.length - 1].id)
+
+  return (
+    <div className="hunt" ref={d.ref}>
+      <div className="hunt-dots" aria-hidden="true" />
+      <div className="beast" aria-hidden="true">
+        <div className="beast-body" style={{ clipPath: q.shape }} />
+        <i className="beast-eye" style={{ left: `${q.eye[0]}%`, top: `${q.eye[1]}%` }} />
+        <i className={`beast-aim ${aiming ? 'on' : ''}`} style={{ left: `${q.eye[0]}%`, top: `${q.eye[1]}%` }} />
+      </div>
+      <div className="hunt-slash" aria-hidden="true" />
+      <div className="hunt-note">
+        {notes.map((n, i) => {
+          const [title, line] = note(n.id)
+          return <div key={n.key} className={i === notes.length - 1 ? 'hn in' : 'hn out'} aria-hidden={i !== notes.length - 1 || undefined}><h3>{title}</h3><p>{line}</p></div>
+        })}
+      </div>
+      <Menu sections={sections} cfg={HUNT_CFG} auto={auto} offset={offset} ctl={d.ctl} onActive={onActive} />
+    </div>
+  )
+}
+
 /* ================= page ================= */
 const SETS = [
   { id: 'deck', tone: 'Futuristic, Quick Access', Body: DeckSet },
   { id: 'ring', tone: 'Dramatic, Full Turn', Body: RingSet },
+  { id: 'hunt', tone: 'Rebellious, The Hunt', Body: HuntSet },
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
@@ -704,7 +800,7 @@ function Wall() {
         <div key={c} className="wall-col">
           {Array.from({ length: layout.rows }, (_, r) => {
             const set = SETS[(c + r) % SETS.length]
-            return <div key={r} className={`wall-tile s-${set.id}`}><div className={set.id === 'ring' ? '' : 'frame'}><set.Body auto offset={c * 2 + r} /></div></div>
+            return <div key={r} className={`wall-tile s-${set.id}`}><div className={set.id === 'deck' ? 'frame' : ''}><set.Body auto offset={c * 2 + r} /></div></div>
           })}
         </div>
       ))}
@@ -727,7 +823,7 @@ export default function App() {
             <h2>{set.tone}</h2>
             <DraftThumb set={set} />
           </div>
-          <div className={set.id === 'ring' ? '' : 'frame'}><set.Body /></div>
+          <div className={set.id === 'deck' ? 'frame' : ''}><set.Body /></div>
         </section>
       ))}
     </main>
