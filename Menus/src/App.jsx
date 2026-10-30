@@ -269,6 +269,7 @@ function Menu({ sections, cfg, auto, offset = 0, ctl, onActive }) {
       if (cur >= 0) m.press(inSub ? 1 : 0, cur)
     },
     up() { if (pressed) m.choose(pressed.level, pressed.i) },
+    jump(id) { const i = flat.findIndex((it) => it.id === id); if (i >= 0) { setIdx(i); setSubOpen(false); m.press(0, i) } },
   }
   const activeItem = subOpen && subIdx >= 0 ? subFlat[subIdx] : flat[idx]
   const activeKey = activeItem?.id
@@ -558,13 +559,14 @@ function useDevice(auto) {
   const press = (k) => {
     heldRef.current = k; setHeld(k)
     if (k === 'a') ctl.current?.down()
+    else if (k.startsWith('row:')) ctl.current?.jump(k.slice(4))
     else if (k === 'b') ctl.current?.back()
     else ctl.current?.key(k)
   }
   const release = (k) => {
     if (heldRef.current !== k) return
     heldRef.current = ''; setHeld('')
-    if (k === 'a') ctl.current?.up()
+    if (k === 'a' || k.startsWith('row:')) ctl.current?.up()
   }
   useEffect(() => {
     if (auto) return
@@ -650,93 +652,96 @@ function GameBoySet({ auto, offset }) {
   )
 }
 
-/* ----- FUTURISTIC · Cross Media: a glossy slab, rows breathe in a flowing wave ----- */
-const PSP_ICON = {
-  disk: li(['M4 3h10l2 2v12H4z', 'M7 3v5h6V3', 'M7 17v-5h6v5']),
+/* ----- FUTURISTIC · Quick Access: a wide handheld PC. A focus ring snaps between rows; the trackpad really swipes ----- */
+const DECK_ICON = {
+  lib: li(['M3 4h6v12H3z', 'M11 4h6v5h-6z', 'M11 11h6v5h-6z']),
   down: li(['M10 3v10', 'M6 9.500l4 4 4-4', 'M4 17h12']),
   wifi: li(['M2.500 8a11 11 0 0 1 15 0', 'M5.500 11a7 7 0 0 1 9 0', 'M8.500 14a2.500 2.500 0 0 1 3 0', 'M10 16.500v.100']),
   off: li(['M4 4l12 12', 'M5.500 11a7 7 0 0 1 3-1.700', 'M8.500 14a2.500 2.500 0 0 1 3 0']),
   check: li(['M5 10.500l3.500 3.500L15 6.500']),
 }
-const THEMES = [
-  { name: 'Ocean', a: '#0a2a5e', b: '#1f7ac0', w: '150,210,255' },
-  { name: 'Ember', a: '#4a1408', b: '#d4561c', w: '255,190,140' },
-  { name: 'Moss', a: '#0f2f1c', b: '#3c9a5e', w: '180,255,200' },
-]
-const PSP_CFG = { sticky: true, commitMs: 340, open: { damping: 1, response: 0.42 }, bar: { damping: 1, response: 0.3 } }
+const ACCENTS = [{ name: 'Signal Blue', c: '#1a9fff' }, { name: 'Violet', c: '#a06bff' }, { name: 'Mint', c: '#2fd6a6' }]
+const DECK_CFG = { sticky: true, commitMs: 260, open: { damping: 0.9, response: 0.34 }, bar: { damping: 0.86, response: 0.2 } }
 
-function Waves({ theme }) {
-  const c = useRef(null)
-  const t = useRef(theme)
-  t.current = theme
-  useEffect(() => {
-    let raf
-    const loop = (now) => {
-      const el = c.current
-      if (el) {
-        const W = el.clientWidth, H = el.clientHeight, dpr = window.devicePixelRatio || 1
-        if (el.width !== Math.round(W * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr) }
-        const g = el.getContext('2d')
-        g.setTransform(dpr, 0, 0, dpr, 0, 0)
-        g.clearRect(0, 0, W, H)
-        const s = now / 1000
-        for (let k = 0; k < 3; k++) {
-          for (const edge of [0, 1]) {
-            g.beginPath()
-            for (let x = 0; x <= W; x += 6) {
-              const y = H * (0.5 + k * 0.06) + Math.sin(x / (90 + k * 34) + s * (0.5 + k * 0.17) + k * 1.7) * (16 + k * 5) + Math.sin(x / 41 + s * 0.3 + k) * 5 + edge * (14 + k * 7)
-              x === 0 ? g.moveTo(x, y) : g.lineTo(x, y)
-            }
-            if (edge === 0) { g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fillStyle = `rgba(${t.current.w},${0.055})`; g.fill() } else { g.strokeStyle = `rgba(${t.current.w},${0.2 - k * 0.04})`; g.lineWidth = 1; g.stroke() }
-          }
-        }
-      }
-      raf = requestAnimationFrame(loop)
-    }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
-  }, [])
-  return <canvas ref={c} className="psp-waves" aria-hidden="true" />
+// swipe to move the selection, tap to select; every touch and step leaves a haptic ring
+function Trackpad({ d, cls, swipes }) {
+  const [rings, setRings] = useState([])
+  const st = useRef({ y: 0, acc: 0, moved: false, on: false })
+  const n = useRef(0)
+  const ring = (e) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    const id = ++n.current
+    setRings((v) => [...v.slice(-3), { id, x: (e.clientX - r.left) / r.width * 100, y: (e.clientY - r.top) / r.height * 100 }])
+  }
+  return (
+    <div className={`pad ${cls}`} aria-hidden="true"
+      onPointerDown={swipes ? (e) => { e.preventDefault(); st.current = { y: e.clientY, acc: 0, moved: false, on: true }; ring(e); try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* pointer already gone */ } } : undefined}
+      onPointerMove={swipes ? (e) => {
+        const s = st.current
+        if (!s.on) return
+        s.acc += e.clientY - s.y; s.y = e.clientY
+        if (Math.abs(s.acc) >= 16) { d.ctl.current?.key(s.acc > 0 ? 'ArrowDown' : 'ArrowUp'); s.acc = 0; s.moved = true; ring(e) }
+      } : undefined}
+      onPointerUp={swipes ? () => {
+        const s = st.current
+        if (s.on && !s.moved) { d.ctl.current?.down(); setTimeout(() => d.ctl.current?.up(), 90) }
+        s.on = false
+      } : undefined}>
+      <i className="pad-mark" />
+      {rings.map((r) => <span key={r.id} className="pad-ring" style={{ left: `${r.x}%`, top: `${r.y}%` }} onAnimationEnd={() => setRings((v) => v.filter((q) => q.id !== r.id))} />)}
+    </div>
+  )
 }
 
-function PspSet({ auto, offset }) {
+function DeckSet({ auto, offset }) {
   const d = useDevice(auto)
-  const [theme, setTheme] = useState(0)
+  const [accent, setAccent] = useState(0)
   const [wifi, setWifi] = useState(true)
   const [dl, setDl] = useState(2)
-  const [res, setRes] = useState(false)
-  const T = THEMES[theme]
+  const [home, setHome] = useState(false)
   const sections = [
-    { label: 'Game', items: [
-      { id: 'res', label: res ? 'Suspend' : 'Resume', run: () => setRes((v) => !v) },
-      { id: 'sav', label: 'Saved Data', left: PSP_ICON.disk, shortcut: '△' },
-      { id: 'dl', label: 'Downloads', left: PSP_ICON.down, badge: dl || undefined, run: () => setDl(dl ? 0 : 2) },
+    { label: 'Browse', items: [
+      { id: 'home', label: home ? 'Back to Home' : 'Home', run: () => setHome((v) => !v) },
+      { id: 'lib', label: 'Library', left: DECK_ICON.lib, shortcut: 'X' },
+      { id: 'dl', label: 'Downloads', left: DECK_ICON.down, badge: dl || undefined, run: () => setDl(dl ? 0 : 2) },
     ] },
-    { label: 'Settings', items: [
-      { id: 'wifi', label: 'Wireless', right: wifi ? PSP_ICON.wifi : PSP_ICON.off, run: () => setWifi((v) => !v) },
-      { id: 'theme', label: 'Theme', sub: [{ items: THEMES.map((th, i) => ({ id: th.name, label: th.name, left: theme === i ? PSP_ICON.check : <span className="mi-blank" />, run: () => setTheme(i) })) }] },
+    { label: 'System', items: [
+      { id: 'wifi', label: 'Wi-Fi', right: wifi ? DECK_ICON.wifi : DECK_ICON.off, run: () => setWifi((v) => !v) },
+      { id: 'accent', label: 'Accent Color', sub: [{ items: ACCENTS.map((a, i) => ({ id: a.name, label: a.name, left: accent === i ? DECK_ICON.check : <span className="mi-blank" />, run: () => setAccent(i) })) }] },
     ] },
   ]
-  const nub = { ArrowUp: [0, -7], ArrowDown: [0, 7], ArrowLeft: [-7, 0], ArrowRight: [7, 0] }[d.held] || [0, 0]
+  const stick = { ArrowUp: [0, -6], ArrowDown: [0, 6], ArrowLeft: [-6, 0], ArrowRight: [6, 0] }[d.held] || [0, 0]
   return (
     <div className="stage">
-      <div className="psp" ref={d.ref}>
-        <i className="psp-sh l" aria-hidden="true" /><i className="psp-sh r" aria-hidden="true" />
-        <div className="psp-left">
-          <Dpad d={d} />
-          <div className="psp-nub" aria-hidden="true"><i style={{ transform: `translate(${nub[0]}px, ${nub[1]}px)` }} /></div>
-        </div>
-        <div className="psp-screen" style={{ background: `linear-gradient(160deg, ${T.a}, ${T.b})`, '--glow': `rgb(${T.w})` }}>
-          <Waves theme={T} />
-          <Menu sections={sections} cfg={PSP_CFG} auto={auto} offset={offset} ctl={d.ctl} />
-        </div>
-        <div className="psp-right">
-          <div className="psp-btns">
-            <span className="tri" aria-hidden="true">△</span>
-            <button className="cir" {...d.btn('b', 'Circle, back')}>○</button>
-            <button className="crs" {...d.btn('a', 'Cross, select')}>✕</button>
-            <span className="sqr" aria-hidden="true">□</span>
+      <div className="deck" ref={d.ref} style={{ '--acc': ACCENTS[accent].c }}>
+        <i className="deck-bump l" aria-hidden="true" /><i className="deck-bump r" aria-hidden="true" />
+        <div className="deck-vents" aria-hidden="true"><i /><i /></div>
+        <div className="deck-side">
+          <div className="deck-top">
+            <Dpad d={d} />
+            <div className="stick" aria-hidden="true"><i style={{ transform: `translate(${stick[0]}px, ${stick[1]}px)` }} /></div>
           </div>
+          <Trackpad d={d} cls="pad-l" />
+          <div className="deck-mini" aria-hidden="true"><i className="ring" /><i className="dash" /></div>
+        </div>
+        <div className="deck-screen">
+          <div className="deck-covers" aria-hidden="true">
+            {Array.from({ length: 12 }, (_, i) => <i key={i} style={{ '--h': (i * 47) % 360 }} />)}
+          </div>
+          <Menu sections={sections} cfg={DECK_CFG} auto={auto} offset={offset} ctl={d.ctl} />
+        </div>
+        <div className="deck-side">
+          <div className="deck-top rev">
+            <div className="stick" aria-hidden="true"><i /></div>
+            <div className="abxy">
+              <span className="y" aria-hidden="true">Y</span>
+              <button className="x" {...d.btn('row:lib', 'X, open Library')}>X</button>
+              <button className="b" {...d.btn('b', 'B, back')}>B</button>
+              <button className="a" {...d.btn('a', 'A, select')}>A</button>
+            </div>
+          </div>
+          <Trackpad d={d} cls="pad-r" swipes />
+          <div className="deck-mini rev" aria-hidden="true"><i className="dots" /></div>
         </div>
       </div>
     </div>
@@ -948,7 +953,7 @@ const SETS = [
   { id: 'ink', tone: 'Mysterious, Ink Divides', Body: InkSet },
   { id: 'washi', tone: 'Serene, Paper Unfolds', Body: WashiSet },
   { id: 'gb', tone: 'Nostalgic, Press Start', Body: GameBoySet },
-  { id: 'psp', tone: 'Futuristic, Cross Media', Body: PspSet },
+  { id: 'deck', tone: 'Futuristic, Quick Access', Body: DeckSet },
   { id: 'y2k', tone: 'Dramatic, Wild Encounter', Body: Y2kSet },
 ]
 
