@@ -344,7 +344,7 @@ function Menu({ sections, cfg, auto, offset = 0, ctl, onActive }) {
       <Panel sections={sections} flat={flat} open={open} level={0} m={m} className="menu-root" rowsRef={rootRows}
         active={flat[idx]?.disabled ? -1 : idx} pressed={pressed?.level === 0 ? pressed.i : -1} commit={commit === 0} parentOpen={subOpen} />
       <Panel sections={subSections} flat={subFlat} open={open && subOpen} level={1} m={m} className="menu-sub"
-        style={{ '--sub-top': `${subTop}px` }} active={subIdx} pressed={pressed?.level === 1 ? pressed.i : -1} commit={commit === 1} />
+        style={{ '--sub-top': `${subTop}px` }} active={subFlat[subIdx]?.disabled ? -1 : subIdx} pressed={pressed?.level === 1 ? pressed.i : -1} commit={commit === 1} />
     </div>
   )
 }
@@ -743,22 +743,66 @@ function PspSet({ auto, offset }) {
   )
 }
 
-/* ----- DRAMATIC · Select Your Mode: Y2K silver hardware, staircase tabs, a typed readout ----- */
+/* ----- DRAMATIC · Wild Encounter: Y2K silver hardware, staircase tabs, and the menu fights a turn-based battle ----- */
 const Y2K_ICON = {
-  versus: li(['M3 4l7 7', 'M3 16l4-4', 'M17 4l-7 7', 'M17 16l-4-4', 'M2 15l3 3M18 15l-3 3']),
-  dumbbell: li(['M3 7v6M6 5v10M14 5v10M17 7v6', 'M6 10h8']),
-  sound: li(['M3 8v4h3l4 3V5L6 8z', 'M13 7.500a3.500 3.500 0 0 1 0 5', 'M15 5a7 7 0 0 1 0 10']),
-  mute: li(['M3 8v4h3l4 3V5L6 8z', 'M13 8l4 4M17 8l-4 4']),
-  check: li(['M5 10.500l3.500 3.500L15 6.500']),
+  guard: li(['M10 2l7 3v5c0 4-3 6.500-7 8-4-1.500-7-4-7-8V5z']),
+  bag: li(['M5 7h10l1.500 10h-13z', 'M7.500 7V5a2.500 2.500 0 0 1 5 0v2']),
+  eye: li(['M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z', 'M10 12.500a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5z']),
+  shut: li(['M2 9s3 5 8 5 8-5 8-5', 'M5 13l-1.500 2M15 13l1.500 2M10 14v2.500']),
+  spark: li(['M11 2L5 11h4l-1 7 6-9h-4z']),
+  hop: li(['M3 15c3-9 11-9 14 0', 'M14 12l3 3 2-4']),
+  nap: li(['M4 4h6L4 11h6', 'M12 10h4l-4 5h4']),
 }
-const DIFF = ['Easy', 'Hard', 'Ultra']
-const Y2K_CFG = { sticky: true, commitMs: 420, open: { damping: 0.9, response: 0.4 }, bar: { damping: 0.8, response: 0.28 } }
+
+// original creatures, drawn on a pixel grid: . empty, letters index the palette
+const SPRITES = {
+  mothling: { pal: { a: '#6d5aa8', b: '#b7a6e8', c: '#2a2140', d: '#f5e88a' }, map: ['.bb.......bb.', 'bbbb.c.c.bbbb', 'bbbbb.c.bbbbb', 'bbdbbaaabbdbb', 'bbbbaaaaabbbb', '.bbaacaca.bb.', '.bbaaaaaaabb.', 'bb.aadddaa.bb', 'b...aaaaa...b', '....a...a....'] },
+  pebblet: { pal: { a: '#8b8f98', b: '#c3c7cd', c: '#23252b', d: '#e0725a' }, map: ['....bbbbb....', '..bbbbbbbbb..', '.bbbaaaaabbb.', '.baaaaaaaaab.', 'baaacaaacaaab', 'baaacaaacaaab', 'baaaaaaaaaaab', 'baaaaddddaaab', '.aaaaaaaaaaa.', '..aa.....aa..'] },
+  flarelet: { pal: { a: '#e8622c', b: '#ffb347', c: '#3a1408', d: '#ffe9a8' }, map: ['......b......', '....b.bb.....', '...bb.abb.b..', '...babaaabb..', '..baaaaaaab..', '..aacaaacaa..', '.baacaaacaab.', '.baaaaddaaab.', '..baaaaaaab..', '...aa...aa...'] },
+  zapkit: { pal: { a: '#3f7fd6', b: '#a9d3ff', c: '#16233c', d: '#ffe14d' }, map: ['.bb.......bb.', '.bab.....bab.', '.baab...baab.', '..aaaaaaaaa..', '.aaaaaaaaaaa.', '.aaabbbbbaaa.', 'daaabbbbbaaad', 'ddaaaaaaaaadd', '.d.aaaaaaa...', '...aa...aa...'] },
+}
+function Sprite({ name, size = 7 }) {
+  const { pal, map } = SPRITES[name]
+  return (
+    <svg className="sprite" viewBox={`0 0 ${map[0].length} ${map.length}`} width={map[0].length * size} height={map.length * size} shapeRendering="crispEdges" aria-hidden="true">
+      {map.flatMap((row, y) => [...row].map((ch, x) => (ch === '.' ? null : <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={pal[ch]} />)))}
+    </svg>
+  )
+}
+
+function HpCard({ who, name, lv, hp, ghost = 0, exp, cls }) {
+  const shown = useSpring(hp, { damping: 1, response: 0.75 })
+  const pct = Math.max(0, shown.value)
+  const tone = pct > 50 ? 'ok' : pct > 20 ? 'warn' : 'low'
+  return (
+    <div className={`hp-card ${cls}`}>
+      <div className="hp-top"><b>{name}</b><span>Lv{lv}</span></div>
+      <div className="hp-row">
+        <i>HP</i>
+        <div className="hp-track">
+          <span className={`hp-fill ${tone}`} style={{ width: `${pct}%` }} />
+          {ghost > 0 && <span className="hp-ghost" style={{ left: `${Math.max(0, hp - ghost)}%`, width: `${Math.min(hp, ghost)}%` }} />}
+        </div>
+      </div>
+      {who === 'me' && <div className="hp-num">{Math.round(pct)} / 100</div>}
+      {exp != null && <div className="exp-track"><span style={{ width: `${exp}%` }} /></div>}
+    </div>
+  )
+}
+
+const WILD = [['mothling', 'Mothling', 9], ['pebblet', 'Pebblet', 11], ['flarelet', 'Flarelet', 13]]
+const MOVES = [
+  { id: 'spark', label: 'Spark Tail', icon: Y2K_ICON.spark, dmg: 24, pp: 8, say: 'It crackles across the field.' },
+  { id: 'hop', label: 'Quick Hop', icon: Y2K_ICON.hop, dmg: 14, pp: 15, say: 'A fast, light hit.' },
+  { id: 'nap', label: 'Thunder Nap', icon: Y2K_ICON.nap, dmg: 40, pp: 3, say: 'Huge, but it can only be used a few times.' },
+]
+const Y2K_CFG = { sticky: true, commitMs: 300, open: { damping: 0.9, response: 0.4 }, bar: { damping: 0.8, response: 0.28 } }
 
 function useTyped(text) {
   const [n, setN] = useState(0)
   useEffect(() => {
     setN(0)
-    const i = setInterval(() => setN((v) => { if (v >= text.length) { clearInterval(i); return v } return v + 1 }), 24)
+    const i = setInterval(() => setN((v) => { if (v >= text.length) { clearInterval(i); return v } return v + 1 }), 22)
     return () => clearInterval(i)
   }, [text])
   return text.slice(0, n)
@@ -767,32 +811,126 @@ function useTyped(text) {
 function Y2kSet({ auto, offset }) {
   const d = useDevice(auto)
   const [active, setActive] = useState(null)
-  const [sound, setSound] = useState(true)
-  const [diff, setDiff] = useState(1)
-  const [tickets, setTickets] = useState(3)
+  const [wild, setWild] = useState(offset ? offset % WILD.length : 0)
+  const [foe, setFoe] = useState(100)
+  const [me, setMe] = useState(100)
+  const [exp, setExp] = useState(35)
+  const [potions, setPotions] = useState(3)
+  const [pp, setPp] = useState(() => Object.fromEntries(MOVES.map((m) => [m.id, m.pp])))
+  const [aim, setAim] = useState(false)
+  const [guard, setGuard] = useState(false)
+  const [fx, setFx] = useState('enter') // which animation is playing on the field
+  const [log, setLog] = useState(`A wild ${WILD[wild][1]} appeared!`)
+  const busy = useRef(false)
+  const timers = useRef([])
+  const at = (ms, fn) => timers.current.push(setTimeout(fn, ms))
+  useEffect(() => () => timers.current.forEach(clearTimeout), [])
+  // always act on the latest numbers, even from a delayed step
+  const now = useRef()
+  now.current = { foe, me, guard, wild }
+
+  const encounter = (i) => {
+    setWild(i); setFoe(100); setFx('enter'); setAim(false); setGuard(false)
+    setLog(`A wild ${WILD[i][1]} appeared!`)
+    at(700, () => { busy.current = false })
+  }
+  const enemyTurn = () => {
+    const name = WILD[now.current.wild][1]
+    setFx('foe-attack')
+    setLog(`${name} strikes back!`)
+    at(360, () => {
+      const hit = (now.current.guard ? 7 : 15) + Math.floor(Math.random() * 6)
+      setMe((v) => Math.max(0, v - hit)); setFx('me-hit')
+      if (now.current.guard) setLog('Your guard held!')
+      setGuard(false)
+      at(760, () => {
+        setFx('')
+        if (now.current.me <= 0) {
+          setLog('Zapkit needs a rest… fully restored!')
+          at(1000, () => { setMe(100); setPp(Object.fromEntries(MOVES.map((m) => [m.id, m.pp]))); busy.current = false })
+        } else { setLog('What will Zapkit do?'); busy.current = false }
+      })
+    })
+  }
+  const attack = (m) => {
+    if (busy.current) return
+    busy.current = true
+    setPp((v) => ({ ...v, [m.id]: v[m.id] - 1 }))
+    setFx('me-attack')
+    setLog(`Zapkit used ${m.label}!`)
+    const power = aim ? 1.5 : 1
+    setAim(false)
+    at(360, () => {
+      const left = Math.max(0, now.current.foe - Math.round(m.dmg * power))
+      setFoe(left); setFx('foe-hit')
+      if (power > 1) setLog('A focused hit!')
+      at(800, () => {
+        if (left <= 0) {
+          const name = WILD[now.current.wild][1]
+          setFx('faint'); setLog(`${name} fainted! Zapkit gained EXP.`)
+          setExp((v) => (v + 45 >= 100 ? v + 45 - 100 : v + 45))
+          setPotions((n) => Math.min(3, n + 1))
+          setPp((v) => Object.fromEntries(MOVES.map((m) => [m.id, Math.min(m.pp, v[m.id] + Math.ceil(m.pp / 3))])))
+          at(1500, () => encounter((now.current.wild + 1) % WILD.length))
+        } else enemyTurn()
+      })
+    })
+  }
+  const heal = () => {
+    if (busy.current) return
+    busy.current = true
+    setPotions((n) => n - 1); setMe((v) => Math.min(100, v + 35)); setFx('heal'); setLog('Zapkit drank a potion.')
+    at(900, enemyTurn)
+  }
+  const doGuard = () => {
+    if (busy.current) return
+    busy.current = true
+    setGuard(true); now.current.guard = true; setFx('guard'); setLog('Zapkit braces for impact.')
+    at(700, enemyTurn)
+  }
+  const doAim = () => {
+    if (busy.current) return
+    setAim((v) => { setLog(v ? 'Zapkit relaxes.' : 'Zapkit takes aim. Next hit is stronger.'); return !v })
+  }
+  const run = () => {
+    if (busy.current) return
+    busy.current = true
+    setFx('flee'); setLog('Got away safely!')
+    at(900, () => encounter((now.current.wild + 1) % WILD.length))
+  }
+
   const sections = [
-    { label: 'Mode', items: [
-      { id: 'arcade', label: 'Arcade', hint: 'Fight against CPU-controlled rivals.', title: 'ARCADE' },
-      { id: 'versus', label: 'Versus', left: Y2K_ICON.versus, shortcut: 'P2', hint: 'Two players. One winner.', title: 'VERSUS' },
-      { id: 'train', label: 'Training', left: Y2K_ICON.dumbbell, badge: tickets, hint: 'Sharpen your timing, one ticket at a time.', title: 'TRAINING', run: () => setTickets((n) => (n > 0 ? n - 1 : 3)) },
+    { label: 'Trainer', items: [
+      { id: 'bag', label: 'Bag', left: Y2K_ICON.bag, badge: potions, disabled: potions === 0, hint: 'A potion restores 35 HP.', run: heal },
+      { id: 'guard', label: 'Guard', left: Y2K_ICON.guard, shortcut: 'R1', hint: 'Halves the next hit.', run: doGuard },
+      { id: 'run', label: 'Run', hint: 'Flee and find another encounter.', run },
     ] },
-    { label: 'System', items: [
-      { id: 'snd', label: 'Sound', right: sound ? Y2K_ICON.sound : Y2K_ICON.mute, hint: sound ? 'Audio is on.' : 'Audio is off.', title: 'SOUND', run: () => setSound((v) => !v) },
-      { id: 'opt', label: 'Difficulty', hint: 'Choose how hard the machine fights back.', title: 'DIFFICULTY', sub: [{ items: DIFF.map((name, i) => ({ id: name, label: name, hint: `${name} rivals await.`, title: name.toUpperCase(), left: diff === i ? Y2K_ICON.check : <span className="mi-blank" />, run: () => setDiff(i) })) }] },
+    { label: 'Battle', items: [
+      { id: 'aim', label: 'Take Aim', right: aim ? Y2K_ICON.eye : Y2K_ICON.shut, hint: 'Your next attack hits 1.5× harder.', run: doAim },
+      { id: 'fight', label: 'Fight', hint: 'Choose a move.', sub: [{ items: MOVES.map((m) => ({
+        id: m.id, label: m.label, left: m.icon, badge: pp[m.id], disabled: pp[m.id] === 0, hint: m.say, dmg: Math.round(m.dmg * (aim ? 1.5 : 1)), run: () => attack(m),
+      })) }] },
     ] },
   ]
-  const typed = useTyped(active?.hint || '')
+  const fighting = busy.current || fx === 'enter'
+  const typed = useTyped(!fighting && active?.hint && log === 'What will Zapkit do?' ? active.hint : log)
+  const [sprite, name, lv] = WILD[wild]
   return (
     <div className="stage">
       <div className="y2k" ref={d.ref}>
         <i className="y2k-sheen" aria-hidden="true" />
         <div className="y2k-arm" aria-hidden="true" />
         <div className="y2k-dial"><Dpad d={d} /></div>
-        <div className="y2k-screen"><Menu sections={sections} cfg={Y2K_CFG} auto={auto} offset={offset} ctl={d.ctl} onActive={setActive} /></div>
-        <div className="y2k-read" aria-live="polite">
-          <b key={active?.title}>{active?.title}</b>
-          <p>{typed}<i /></p>
+        <div className={`field fx-${fx} ${guard ? 'guarding' : ''} ${aim ? 'aiming' : ''}`} aria-hidden="true">
+          <HpCard who="foe" name={name} lv={lv} hp={foe} ghost={active?.dmg && !busy.current ? active.dmg : 0} cls="foe-card" />
+          <i className="ground g-foe" /><i className="ground g-me" />
+          <div className="mon foe" key={`${sprite}-${wild}`}><Sprite name={sprite} /></div>
+          <div className="mon me"><Sprite name="zapkit" size={9} /><i className="shield" /></div>
+          <i className="bolt-fx" />
+          <HpCard who="me" name="Zapkit" lv={12} hp={me} exp={exp} cls="me-card" />
         </div>
+        <div className="y2k-screen"><Menu sections={sections} cfg={Y2K_CFG} auto={auto} offset={offset} ctl={d.ctl} onActive={setActive} /></div>
+        <div className="y2k-log" aria-live="polite"><p>{typed}<i /></p></div>
         <div className="y2k-keys">
           <button {...d.btn('b', 'Back')}>BACK</button>
           <button {...d.btn('a', 'Select')}>SELECT</button>
@@ -811,7 +949,7 @@ const SETS = [
   { id: 'washi', tone: 'Serene, Paper Unfolds', Body: WashiSet },
   { id: 'gb', tone: 'Nostalgic, Press Start', Body: GameBoySet },
   { id: 'psp', tone: 'Futuristic, Cross Media', Body: PspSet },
-  { id: 'y2k', tone: 'Dramatic, Select Your Mode', Body: Y2kSet },
+  { id: 'y2k', tone: 'Dramatic, Wild Encounter', Body: Y2kSet },
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
