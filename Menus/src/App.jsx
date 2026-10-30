@@ -402,9 +402,248 @@ function DeckSet({ auto, offset }) {
   )
 }
 
+/* ----- DRAMATIC · Full Turn: cards ride a semicircle on the left; whatever reaches the center takes over the screen ----- */
+const RING_ICON = {
+  sun: li(['M10 6.500a3.500 3.500 0 1 0 0 7 3.500 3.500 0 0 0 0-7z', 'M10 2v2M10 16v2M2 10h2M16 10h2M4.300 4.300l1.400 1.400M14.300 14.300l1.400 1.400M15.700 4.300l-1.400 1.400M5.700 14.300l-1.400 1.400']),
+  dusk: li(['M4 14a6 6 0 0 1 12 0', 'M2 14h16', 'M6 17h8']),
+  star: li(['M10 3l2 4.500 5 .500-3.700 3.300 1.100 5L10 13.700 5.600 16.300l1.100-5L3 8l5-.500z']),
+  wave: li(['M2 8c2-2.500 4-2.500 6 0s4 2.500 6 0 2.500-2 4-1', 'M2 13c2-2.500 4-2.500 6 0s4 2.500 6 0 2.500-2 4-1']),
+  still: li(['M3 10h14']),
+  check: li(['M5 10.500l3.500 3.500L15 6.500']),
+}
+const WEATHER = ['Clear', 'Fog', 'Rain']
+const STARS = Array.from({ length: 70 }, (_, i) => ({ x: (i * 37.7) % 100, y: (i * 61.3) % 100, r: 1 + (i % 3) * 0.7 }))
+
+const mod = (a, n) => ((a % n) + n) % n
+
+function RingSet({ auto, offset = 0 }) {
+  const holder = useRef(null)
+  const stage = useRef(null)
+  const [tide, setTide] = useState(true)
+  const [wishes, setWishes] = useState(3)
+  const [weather, setWeather] = useState(0)
+  const [subFocus, setSubFocus] = useState(-1)
+
+  const items = [
+    { id: 'dawn', section: 'Day', label: 'Dawn', title: 'Dawn', line: 'The first light finds the edge of everything.' },
+    { id: 'noon', label: 'Noon', left: RING_ICON.sun, shortcut: '⌘U', title: 'Noon', line: 'No shadows left to hide in.' },
+    { id: 'tide', label: 'Tide', right: tide ? RING_ICON.wave : RING_ICON.still, title: 'Tide', line: tide ? 'It comes in. It goes out.' : 'The water holds its breath.', act: () => setTide((v) => !v) },
+    { id: 'dusk', section: 'Night', label: 'Dusk', left: RING_ICON.dusk, shortcut: '⌘I', title: 'Dusk', line: 'Everything turns to silhouette.' },
+    { id: 'stars', label: 'Stars', left: RING_ICON.star, badge: wishes, title: 'Stars', line: wishes ? `${wishes} wishes left. Press the card to spend one.` : 'Press the card to find three more.', act: () => setWishes((n) => (n > 0 ? n - 1 : 3)) },
+    { id: 'weather', label: 'Weather', sub: WEATHER, title: WEATHER[weather], line: ['Nothing between you and the sky.', 'The horizon gives up.', 'It has been coming all day.'][weather] },
+  ]
+  const N = items.length
+
+  // the wheel's position is continuous; whole numbers sit a card at the center
+  const [target, setTarget] = useState(offset)
+  const wheel = useSpring(target, { damping: 0.84, response: 0.52 })
+  const active = mod(Math.round(target), N)
+  const cur = items[active]
+
+  // content wipes out from the card that was chosen
+  const [layers, setLayers] = useState([{ i: mod(offset, N), key: 0 }])
+  const seq = useRef(0)
+  useEffect(() => {
+    setLayers((v) => (v[v.length - 1].i === active ? v : [...v.slice(-1), { i: active, key: ++seq.current }]))
+    setSubFocus(-1)
+  }, [active])
+
+  // full screen: the whole piece grows from its place on the page to the viewport
+  const [full, setFull] = useState(false)
+  const from = useRef(null)
+  const grow = useSpring(full ? 1 : 0, { damping: 1, response: 0.6 })
+  const g = grow.value
+  const openFull = () => {
+    if (auto || full) return
+    from.current = holder.current.getBoundingClientRect()
+    setFull(true)
+  }
+  useEffect(() => {
+    if (!full) return
+    const prev = document.documentElement.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    stage.current?.focus({ preventScroll: true })
+    return () => { document.documentElement.style.overflow = prev }
+  }, [full])
+
+  // measure so the arc scales with whichever size it is showing at
+  const [size, setSize] = useState({ W: 944, H: 620 })
+  useEffect(() => {
+    const ro = new ResizeObserver(([e]) => setSize({ W: e.contentRect.width, H: e.contentRect.height }))
+    if (stage.current) ro.observe(stage.current)
+    return () => ro.disconnect()
+  }, [])
+  const narrow = size.W < 640
+  const k = Math.max(0.78, Math.min(1.5, size.H / 620))
+  const cardW = (narrow ? 210 : 300) * k
+  const cardH = 112 * k
+  const xR = (narrow ? 150 : 360) * k
+  const yR = 0.4 * size.H
+  const cx = (narrow ? -70 : -60) * k
+  const cy = size.H / 2
+  const STEP = 36
+
+  const spinTo = (i) => {
+    let d = mod(i - target, N)
+    if (d > N / 2) d -= N
+    setTarget(Math.round(target + d))
+  }
+
+  /* pointer: drag rotates with momentum, a click selects */
+  const drag = useRef(null)
+  const [pressId, setPressId] = useState(null)
+  const [hoverId, setHoverId] = useState(null)
+  const onDown = (e, i) => {
+    if (auto) return
+    drag.current = { y: e.clientY, start: target, moved: false, i, lastY: e.clientY, lastT: performance.now(), v: 0 }
+    setPressId(i)
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* pointer already gone */ }
+  }
+  const onMove = (e) => {
+    const d = drag.current
+    if (!d) return
+    const dy = e.clientY - d.y
+    if (Math.abs(dy) > 5) { d.moved = true; setPressId(null) }
+    if (d.moved) setTarget(d.start - dy / (yR * 0.62))
+    const now = performance.now()
+    d.v = (e.clientY - d.lastY) / Math.max(1, now - d.lastT); d.lastY = e.clientY; d.lastT = now
+  }
+  const onUp = () => {
+    const d = drag.current
+    drag.current = null
+    setPressId(null)
+    if (!d) return
+    if (d.moved) { setTarget((t) => Math.round(t - d.v * 2.2)); return }
+    const isCenter = mod(d.i, N) === active
+    spinTo(d.i)
+    if (!full) openFull()
+    else if (isCenter) cur.act?.()
+  }
+
+  /* keyboard works while the pointer or focus is on it, or always when full screen */
+  const latest = useRef()
+  latest.current = { full, cur, subFocus, active, items }
+  useEffect(() => {
+    if (auto) return
+    const onKey = (e) => {
+      const { full: isFull, cur: c, subFocus: sf, items: list } = latest.current
+      const el = stage.current
+      if (!el || !(isFull || el.matches(':hover') || el.contains(document.activeElement))) return
+      if (e.metaKey || e.ctrlKey) {
+        const i = list.findIndex((it) => it.shortcut && it.shortcut.slice(-1).toLowerCase() === e.key.toLowerCase())
+        if (i >= 0) { e.preventDefault(); spinToRef.current(i) }
+        return
+      }
+      const stop = () => { e.preventDefault(); e.stopPropagation() }
+      if (sf >= 0) {
+        if (e.key === 'ArrowDown') { stop(); setSubFocus((v) => mod(v + 1, WEATHER.length)) }
+        else if (e.key === 'ArrowUp') { stop(); setSubFocus((v) => mod(v - 1, WEATHER.length)) }
+        else if (e.key === 'ArrowLeft' || e.key === 'Escape') { stop(); setSubFocus(-1) }
+        else if (e.key === 'Enter' || e.key === ' ') { stop(); setWeather(sf) }
+        return
+      }
+      if (e.key === 'ArrowDown') { stop(); setTarget((t) => Math.round(t) + 1) }
+      else if (e.key === 'ArrowUp') { stop(); setTarget((t) => Math.round(t) - 1) }
+      else if (e.key === 'ArrowRight' && c.sub) { stop(); setSubFocus(0) }
+      else if (e.key === 'Enter' || e.key === ' ') { stop(); if (!isFull) openFullRef.current(); else if (c.sub) setSubFocus(0); else c.act?.() }
+      else if (e.key === 'Escape' && isFull) { stop(); setFull(false) }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [auto])
+  const spinToRef = useRef(); spinToRef.current = spinTo
+  const openFullRef = useRef(); openFullRef.current = openFull
+
+  /* wall: it turns by itself */
+  useEffect(() => {
+    if (!auto) return
+    const t = setInterval(() => setTarget((v) => v + 1), 1900 + offset * 130)
+    return () => clearInterval(t)
+  }, [auto, offset])
+
+  // draw the cards nearest the center, wrapping round the wheel
+  const base = Math.round(wheel.value)
+  const cards = []
+  for (let n = -3; n <= 3; n++) {
+    const slot = base + n
+    const i = mod(slot, N)
+    const off = slot - wheel.value
+    const a = off * STEP * Math.PI / 180
+    const near = Math.max(0, 1 - Math.abs(off))
+    const it = items[i]
+    const hovered = hoverId === slot && !near
+    const scale = 0.78 + near * 0.22
+    const x = cx + xR * Math.cos(a) + (hovered ? 16 : 0)
+    const y = cy + yR * Math.sin(a) - (cardH / 2)
+    const fade = Math.max(0, Math.min(1, 3 - Math.abs(off) * 1.05))
+    cards.push(
+      <div key={slot} role="menuitem" aria-current={near > 0.5 || undefined} aria-haspopup={it.sub ? 'menu' : undefined}
+        className={`rc ${near > 0.5 ? 'is-on' : ''} ${pressId === slot ? 'is-press' : ''} ${hovered ? 'is-hover' : ''}`}
+        style={{ width: cardW, height: cardH, opacity: fade, zIndex: 10 + Math.round(near * 10) - Math.abs(n),
+          transform: `translate(${x}px, ${y}px) rotate(${off * 4}deg) scale(${scale * (pressId === slot ? 0.96 : 1)})`, '--near': near }}
+        onPointerDown={(e) => onDown(e, slot)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        onPointerEnter={() => setHoverId(slot)} onPointerLeave={() => setHoverId((v) => (v === slot ? null : v))}>
+        {it.section && <span className="rc-sec">{it.section}</span>}
+        {it.left && <span className="rc-left">{it.left}</span>}
+        <span className="rc-label">{it.label}</span>
+        {it.shortcut && <span className="rc-short">{it.shortcut}</span>}
+        {it.badge != null && <span className="rc-badge">{it.badge}</span>}
+        {it.right && <span className="rc-right">{it.right}</span>}
+        {it.sub && <span className="rc-right"><Chevron /></span>}
+      </div>,
+    )
+  }
+
+  const layer = (l, top) => {
+    const it = items[l.i]
+    return (
+      <div key={l.key} className={`ly ly-${it.id} w-${weather} ${top ? 'is-top' : ''}`}
+        style={{ '--ox': `${cx + xR + cardW / 2}px`, '--oy': `${cy}px` }}>
+        {it.id === 'stars' && STARS.map((s, n) => <i key={n} className="star" style={{ left: `${s.x}%`, top: `${s.y}%`, width: s.r * 2, height: s.r * 2, animationDelay: `${(n % 7) * 0.4}s` }} />)}
+        {it.id === 'tide' && <div className={`waves ${tide ? 'on' : ''}`}><i /><i /><i /></div>}
+        {it.id === 'dawn' && <i className="orb o-dawn" />}
+        {it.id === 'noon' && <i className="orb o-noon" />}
+        {it.id === 'dusk' && <i className="orb o-dusk" />}
+        {it.id === 'weather' && weather === 2 && <div className="rain" />}
+        {it.id === 'weather' && weather === 1 && <div className="fog" />}
+      </div>
+    )
+  }
+
+  const r = from.current
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 0
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 0
+  const fixed = (full || g > 0.002) && r
+  const box = fixed ? { position: 'fixed', zIndex: 900, left: r.left * (1 - g), top: r.top * (1 - g), width: r.width + (vw - r.width) * g, height: r.height + (vh - r.height) * g, borderRadius: 24 * (1 - g) } : {}
+
+  return (
+    <div className="ring-holder" ref={holder}>
+      <div className="ring" ref={stage} tabIndex={0} role="menu" aria-label="Times of day" style={box}>
+        {layers.map((l, n) => layer(l, n === layers.length - 1))}
+        <div className="rw-copy" key={cur.id + cur.title}>
+          <h3>{cur.title}</h3>
+          <p>{cur.line}</p>
+        </div>
+        <div className="rw-arc" aria-hidden="true" style={{ left: cx + xR * 0.05, top: cy - yR * 1.1, width: xR * 2, height: yR * 2.2 }} />
+        <div className="rw-cards">{cards}</div>
+        <div className={`rw-sub ${cur.sub && !drag.current ? 'on' : ''}`} style={{ left: cx + xR + cardW + 18 * k, top: cy - 66 * k }}>
+          {WEATHER.map((w, i) => (
+            <button key={w} type="button" className={`rs ${weather === i ? 'is-sel' : ''} ${subFocus === i ? 'is-focus' : ''}`} tabIndex={-1}
+              onClick={() => { setWeather(i); openFull() }}>
+              <span className="rc-left">{weather === i && RING_ICON.check}</span>{w}
+            </button>
+          ))}
+        </div>
+        {g > 0.5 && <button type="button" className="rw-close" onClick={() => setFull(false)}>Close <kbd>Esc</kbd></button>}
+      </div>
+    </div>
+  )
+}
+
 /* ================= page ================= */
 const SETS = [
   { id: 'deck', tone: 'Futuristic, Quick Access', Body: DeckSet },
+  { id: 'ring', tone: 'Dramatic, Full Turn', Body: RingSet },
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
@@ -464,8 +703,8 @@ function Wall() {
       {active && Array.from({ length: layout.cols }, (_, c) => (
         <div key={c} className="wall-col">
           {Array.from({ length: layout.rows }, (_, r) => {
-            const set = SETS[0]
-            return <div key={r} className={`wall-tile s-${set.id}`}><div className="frame"><set.Body auto offset={c * 2 + r} /></div></div>
+            const set = SETS[(c + r) % SETS.length]
+            return <div key={r} className={`wall-tile s-${set.id}`}><div className={set.id === 'ring' ? '' : 'frame'}><set.Body auto offset={c * 2 + r} /></div></div>
           })}
         </div>
       ))}
@@ -488,7 +727,7 @@ export default function App() {
             <h2>{set.tone}</h2>
             <DraftThumb set={set} />
           </div>
-          <div className="frame"><set.Body /></div>
+          <div className={set.id === 'ring' ? '' : 'frame'}><set.Body /></div>
         </section>
       ))}
     </main>
