@@ -131,11 +131,11 @@ function Panel({ sections, flat, open, active, pressed, parentOpen, commit, leve
 
 const flatten = (sections) => sections.flatMap((s) => s.items)
 
-function Menu({ sections, cfg, auto, offset = 0 }) {
+function Menu({ sections, cfg, auto, offset = 0, ctl, onActive }) {
   const flat = flatten(sections)
   // stays open by default; sets with cfg.returnMs close on a choice and come back, and enter when scrolled into view
   const [open, setOpen] = useState(!cfg.returnMs || !!auto)
-  const [idx, setIdx] = useState(-1)
+  const [idx, setIdx] = useState(cfg.sticky ? 0 : -1)
   const [subIdx, setSubIdx] = useState(-1)
   const [subOpen, setSubOpen] = useState(false)
   const [pressed, setPressed] = useState(null) // { level, i }
@@ -159,7 +159,7 @@ function Menu({ sections, cfg, auto, offset = 0 }) {
   const place = (i) => { const el = rootRows.current[i]; if (el) setSubTop(topOf(el)) }
   const showSub = (i) => { place(i); setSubOpen(true); setSubIdx(-1) }
 
-  const reset = () => { setIdx(-1); setSubIdx(-1); setSubOpen(false); setPressed(null); setCommit(null); setOpen(true) }
+  const reset = () => { setIdx(cfg.sticky ? 0 : -1); setSubIdx(-1); setSubOpen(false); setPressed(null); setCommit(null); setOpen(true) }
   useEffect(() => {
     if (!cfg.returnMs || auto || !wrapRef.current) return
     const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setOpen(true); io.disconnect() } }, { threshold: 0.15 })
@@ -202,8 +202,8 @@ function Menu({ sections, cfg, auto, offset = 0 }) {
     },
     leave(level) {
       if (busy.current) return
-      if (level === 1) setSubIdx(-1)
-      else if (!subOpen) setIdx(-1)
+      if (level === 1 && !cfg.sticky) setSubIdx(-1)
+      else if (!subOpen && !cfg.sticky) setIdx(-1)
       setPressed(null)
     },
     press(level, i) { if (!busy.current) setPressed({ level, i }) },
@@ -257,6 +257,23 @@ function Menu({ sections, cfg, auto, offset = 0 }) {
     }
   }
 
+  /* a device's physical buttons drive the same logic as the keyboard */
+  const fake = (key) => onKeyDown({ key, preventDefault() {}, stopPropagation() {} })
+  if (ctl) ctl.current = {
+    key: fake,
+    back: () => fake('Escape'),
+    down() {
+      const inSub = subOpen && subIdx >= 0
+      if (!inSub && flat[idx]?.sub) { showSub(idx); setSubIdx(0); return }
+      const cur = inSub ? subIdx : idx
+      if (cur >= 0) m.press(inSub ? 1 : 0, cur)
+    },
+    up() { if (pressed) m.choose(pressed.level, pressed.i) },
+  }
+  const activeItem = subOpen && subIdx >= 0 ? subFlat[subIdx] : flat[idx]
+  const activeKey = activeItem?.id
+  useEffect(() => { onActive?.(activeItem) }, [activeKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ⌘ shortcuts press their row while the pointer or focus is on this menu */
   const shortcutRef = useRef()
   shortcutRef.current = { flat, m, setIdx, setSubOpen }
@@ -267,7 +284,7 @@ function Menu({ sections, cfg, auto, offset = 0 }) {
       const el = wrapRef.current
       if (!el || !(el.matches(':hover') || el.contains(document.activeElement))) return
       const { flat: list, m: api, setIdx: si, setSubOpen: so } = shortcutRef.current
-      const i = list.findIndex((it) => it.shortcut && it.shortcut.slice(-1).toLowerCase() === e.key.toLowerCase())
+      const i = list.findIndex((it) => it.shortcut?.startsWith('⌘') && it.shortcut.slice(-1).toLowerCase() === e.key.toLowerCase())
       if (i < 0) return
       e.preventDefault()
       si(i); so(false); api.press(0, i)
@@ -317,7 +334,7 @@ function Menu({ sections, cfg, auto, offset = 0 }) {
   }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div ref={wrapRef} className={`menu-wrap ${commit != null ? 'is-impact' : ''} ${idx >= 0 ? 'has-hover' : ''}`} tabIndex={0} aria-label="Menu" onKeyDown={onKeyDown}
+    <div ref={wrapRef} className={`menu-wrap ${commit != null ? 'is-impact' : ''} ${idx >= 0 ? 'has-hover' : ''} ${subOpen ? 'has-sub' : ''}`} tabIndex={0} aria-label="Menu" onKeyDown={onKeyDown}
       onFocus={(e) => { if (e.target.matches(':focus-visible') && idx < 0 && !auto) setIdx(nextOn(flat, -1, 1)) }}>
       {cfg.goo && (
         <div className="goo" aria-hidden="true" style={{ '--rp': rootSpring.value, '--sp': subSpring.value, '--root-h': `${rootH || 300}px`, '--sub-top': `${subTop}px`, '--sub-n': subFlat.length }}>
@@ -532,6 +549,259 @@ function WashiSet({ auto, offset }) {
   return <div className="stage" ref={ref}><Menu sections={sections} cfg={WASHI_CFG} auto={auto} offset={offset} /></div>
 }
 
+/* ================= game devices: the hardware's buttons really operate the menu ================= */
+function useDevice(auto) {
+  const ref = useRef(null)
+  const ctl = useRef(null)
+  const [held, setHeld] = useState('')
+  const heldRef = useRef('')
+  const press = (k) => {
+    heldRef.current = k; setHeld(k)
+    if (k === 'a') ctl.current?.down()
+    else if (k === 'b') ctl.current?.back()
+    else ctl.current?.key(k)
+  }
+  const release = (k) => {
+    if (heldRef.current !== k) return
+    heldRef.current = ''; setHeld('')
+    if (k === 'a') ctl.current?.up()
+  }
+  useEffect(() => {
+    if (auto) return
+    const map = { ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight', Enter: 'a', ' ': 'a', Escape: 'b', Backspace: 'b' }
+    const hot = () => ref.current?.matches(':hover') || ref.current?.contains(document.activeElement)
+    const onDown = (e) => { const k = map[e.key]; if (!k || !hot() || e.metaKey || e.ctrlKey) return; e.preventDefault(); e.stopPropagation(); if (!e.repeat) press(k) }
+    const onUp = (e) => { const k = map[e.key]; if (k) release(k) }
+    window.addEventListener('keydown', onDown, true)
+    window.addEventListener('keyup', onUp, true)
+    return () => { window.removeEventListener('keydown', onDown, true); window.removeEventListener('keyup', onUp, true) }
+  }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
+  // props for one physical button
+  const btn = (k, label) => ({
+    type: 'button', 'aria-label': label, tabIndex: -1,
+    onPointerDown: (e) => { e.preventDefault(); press(k); try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* pointer already gone */ } },
+    onPointerUp: () => release(k), onPointerCancel: () => release(k),
+    'data-held': held === k ? '' : undefined,
+  })
+  return { ref, ctl, held, btn }
+}
+
+function Dpad({ d }) {
+  const tilt = { ArrowUp: 'rotateX(16deg)', ArrowDown: 'rotateX(-16deg)', ArrowLeft: 'rotateY(-16deg)', ArrowRight: 'rotateY(16deg)' }[d.held] || 'none'
+  return (
+    <div className="dpad">
+      <div className="dpad-cross" style={{ transform: tilt }}>
+        <button className="d-up" {...d.btn('ArrowUp', 'Up')} /><button className="d-down" {...d.btn('ArrowDown', 'Down')} />
+        <button className="d-left" {...d.btn('ArrowLeft', 'Back out')} /><button className="d-right" {...d.btn('ArrowRight', 'Open submenu')} />
+      </div>
+    </div>
+  )
+}
+
+/* ----- NOSTALGIC · Press Start: a grey brick with four shades of green ----- */
+const GB = {
+  save: px([[2, 2, 12, 12], [4, 2, 8, 4], [5, 9, 6, 5]]),
+  party: px([[6, 2, 4, 4], [4, 7, 8, 6], [5, 13, 2, 2], [9, 13, 2, 2]]),
+  sound: PX.sound, mute: PX.mute, check: PX.check,
+}
+const SPEEDS = ['Slow', 'Mid', 'Fast']
+const GB_CFG = { sticky: true, commitMs: 260, open: { damping: 1, response: 0.16 }, bar: { damping: 1, response: 0.1 } }
+
+function GameBoySet({ auto, offset }) {
+  const d = useDevice(auto)
+  const [mon, setMon] = useState(6)
+  const [muted, setMuted] = useState(false)
+  const [speed, setSpeed] = useState(1)
+  const [fresh, setFresh] = useState(false)
+  const sections = [
+    { label: 'Game', items: [
+      { id: 'new', label: fresh ? 'New Game +' : 'New Game', run: () => setFresh((v) => !v) },
+      { id: 'cont', label: 'Continue', left: GB.save, shortcut: 'START' },
+      { id: 'party', label: 'Party', left: GB.party, badge: mon, run: () => setMon((n) => (n > 1 ? n - 1 : 6)) },
+    ] },
+    { label: 'Option', items: [
+      { id: 'snd', label: 'Sound', right: muted ? GB.mute : GB.sound, run: () => setMuted((v) => !v) },
+      { id: 'spd', label: 'Text Speed', sub: [{ items: SPEEDS.map((name, i) => ({ id: name, label: name, left: speed === i ? GB.check : <span className="mi-blank" />, run: () => setSpeed(i) })) }] },
+    ] },
+  ]
+  return (
+    <div className="stage">
+      <div className="gb" ref={d.ref}>
+        <div className="gb-lines" aria-hidden="true"><i /><i /></div>
+        <div className="gb-bezel">
+          <div className="gb-led" aria-hidden="true"><i className={d.held ? 'on' : ''} /><span>BATTERY</span></div>
+          <div className="gb-lcd"><Menu sections={sections} cfg={GB_CFG} auto={auto} offset={offset} ctl={d.ctl} /></div>
+          <div className="gb-print" aria-hidden="true">DOT MATRIX · 4 SHADES</div>
+        </div>
+        <div className="gb-controls">
+          <Dpad d={d} />
+          <div className="gb-ab">
+            <button className="gb-b" {...d.btn('b', 'B, back')}>B</button>
+            <button className="gb-a" {...d.btn('a', 'A, select')}>A</button>
+          </div>
+        </div>
+        <div className="gb-pills">
+          <span><button {...d.btn('ArrowDown', 'Select, next row')} />SELECT</span>
+          <span><button {...d.btn('a', 'Start')} />START</span>
+        </div>
+        <div className="gb-speaker" aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <i key={i} />)}</div>
+      </div>
+    </div>
+  )
+}
+
+/* ----- FUTURISTIC · Cross Media: a glossy slab, rows breathe in a flowing wave ----- */
+const PSP_ICON = {
+  disk: li(['M4 3h10l2 2v12H4z', 'M7 3v5h6V3', 'M7 17v-5h6v5']),
+  down: li(['M10 3v10', 'M6 9.500l4 4 4-4', 'M4 17h12']),
+  wifi: li(['M2.500 8a11 11 0 0 1 15 0', 'M5.500 11a7 7 0 0 1 9 0', 'M8.500 14a2.500 2.500 0 0 1 3 0', 'M10 16.500v.100']),
+  off: li(['M4 4l12 12', 'M5.500 11a7 7 0 0 1 3-1.700', 'M8.500 14a2.500 2.500 0 0 1 3 0']),
+  check: li(['M5 10.500l3.500 3.500L15 6.500']),
+}
+const THEMES = [
+  { name: 'Ocean', a: '#0a2a5e', b: '#1f7ac0', w: '150,210,255' },
+  { name: 'Ember', a: '#4a1408', b: '#d4561c', w: '255,190,140' },
+  { name: 'Moss', a: '#0f2f1c', b: '#3c9a5e', w: '180,255,200' },
+]
+const PSP_CFG = { sticky: true, commitMs: 340, open: { damping: 1, response: 0.42 }, bar: { damping: 1, response: 0.3 } }
+
+function Waves({ theme }) {
+  const c = useRef(null)
+  const t = useRef(theme)
+  t.current = theme
+  useEffect(() => {
+    let raf
+    const loop = (now) => {
+      const el = c.current
+      if (el) {
+        const W = el.clientWidth, H = el.clientHeight, dpr = window.devicePixelRatio || 1
+        if (el.width !== Math.round(W * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr) }
+        const g = el.getContext('2d')
+        g.setTransform(dpr, 0, 0, dpr, 0, 0)
+        g.clearRect(0, 0, W, H)
+        const s = now / 1000
+        for (let k = 0; k < 3; k++) {
+          for (const edge of [0, 1]) {
+            g.beginPath()
+            for (let x = 0; x <= W; x += 6) {
+              const y = H * (0.5 + k * 0.06) + Math.sin(x / (90 + k * 34) + s * (0.5 + k * 0.17) + k * 1.7) * (16 + k * 5) + Math.sin(x / 41 + s * 0.3 + k) * 5 + edge * (14 + k * 7)
+              x === 0 ? g.moveTo(x, y) : g.lineTo(x, y)
+            }
+            if (edge === 0) { g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fillStyle = `rgba(${t.current.w},${0.055})`; g.fill() } else { g.strokeStyle = `rgba(${t.current.w},${0.2 - k * 0.04})`; g.lineWidth = 1; g.stroke() }
+          }
+        }
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+  return <canvas ref={c} className="psp-waves" aria-hidden="true" />
+}
+
+function PspSet({ auto, offset }) {
+  const d = useDevice(auto)
+  const [theme, setTheme] = useState(0)
+  const [wifi, setWifi] = useState(true)
+  const [dl, setDl] = useState(2)
+  const [res, setRes] = useState(false)
+  const T = THEMES[theme]
+  const sections = [
+    { label: 'Game', items: [
+      { id: 'res', label: res ? 'Suspend' : 'Resume', run: () => setRes((v) => !v) },
+      { id: 'sav', label: 'Saved Data', left: PSP_ICON.disk, shortcut: '△' },
+      { id: 'dl', label: 'Downloads', left: PSP_ICON.down, badge: dl || undefined, run: () => setDl(dl ? 0 : 2) },
+    ] },
+    { label: 'Settings', items: [
+      { id: 'wifi', label: 'Wireless', right: wifi ? PSP_ICON.wifi : PSP_ICON.off, run: () => setWifi((v) => !v) },
+      { id: 'theme', label: 'Theme', sub: [{ items: THEMES.map((th, i) => ({ id: th.name, label: th.name, left: theme === i ? PSP_ICON.check : <span className="mi-blank" />, run: () => setTheme(i) })) }] },
+    ] },
+  ]
+  const nub = { ArrowUp: [0, -7], ArrowDown: [0, 7], ArrowLeft: [-7, 0], ArrowRight: [7, 0] }[d.held] || [0, 0]
+  return (
+    <div className="stage">
+      <div className="psp" ref={d.ref}>
+        <i className="psp-sh l" aria-hidden="true" /><i className="psp-sh r" aria-hidden="true" />
+        <div className="psp-left">
+          <Dpad d={d} />
+          <div className="psp-nub" aria-hidden="true"><i style={{ transform: `translate(${nub[0]}px, ${nub[1]}px)` }} /></div>
+        </div>
+        <div className="psp-screen" style={{ background: `linear-gradient(160deg, ${T.a}, ${T.b})`, '--glow': `rgb(${T.w})` }}>
+          <Waves theme={T} />
+          <Menu sections={sections} cfg={PSP_CFG} auto={auto} offset={offset} ctl={d.ctl} />
+        </div>
+        <div className="psp-right">
+          <div className="psp-btns">
+            <span className="tri" aria-hidden="true">△</span>
+            <button className="cir" {...d.btn('b', 'Circle, back')}>○</button>
+            <button className="crs" {...d.btn('a', 'Cross, select')}>✕</button>
+            <span className="sqr" aria-hidden="true">□</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ----- DRAMATIC · Select Your Mode: Y2K silver hardware, staircase tabs, a typed readout ----- */
+const Y2K_ICON = {
+  versus: li(['M3 4l7 7', 'M3 16l4-4', 'M17 4l-7 7', 'M17 16l-4-4', 'M2 15l3 3M18 15l-3 3']),
+  dumbbell: li(['M3 7v6M6 5v10M14 5v10M17 7v6', 'M6 10h8']),
+  sound: li(['M3 8v4h3l4 3V5L6 8z', 'M13 7.500a3.500 3.500 0 0 1 0 5', 'M15 5a7 7 0 0 1 0 10']),
+  mute: li(['M3 8v4h3l4 3V5L6 8z', 'M13 8l4 4M17 8l-4 4']),
+  check: li(['M5 10.500l3.500 3.500L15 6.500']),
+}
+const DIFF = ['Easy', 'Hard', 'Ultra']
+const Y2K_CFG = { sticky: true, commitMs: 420, open: { damping: 0.9, response: 0.4 }, bar: { damping: 0.8, response: 0.28 } }
+
+function useTyped(text) {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    setN(0)
+    const i = setInterval(() => setN((v) => { if (v >= text.length) { clearInterval(i); return v } return v + 1 }), 24)
+    return () => clearInterval(i)
+  }, [text])
+  return text.slice(0, n)
+}
+
+function Y2kSet({ auto, offset }) {
+  const d = useDevice(auto)
+  const [active, setActive] = useState(null)
+  const [sound, setSound] = useState(true)
+  const [diff, setDiff] = useState(1)
+  const [tickets, setTickets] = useState(3)
+  const sections = [
+    { label: 'Mode', items: [
+      { id: 'arcade', label: 'Arcade', hint: 'Fight against CPU-controlled rivals.', title: 'ARCADE' },
+      { id: 'versus', label: 'Versus', left: Y2K_ICON.versus, shortcut: 'P2', hint: 'Two players. One winner.', title: 'VERSUS' },
+      { id: 'train', label: 'Training', left: Y2K_ICON.dumbbell, badge: tickets, hint: 'Sharpen your timing, one ticket at a time.', title: 'TRAINING', run: () => setTickets((n) => (n > 0 ? n - 1 : 3)) },
+    ] },
+    { label: 'System', items: [
+      { id: 'snd', label: 'Sound', right: sound ? Y2K_ICON.sound : Y2K_ICON.mute, hint: sound ? 'Audio is on.' : 'Audio is off.', title: 'SOUND', run: () => setSound((v) => !v) },
+      { id: 'opt', label: 'Difficulty', hint: 'Choose how hard the machine fights back.', title: 'DIFFICULTY', sub: [{ items: DIFF.map((name, i) => ({ id: name, label: name, hint: `${name} rivals await.`, title: name.toUpperCase(), left: diff === i ? Y2K_ICON.check : <span className="mi-blank" />, run: () => setDiff(i) })) }] },
+    ] },
+  ]
+  const typed = useTyped(active?.hint || '')
+  return (
+    <div className="stage">
+      <div className="y2k" ref={d.ref}>
+        <i className="y2k-sheen" aria-hidden="true" />
+        <div className="y2k-arm" aria-hidden="true" />
+        <div className="y2k-dial"><Dpad d={d} /></div>
+        <div className="y2k-screen"><Menu sections={sections} cfg={Y2K_CFG} auto={auto} offset={offset} ctl={d.ctl} onActive={setActive} /></div>
+        <div className="y2k-read" aria-live="polite">
+          <b key={active?.title}>{active?.title}</b>
+          <p>{typed}<i /></p>
+        </div>
+        <div className="y2k-keys">
+          <button {...d.btn('b', 'Back')}>BACK</button>
+          <button {...d.btn('a', 'Select')}>SELECT</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ================= page ================= */
 const SETS = [
   { id: 'classic', tone: 'Nostalgic, Every Choice Inverts', Body: NostalgicSet },
@@ -539,6 +809,9 @@ const SETS = [
   { id: 'anime', tone: 'Energetic, Final Attack!', Body: AnimeSet },
   { id: 'ink', tone: 'Mysterious, Ink Divides', Body: InkSet },
   { id: 'washi', tone: 'Serene, Paper Unfolds', Body: WashiSet },
+  { id: 'gb', tone: 'Nostalgic, Press Start', Body: GameBoySet },
+  { id: 'psp', tone: 'Futuristic, Cross Media', Body: PspSet },
+  { id: 'y2k', tone: 'Dramatic, Select Your Mode', Body: Y2kSet },
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
@@ -598,7 +871,7 @@ function Wall() {
       {active && Array.from({ length: layout.cols }, (_, c) => (
         <div key={c} className="wall-col">
           {Array.from({ length: layout.rows }, (_, r) => {
-            const set = SETS[(c + r) % SETS.length]
+            const set = SETS[(c * 3 + r + 5) % SETS.length]
             return <div key={r} className={`wall-tile s-${set.id}`}><set.Body auto offset={c * 2 + r} /></div>
           })}
         </div>
