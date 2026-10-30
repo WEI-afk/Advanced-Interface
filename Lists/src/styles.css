@@ -49,7 +49,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; overflow-x: c
 .ls-water .ls-back { width: 36px; height: 36px; margin-left: -10px; border-radius: 50%; transition: background-color .3s; }
 .ls-water .ls-back:hover { background: var(--water); }
 .ls-water .ls-row { height: 72px; margin-bottom: 4px; border-radius: 20px; overflow: hidden; isolation: isolate; transition: transform .5s cubic-bezier(.3,1,.4,1); }
-.ls-water .ls-row::before { content: ''; position: absolute; z-index: -1; left: -10%; right: -10%; top: 0; bottom: -12px; border-radius: 50% 50% 0 0 / 10px 14px 0 0; background: var(--water); transform: translateY(102%); transition: transform .9s cubic-bezier(.22,.8,.3,1), background-color .4s; }
+.ls-water .ls-row::before { content: ''; position: absolute; z-index: -1; left: -10%; right: -10%; top: -18px; bottom: -12px; /* the curved surface ends above the row, so a full row is a full fill */ border-radius: 50% 50% 0 0 / 10px 14px 0 0; background: var(--water); transform: translateY(102%); transition: transform .9s cubic-bezier(.22,.8,.3,1), background-color .4s; }
 .ls-water .ls-row.is-hover::before, .ls-water .ls-row.is-open::before { transform: none; }
 .ls-water .ls-row.is-press { transform: scale(.985); }
 .ls-water .ls-row.is-press::before { background: var(--deep); transition-duration: .35s, .12s; }
