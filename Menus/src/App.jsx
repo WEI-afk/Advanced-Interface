@@ -674,26 +674,58 @@ function RingSet({ auto, offset = 0 }) {
   )
 }
 
-/* ----- REBELLIOUS · The Hunt: a torn black slash on red, ransom-note letters, one jagged highlight that leans as it moves; the quarry morphs behind the menu ----- */
-const HUNT_ICON = {
-  quest: li(['M4 3h12v14H4z', 'M7 7h6', 'M7 10h6', 'M7 13h3']),
-  target: li(['M10 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12z', 'M10 1v5', 'M10 14v5', 'M1 10h5', 'M14 10h5']),
+/* ----- REBELLIOUS · Base Camp: stacks of cut-out chips that twitch sideways when the tab changes; confirming grows the chosen row into the title of a second layer while the shapes behind reshape ----- */
+const CAMP_ICON = {
+  crate: li(['M3 6h14v11H3z', 'M3 6l2-3h10l2 3', 'M8 10h4']),
+  hammer: li(['M4 6l5-3 4 3-2 3-3-1z', 'M9 8l7 8']),
   blade: li(['M16 3l1 1-9 9-2-2z', 'M5 10l5 5', 'M6.500 13.500L3 17']),
-  book: li(['M4 3h12v14H4z', 'M8 3v14', 'M11 7h3']),
   sharp: li(['M3 17L17 3', 'M12 3h5v5']),
   dull: li(['M3 15h14', 'M3 15v-3h14v3']),
+  paw: li(['M10 10c-3 0-5 3-4 5s3 1 4 1 3 1 4-1-1-5-4-5z', 'M5 7v2', 'M9 4v2', 'M12 4v2', 'M16 7v2']),
+  quest: li(['M4 3h12v14H4z', 'M7 7h6', 'M7 10h6', 'M7 13h3']),
   check: li(['M5 10.500l3.500 3.500L15 6.500']),
 }
-// every outline has the same 20 points, so one beast can morph into the next
-const QUARRY = [
-  { id: 'emberjaw', name: 'Emberjaw', line: 'Sleeps in the caldera. Wakes angry.', eye: [40, 40],
-    shape: 'polygon(8% 40%,22% 34%,30% 28%,38% 30%,46% 8%,50% 28%,60% 24%,78% 4%,72% 30%,92% 38%,100% 70%,84% 100%,58% 100%,54% 76%,44% 82%,40% 68%,14% 74%,26% 62%,34% 56%,12% 52%)' },
-  { id: 'frostmaw', name: 'Frostmaw', line: 'Hunts by the sound of your breath.', eye: [38, 54],
-    shape: 'polygon(4% 58%,18% 46%,26% 26%,34% 42%,42% 16%,50% 38%,60% 12%,66% 38%,90% 30%,100% 62%,92% 100%,60% 100%,56% 84%,44% 90%,38% 78%,6% 84%,16% 74%,28% 70%,30% 66%,8% 68%)' },
-  { id: 'rotwing', name: 'Rotwing', line: 'You will smell it before you see it.', eye: [44, 42],
-    shape: 'polygon(2% 46%,24% 36%,36% 20%,40% 34%,58% 2%,58% 30%,84% 0%,74% 32%,100% 22%,90% 54%,100% 92%,72% 100%,56% 100%,54% 80%,46% 78%,40% 62%,22% 62%,30% 56%,34% 52%,6% 50%)' },
+// every outline has 20 points and every shape behind 8, so one tab can reshape into the next
+const CAMP = [
+  { id: 'items', name: 'Items', ask: 'What do you need from the box?',
+    shape: 'polygon(50% 6%,56% 16%,66% 30%,76% 44%,86% 58%,96% 74%,100% 88%,100% 100%,84% 100%,70% 100%,62% 100%,58% 72%,52% 50%,46% 72%,42% 100%,30% 100%,16% 100%,0% 100%,8% 72%,28% 44%)',
+    black: 'polygon(0 0,62% 0,57% 22%,60% 25%,50% 62%,53% 65%,46% 100%,0 100%)', shard: 'polygon(22% 0,44% 0,34% 40%,37% 43%,24% 100%,6% 100%,10% 60%,14% 56%)',
+    rows: [
+      { id: 'transfer', section: 'Pouch', label: 'Transfer Items', value: '214 in the box', left: 'crate', detail: [['Whetstone', '×20', 'Keeps an edge between fights.'], ['Potion', '×10', 'Closes the small wounds.'], ['Well-done Steak', '×4', 'A hot meal, and stamina with it.'], ['Trap Tool', '×2', 'The start of every good trap.']] },
+      { id: 'craft', label: 'Crafting List', value: '3 recipes ready', left: 'hammer', badge: 3, detail: [['Mega Potion', 'Ready', 'Potion and honey. Heals far more.'], ['Shock Trap', 'Ready', 'Holds the quarry where it stands.'], ['Flash Pod', 'Ready', 'Blinds anything looking at you.']] },
+      { id: 'sell', section: 'Manage', label: 'Check / Sell Items', value: '12,400 z', shortcut: '⌘S', detail: [['Old Claw', '80 z', 'Nobody remembers which monster.'], ['Bent Horn', '150 z', 'Worth more to a trader than to you.'], ['Dull Scale', '40 z', 'Too chipped to craft with.']] },
+      { id: 'radial', label: 'Radial Menu', value: '8 slots set', detail: [['Top', 'Potion', 'Drink without opening the pouch.'], ['Right', 'Whetstone', 'Sharpen in one flick.'], ['Bottom', 'Trap', 'Set it under your own feet.']] },
+    ] },
+  { id: 'gear', name: 'Equipment', ask: 'What will you carry out there?',
+    shape: 'polygon(58% 0%,64% 4%,62% 14%,60% 30%,58% 46%,56% 60%,68% 62%,70% 68%,60% 70%,58% 80%,60% 90%,58% 100%,48% 100%,46% 90%,48% 80%,46% 70%,36% 68%,38% 62%,48% 60%,50% 30%)',
+    black: 'polygon(0 0,56% 0,60% 20%,56% 24%,54% 58%,50% 61%,50% 100%,0 100%)', shard: 'polygon(14% 0,38% 0,40% 36%,36% 40%,30% 100%,8% 100%,12% 66%,8% 62%)',
+    rows: [
+      { id: 'change', section: 'Worn', label: 'Change Equipment', value: 'Greatblade · Rank 4', left: 'blade', detail: [['Greatblade', 'Worn', 'Slow, heavy and final.'], ['Twin Hooks', 'Spare', 'Fast, but stay close.'], ['Long Bow', 'Spare', 'For the hunter who likes distance.']] },
+      { id: 'whet', label: 'Sharpen', value: 'Edge', toggle: true },
+      { id: 'sets', section: 'Saved', label: 'Item Loadouts', value: '2 new', badge: 2, detail: [['Long Hunt', 'New', 'Food first, traps second.'], ['Quick Kill', 'New', 'Everything for one big hit.']] },
+      { id: 'look', label: 'Appearance', value: 'Camp Coat', shortcut: '⌘A', detail: [['Camp Coat', 'Worn', 'Warm, and smells of smoke.'], ['Hunter Mail', 'Spare', 'Looks better after a few scars.']] },
+    ] },
+  { id: 'pal', name: 'Companion', ask: 'How is your partner doing?',
+    shape: 'polygon(16% 8%,24% 18%,34% 26%,50% 24%,66% 26%,76% 18%,84% 8%,88% 30%,92% 50%,84% 66%,74% 76%,82% 100%,62% 100%,56% 88%,44% 88%,38% 100%,18% 100%,26% 76%,16% 66%,8% 50%)',
+    black: 'polygon(0 0,66% 0,62% 18%,64% 22%,48% 58%,50% 62%,42% 100%,0 100%)', shard: 'polygon(26% 0,50% 0,38% 44%,40% 48%,20% 100%,4% 100%,14% 56%,12% 50%)',
+    rows: [
+      { id: 'feed', section: 'Care', label: 'Feed', value: 'Hungry', left: 'paw', badge: 1, detail: [['Grilled Fish', 'Likes', 'Gone before it cools down.'], ['Dried Meat', 'Likes', 'Saved for later, then eaten now.']] },
+      { id: 'play', label: 'Play Together', value: 'Bond level 6', shortcut: '⌘P', detail: [['Toss the Ball', 'Bond +1', 'It will not bring it back.'], ['Scratch the Ears', 'Bond +2', 'Hood off first.']] },
+      { id: 'kit', section: 'Field', label: 'Gear Up', value: 'Leaf Hood', detail: [['Leaf Hood', 'Worn', 'Hides nothing. Looks great.'], ['Bone Club', 'Worn', 'Bigger than it should be.']] },
+    ] },
+  { id: 'hunt', name: 'Quests', ask: 'What are you hunting next?',
+    shape: 'polygon(8% 40%,22% 34%,30% 28%,38% 30%,46% 8%,50% 28%,60% 24%,78% 4%,72% 30%,92% 38%,100% 70%,84% 100%,58% 100%,54% 76%,44% 82%,40% 68%,14% 74%,26% 62%,34% 56%,12% 52%)',
+    black: 'polygon(0 0,60% 0,54% 26%,58% 30%,52% 56%,56% 60%,44% 100%,0 100%)', shard: 'polygon(18% 0,42% 0,32% 34%,36% 38%,28% 100%,10% 100%,16% 62%,12% 58%)',
+    rows: [
+      { id: 'board', section: 'Board', label: 'Quest Board', value: '3 posted', left: 'quest', badge: 3, detail: [['Emberjaw', 'Rank 4', 'Sleeps in the caldera. Wakes angry.'], ['Frostmaw', 'Rank 3', 'Hunts by the sound of your breath.'], ['Rotwing', 'Rank 5', 'You will smell it before you see it.']] },
+      { id: 'map', label: 'Field Map', value: 'Ember Basin', shortcut: '⌘M', detail: [['Ember Basin', 'Camp', 'Hot ground, good cover.'], ['Salt Flats', 'Far', 'Nowhere to hide. For either of you.']] },
+      { id: 'leave', section: 'Leave', label: 'Depart', value: 'Sun up in 2 hours', detail: [['Alone', 'Now', 'Quiet, and all the reward.'], ['With Partner', 'Now', 'Louder, but someone has your back.']] },
+    ] },
 ]
-const HUNT_CFG = { sticky: true, commitMs: 340, open: { damping: 0.8, response: 0.3 }, bar: { damping: 0.7, response: 0.24 } }
+const CAMP_OPEN = { black: 'polygon(0 0,62% 0,58% 22%,60% 26%,46% 64%,48% 68%,40% 100%,0 100%)', shard: 'polygon(0 0,62% 0,58% 22%,60% 26%,46% 64%,48% 68%,40% 100%,0 100%)' }
+const CHIP_W = [330, 296, 346, 312]
+const CHIP_X = [0, 34, -8, 26]
+const CHIP_TILT = [-1.4, 0.8, -0.6, 1.2]
 
 // cut-out letters: which paper each letter gets is fixed by its position, so a label never reshuffles
 function Ransom({ text }) {
@@ -711,60 +743,148 @@ function Ransom({ text }) {
   )
 }
 
-function HuntSet({ auto, offset = 0 }) {
-  const d = useDevice(auto)
-  const [quests, setQuests] = useState(3)
-  const [target, setTarget] = useState(offset % QUARRY.length)
+function CampSet({ auto, offset = 0 }) {
+  const root = useRef(null)
+  const start = offset % CAMP.length
+  const [cat, setCat] = useState(start)
+  const [row, setRow] = useState(0)
+  const [open, setOpen] = useState(false)
+  const [pick, setPick] = useState(0)
   const [sharp, setSharp] = useState(true)
-  const [notes, setNotes] = useState([{ id: 'quest', key: 0 }])
+  const [stacks, setStacks] = useState([{ cat: start, key: 0, dir: 1 }])
+  const [from, setFrom] = useState({ y: 0, w: 340 })
   const seq = useRef(0)
-  const q = QUARRY[target]
+  const c = CAMP[cat]
+  const r = c.rows[Math.min(row, c.rows.length - 1)]
+  const lastDetail = useRef(r)
+  if (r.detail) lastDetail.current = r
+  const shown = lastDetail.current
 
-  const sections = [
-    { label: 'Hunt', items: [
-      { id: 'quest', label: <Ransom text="Quest Board" />, left: HUNT_ICON.quest, badge: quests || undefined, run: () => setQuests((n) => (n ? n - 1 : 3)) },
-      { id: 'target', label: <Ransom text="Target" />, left: HUNT_ICON.target, sub: [{ items: QUARRY.map((m, i) => ({ id: m.id, label: <Ransom text={m.name} />, left: target === i ? HUNT_ICON.check : null, run: () => setTarget(i) })) }] },
-      { id: 'loadout', label: <Ransom text="Loadout" />, left: HUNT_ICON.blade, shortcut: '⌘L' },
-    ] },
-    { label: 'Camp', items: [
-      { id: 'bestiary', label: <Ransom text="Bestiary" />, left: HUNT_ICON.book, shortcut: '⌘B' },
-      { id: 'whet', label: <Ransom text="Whetstone" />, right: sharp ? HUNT_ICON.sharp : HUNT_ICON.dull, run: () => setSharp((v) => !v) },
-      { id: 'retreat', label: <Ransom text="Retreat" /> },
-    ] },
-  ]
-  const note = (id) => {
-    const m = QUARRY.find((x) => x.id === id)
-    if (m) return [m.name, m.line]
-    return {
-      quest: ['Quest Board', quests ? `${quests} contracts posted. Press to take one.` : 'Board is clear. Press to post more.'],
-      target: [q.name, q.line],
-      loadout: ['Loadout', 'One greatblade, two traps, no regrets.'],
-      bestiary: ['Bestiary', 'Every scar has its own page.'],
-      whet: ['Whetstone', sharp ? 'The edge is keen. Press to dull it.' : 'The edge is dull. Press to hone it.'],
-      retreat: ['Retreat', 'Live to hunt another day.'],
-    }[id]
+  const goTab = (i, dir) => {
+    if (i === cat) return
+    setOpen(false); setCat(i); setRow(0); setPick(0)
+    setStacks((v) => [...v.slice(-1), { cat: i, key: ++seq.current, dir }])
   }
-  const onActive = (item) => {
-    if (item) setNotes((v) => (v[v.length - 1].id === item.id ? v : [...v.slice(-1), { id: item.id, key: ++seq.current }]))
+  const confirm = (i = row) => {
+    const it = c.rows[i]
+    if (it.toggle) { setSharp((v) => !v); return }
+    setPick(0); setOpen(true)
   }
-  const aiming = notes[notes.length - 1].id === 'target' || QUARRY.some((m) => m.id === notes[notes.length - 1].id)
+  // the title bar starts exactly on the row that was chosen, then grows into place
+  useLayoutEffect(() => {
+    const on = root.current?.querySelector('.bc-stack.in .bc-row.is-on')
+    const bar = root.current?.querySelector('.bc-detail')
+    if (!on || !bar) return
+    setFrom({ y: on.offsetTop + on.offsetParent.offsetTop - bar.offsetTop, w: on.offsetWidth })
+  }, [row, cat, stacks.length])
+
+  const latest = useRef()
+  latest.current = { cat, row, open, c, r, shown, goTab, confirm }
+  useEffect(() => {
+    if (auto) return
+    const onKey = (e) => {
+      const el = root.current
+      if (!el || !(el.matches(':hover') || el.contains(document.activeElement))) return
+      const L = latest.current
+      const stop = () => { e.preventDefault(); e.stopPropagation() }
+      if (e.metaKey || e.ctrlKey) {
+        const i = L.c.rows.findIndex((it) => it.shortcut?.slice(-1).toLowerCase() === e.key.toLowerCase())
+        if (i >= 0) { stop(); setRow(i); setPick(0); setOpen(true) }
+        return
+      }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        stop()
+        const d = e.key === 'ArrowDown' ? 1 : -1
+        if (L.open) setPick((v) => mod(v + d, L.shown.detail.length))
+        else setRow((v) => mod(v + d, L.c.rows.length))
+      } else if (e.key === 'ArrowLeft' && !L.open) { stop(); L.goTab(mod(L.cat - 1, CAMP.length), -1) }
+      else if (e.key === 'ArrowRight' && !L.open) { stop(); L.goTab(mod(L.cat + 1, CAMP.length), 1) }
+      else if ((e.key === 'Enter' || e.key === ' ') && !L.open) { stop(); L.confirm() }
+      else if (e.key === 'Escape' && L.open) { stop(); setOpen(false) }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [auto])
+
+  /* wall: it runs itself */
+  useEffect(() => {
+    if (!auto) return
+    let n = 0
+    const t = setInterval(() => {
+      const L = latest.current
+      const step = n++ % 7
+      if (step < 2) setRow((v) => mod(v + 1, L.c.rows.length))
+      else if (step === 2) { if (L.r.detail) { setPick(0); setOpen(true) } }
+      else if (step < 5) setPick((v) => mod(v + 1, L.shown.detail.length))
+      else if (step === 5) setOpen(false)
+      else L.goTab(mod(L.cat + 1, CAMP.length), 1)
+    }, 820 + offset * 40)
+    return () => clearInterval(t)
+  }, [auto, offset])
+
+  const chip = (it, i, live) => {
+    const toggle = it.toggle
+    return (
+      <div key={it.id} role="menuitem" aria-haspopup={it.detail ? 'menu' : undefined} className={`bc-row ${live && i === row && !open ? 'is-on' : ''}`}
+        style={{ '--i': i, '--w': `${CHIP_W[i % 4]}px`, '--x': CHIP_X[i % 4], '--tilt': `${CHIP_TILT[i % 4]}deg` }}
+        onPointerEnter={live ? () => { if (!open) setRow(i) } : undefined} onClick={live ? () => { if (!open) { setRow(i); confirm(i) } } : undefined}>
+        <div className="bc-top">
+          {it.left && <span className="bc-ic">{CAMP_ICON[it.left]}</span>}
+          <span className="bc-lab"><Ransom text={it.label} /></span>
+          {it.badge != null && <span className="bc-badge">{it.badge}</span>}
+          {it.shortcut && <span className="bc-short">{it.shortcut}</span>}
+          {toggle && <span className="bc-ic">{sharp ? CAMP_ICON.sharp : CAMP_ICON.dull}</span>}
+          {it.detail && <span className="bc-ic bc-chev"><Chevron /></span>}
+        </div>
+        <div className="bc-val">{toggle ? (sharp ? 'Edge is keen' : 'Edge is dull') : it.value}</div>
+      </div>
+    )
+  }
 
   return (
-    <div className="hunt" ref={d.ref}>
-      <div className="hunt-dots" aria-hidden="true" />
-      <div className="beast" aria-hidden="true">
-        <div className="beast-body" style={{ clipPath: q.shape }} />
-        <i className="beast-eye" style={{ left: `${q.eye[0]}%`, top: `${q.eye[1]}%` }} />
-        <i className={`beast-aim ${aiming ? 'on' : ''}`} style={{ left: `${q.eye[0]}%`, top: `${q.eye[1]}%` }} />
+    <div className={`bc ${open ? 'is-open' : ''}`} ref={root} tabIndex={auto ? -1 : 0} role="menu" aria-label="Base camp menu">
+      <div className="bc-dots" aria-hidden="true" />
+      <div className="bc-black" aria-hidden="true" style={{ clipPath: open ? CAMP_OPEN.black : c.black }} />
+      <div className="bc-shard" aria-hidden="true" style={{ clipPath: open ? CAMP_OPEN.shard : c.shard }} />
+      <div className="bc-beast" aria-hidden="true" style={{ clipPath: c.shape }} />
+
+      <div className="bc-tabs" style={{ '--at': cat }} role="tablist">
+        <i className="bc-tri" aria-hidden="true" />
+        {CAMP.map((t, i) => <button key={t.id} type="button" tabIndex={-1} role="tab" aria-selected={i === cat} className={i === cat ? 'on' : ''} onClick={() => goTab(i, i > cat ? 1 : -1)}>{t.name}</button>)}
       </div>
-      <div className="hunt-slash" aria-hidden="true" />
-      <div className="hunt-note">
-        {notes.map((n, i) => {
-          const [title, line] = note(n.id)
-          return <div key={n.key} className={i === notes.length - 1 ? 'hn in' : 'hn out'} aria-hidden={i !== notes.length - 1 || undefined}><h3>{title}</h3><p>{line}</p></div>
-        })}
+
+      {stacks.map((s, n) => {
+        const live = n === stacks.length - 1
+        return (
+          <div key={s.key} className={`bc-stack ${live ? 'in' : 'out'}`} style={{ '--dir': s.dir }}>
+            {CAMP[s.cat].rows.map((it, i) => (
+              <div key={it.id} className="bc-slot">
+                {it.section && <div className="bc-sec">{it.section}</div>}
+                {chip(it, i, live)}
+              </div>
+            ))}
+          </div>
+        )
+      })}
+
+      <div className="bc-detail" aria-hidden={!open || undefined} style={{ '--fy': `${from.y}px`, '--fw': `${from.w}px` }}>
+        <div className="bc-bar"><span>{shown.label}</span><em>{c.name}</em></div>
+        <div className="bc-list" role="menu">
+          {shown.detail.map(([name, meta], i) => (
+            <button key={shown.id + name} type="button" tabIndex={-1} role="menuitem" className={`bc-d ${i === pick ? 'is-on' : ''}`} style={{ '--i': i }}
+              onPointerEnter={() => { if (open) setPick(i) }} onClick={() => setPick(i)}>
+              <span className="bc-dn">{i === pick && CAMP_ICON.check}{name}</span><span className="bc-dm">{meta}</span>
+            </button>
+          ))}
+        </div>
+        <div className="bc-effect"><b>Effect</b><p key={shown.id + pick}>{shown.detail[Math.min(pick, shown.detail.length - 1)][2]}</p></div>
       </div>
-      <Menu sections={sections} cfg={HUNT_CFG} auto={auto} offset={offset} ctl={d.ctl} onActive={onActive} />
+
+      <div className="bc-title" aria-hidden="true"><Ransom text="Base Camp" /><small key={c.id}>{c.ask}</small></div>
+      <div className="bc-keys">
+        <button type="button" tabIndex={-1} disabled={!open} onClick={() => setOpen(false)}>Esc Back</button>
+        <span>Enter Confirm</span>
+      </div>
     </div>
   )
 }
@@ -773,7 +893,7 @@ function HuntSet({ auto, offset = 0 }) {
 const SETS = [
   { id: 'deck', tone: 'Futuristic, Quick Access', Body: DeckSet },
   { id: 'ring', tone: 'Dramatic, Full Turn', Body: RingSet },
-  { id: 'hunt', tone: 'Rebellious, The Hunt', Body: HuntSet },
+  { id: 'camp', tone: 'Rebellious, Base Camp', Body: CampSet },
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
