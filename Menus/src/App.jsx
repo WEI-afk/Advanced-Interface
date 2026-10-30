@@ -114,9 +114,9 @@ function Panel({ sections, flat, open, active, pressed, parentOpen, commit, leve
 
 const flatten = (sections) => sections.flatMap((s) => s.items)
 
-function Menu({ title, sections, cfg, auto, offset = 0, onOpenChange, stageRef }) {
+function Menu({ sections, cfg, auto, offset = 0 }) {
   const flat = flatten(sections)
-  const [open, setOpen] = useState(true)
+  const open = true // the component is the whole presentation, so it stays open
   const [idx, setIdx] = useState(-1)
   const [subIdx, setSubIdx] = useState(-1)
   const [subOpen, setSubOpen] = useState(false)
@@ -125,12 +125,10 @@ function Menu({ title, sections, cfg, auto, offset = 0, onOpenChange, stageRef }
   const [subTop, setSubTop] = useState(0)
   const rootRows = useRef([])
   const wrapRef = useRef(null)
-  const triggerRef = useRef(null)
   const lastSub = useRef(null)
   const timers = useRef({})
   const last = useRef({ x: 0, y: 0 })
   const busy = useRef(false)
-  const viaKeys = useRef(false)
 
   const parent = idx >= 0 ? flat[idx] : null
   if (parent?.sub) lastSub.current = parent.sub
@@ -139,14 +137,11 @@ function Menu({ title, sections, cfg, auto, offset = 0, onOpenChange, stageRef }
 
   const clear = (k) => clearTimeout(timers.current[k])
   useEffect(() => () => Object.values(timers.current).forEach(clearTimeout), [])
-  useEffect(() => { onOpenChange?.(open) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const place = (i) => { const el = rootRows.current[i]; if (el) setSubTop(el.offsetTop) }
   const showSub = (i) => { place(i); setSubOpen(true); setSubIdx(-1) }
 
   const reset = () => { setIdx(-1); setSubIdx(-1); setSubOpen(false); setPressed(null); setCommit(null) }
-  const close = () => { clear('sub'); setOpen(false); setSubOpen(false); setPressed(null); setCommit(null); setIdx(-1); setSubIdx(-1) }
-  const openMenu = () => { reset(); setOpen(true) }
 
   // moving toward the open submenu: don't let a row crossed on the way steal it
   const aiming = (e) => {
@@ -179,7 +174,7 @@ function Menu({ title, sections, cfg, auto, offset = 0, onOpenChange, stageRef }
       else if (!subOpen) setIdx(-1)
       setPressed(null)
     },
-    press(level, i) { viaKeys.current = false; if (!busy.current) setPressed({ level, i }) },
+    press(level, i) { if (!busy.current) setPressed({ level, i }) },
     choose(level, i) {
       if (busy.current) return
       const item = level === 0 ? flat[i] : subFlat[i]
@@ -191,8 +186,7 @@ function Menu({ title, sections, cfg, auto, offset = 0, onOpenChange, stageRef }
       timers.current.commit = setTimeout(() => {
         busy.current = false
         item.run?.()
-        close()
-        if (viaKeys.current) triggerRef.current?.focus({ preventScroll: true })
+        setPressed(null); setCommit(null) // the row stays hovered so the result can be seen
       }, cfg.commitMs)
     },
   }
@@ -206,8 +200,6 @@ function Menu({ title, sections, cfg, auto, offset = 0, onOpenChange, stageRef }
     return from
   }
   const onKeyDown = (e) => {
-    if (!open) return
-    viaKeys.current = true
     const inSub = subOpen && subIdx >= 0
     const list = inSub ? subFlat : flat
     const cur = inSub ? subIdx : idx
@@ -225,22 +217,13 @@ function Menu({ title, sections, cfg, auto, offset = 0, onOpenChange, stageRef }
       if (!inSub && flat[idx]?.sub) { showSub(idx); setSubIdx(0) } else m.choose(inSub ? 1 : 0, cur)
     } else if (e.key === 'Escape') {
       stop()
-      if (inSub) { setSubIdx(-1); setSubOpen(false) } else { close(); triggerRef.current?.focus() }
+      if (inSub) { setSubIdx(-1); setSubOpen(false) } else reset()
     }
   }
 
-  /* click outside the menu, inside the scene */
-  useEffect(() => {
-    const stage = stageRef?.current
-    if (!stage || auto) return
-    const onDown = (e) => { if (!wrapRef.current?.contains(e.target) && !triggerRef.current?.contains(e.target)) close() }
-    stage.addEventListener('pointerdown', onDown)
-    return () => stage.removeEventListener('pointerdown', onDown)
-  }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
-
   /* wall: the menu operates itself */
   const latest = useRef()
-  latest.current = { flat, m, setIdx, setSubIdx, showSub, setPressed, openMenu }
+  latest.current = { flat, m, setIdx, setSubIdx, showSub, setPressed, reset }
   useEffect(() => {
     if (!auto) return
     let stop = false
@@ -249,7 +232,7 @@ function Menu({ title, sections, cfg, auto, offset = 0, onOpenChange, stageRef }
       let n = offset
       while (!stop) {
         openLoop: {
-          latest.current.openMenu()
+          latest.current.reset()
           await sleep(600)
           const list = latest.current.flat
           const route = list.map((it, i) => ({ it, i })).filter((r) => !r.it.disabled)
@@ -277,22 +260,13 @@ function Menu({ title, sections, cfg, auto, offset = 0, onOpenChange, stageRef }
     return () => { stop = true }
   }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggle = () => { if (open) close(); else openMenu() }
-
   return (
-    <div className="menu-anchor">
-      <button ref={triggerRef} type="button" className={`m-trigger ${open ? 'is-open' : ''}`} aria-haspopup="menu" aria-expanded={open}
-        onPointerDown={(e) => { e.stopPropagation(); toggle() }}
-        onClick={(e) => { if (e.detail === 0) { toggle(); requestAnimationFrame(() => wrapRef.current?.focus()) } }}
-        onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); if (!open) openMenu(); setIdx(nextOn(flat, -1, 1)); requestAnimationFrame(() => wrapRef.current?.focus()) } }}>
-        {title}
-      </button>
-      <div ref={wrapRef} className="menu-wrap" tabIndex={-1} onKeyDown={onKeyDown}>
-        <Panel sections={sections} flat={flat} open={open} level={0} m={m} className="menu-root" rowsRef={rootRows}
-          active={idx} pressed={pressed?.level === 0 ? pressed.i : -1} commit={commit === 0} parentOpen={subOpen} />
-        <Panel sections={subSections} flat={subFlat} open={open && subOpen} level={1} m={m} className="menu-sub"
-          style={{ '--sub-top': `${subTop}px` }} active={subIdx} pressed={pressed?.level === 1 ? pressed.i : -1} commit={commit === 1} />
-      </div>
+    <div ref={wrapRef} className="menu-wrap" tabIndex={0} aria-label="Menu" onKeyDown={onKeyDown}
+      onFocus={(e) => { if (e.target.matches(':focus-visible') && idx < 0 && !auto) setIdx(nextOn(flat, -1, 1)) }}>
+      <Panel sections={sections} flat={flat} open={open} level={0} m={m} className="menu-root" rowsRef={rootRows}
+        active={flat[idx]?.disabled ? -1 : idx} pressed={pressed?.level === 0 ? pressed.i : -1} commit={commit === 0} parentOpen={subOpen} />
+      <Panel sections={subSections} flat={subFlat} open={open && subOpen} level={1} m={m} className="menu-sub"
+        style={{ '--sub-top': `${subTop}px` }} active={subIdx} pressed={pressed?.level === 1 ? pressed.i : -1} commit={commit === 1} />
     </div>
   )
 }
@@ -316,7 +290,7 @@ function useShortcuts(ref, map, auto) {
 }
 
 /* ================= NOSTALGIC · Every Choice Inverts =================
-   A 1-bit desk from 1984. One bar glides between rows and inverts everything it passes. */
+   1-bit, 1984. One bar glides between rows and inverts everything it passes. */
 const px = (rects, size = 16) => (
   <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} shapeRendering="crispEdges" aria-hidden="true">
     {rects.map(([x, y, w, h], i) => <rect key={i} x={x} y={y} width={w} height={h} fill="currentColor" />)}
@@ -328,100 +302,40 @@ const PX = {
   trash: px([[6, 1, 4, 1], [2, 3, 12, 1], [3, 5, 1, 10], [12, 5, 1, 10], [3, 14, 10, 1], [6, 6, 1, 7], [9, 6, 1, 7]]),
   sound: px([[2, 6, 3, 4], [5, 5, 1, 6], [6, 4, 1, 8], [7, 3, 1, 10], [10, 6, 1, 4], [12, 4, 1, 8]]),
   mute: px([[2, 6, 3, 4], [5, 5, 1, 6], [6, 4, 1, 8], [7, 3, 1, 10], [10, 6, 1, 1], [13, 6, 1, 1], [11, 7, 2, 2], [10, 9, 1, 1], [13, 9, 1, 1]]),
-  disk: (
-    <svg viewBox="0 0 32 32" width="48" height="48" shapeRendering="crispEdges" aria-hidden="true">
-      <path d="M3 9h26v15H3z" fill="#fff" stroke="#000" /><path d="M6 19h3v2H6zM24 12h2v2h-2z" fill="#000" />
-    </svg>
-  ),
-  bigNote: (
-    <svg viewBox="0 0 32 32" width="48" height="48" shapeRendering="crispEdges" aria-hidden="true">
-      <path d="M7 3h13l5 5v21H7z" fill="#fff" stroke="#000" /><path d="M20 3v5h5M10 13h12M10 17h12M10 21h8" fill="none" stroke="#000" />
-    </svg>
-  ),
-  bigTrash: (full) => (
-    <svg viewBox="0 0 32 32" width="48" height="48" shapeRendering="crispEdges" aria-hidden="true">
-      {full && <path d="M10 2h5v5h-5zM17 1h5v6h-5z" fill="#fff" stroke="#000" />}
-      <path d="M6 7h20v3H6zM8 10h16v20H8z" fill="#fff" stroke="#000" /><path d="M12 13v14M16 13v14M20 13v14" stroke="#000" />
-    </svg>
-  ),
 }
 
 const PATTERNS = ['Checker', 'Pinstripe', 'Bricks', 'Plain']
-const SCATTER = { disk: [58, 15], note: [74, 54], trash: [88, 76] }
-const TIDY = { disk: [90, 10], note: [90, 30], trash: [90, 80] }
-
-function beep(muted, auto) {
-  if (muted || auto) return
-  try {
-    const A = window.__ctx || (window.__ctx = new (window.AudioContext || window.webkitAudioContext)())
-    const o = A.createOscillator(), g = A.createGain()
-    o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.025
-    o.connect(g); g.connect(A.destination); o.start(); o.stop(A.currentTime + 0.07)
-  } catch { /* no sound available */ }
-}
-
 const CLASSIC_CFG = { commitMs: 300, open: { damping: 1, response: 0.2 }, bar: { damping: 1, response: 0.16 } }
-
-function Clock() {
-  const [t, setT] = useState(() => new Date())
-  useEffect(() => { const i = setInterval(() => setT(new Date()), 15000); return () => clearInterval(i) }, [])
-  return <span className="dt-clock">{t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
-}
 
 function NostalgicSet({ auto, offset }) {
   const ref = useRef(null)
   const [pattern, setPattern] = useState(0)
   const [tidy, setTidy] = useState(false)
-  const [noteOpen, setNoteOpen] = useState(false)
   const [trash, setTrash] = useState(3)
   const [muted, setMuted] = useState(false)
-  const ding = () => beep(muted, auto)
-  const toggleNote = () => { setNoteOpen((v) => !v); ding() }
-  const tidyUp = () => { setTidy((v) => { if (v) setTrash(3); return !v }); ding() }
+  const tidyUp = () => setTidy((v) => { if (v) setTrash(3); return !v })
 
-  useShortcuts(ref, { j: toggleNote, k: tidyUp }, auto)
+  useShortcuts(ref, { k: tidyUp }, auto)
 
   const sections = [
     { label: 'Desk', items: [
       { id: 'tidy', label: tidy ? 'Scatter Desk' : 'Clean Up Desk', shortcut: '⌘K', run: tidyUp },
-      { id: 'note', label: 'Note Pad', left: PX.note, shortcut: '⌘J', run: toggleNote },
-      { id: 'trash', label: 'Empty Trash', left: PX.trash, badge: trash || undefined, disabled: trash === 0, run: () => { setTrash(0); ding() } },
+      { id: 'note', label: 'Note Pad', left: PX.note, shortcut: '⌘J' },
+      { id: 'trash', label: 'Empty Trash', left: PX.trash, badge: trash || undefined, disabled: trash === 0, run: () => setTrash(0) },
     ] },
     { items: [
-      { id: 'sound', label: 'Sound', right: muted ? PX.mute : PX.sound, run: () => { setMuted((v) => !v); if (muted) beep(false, auto) } },
+      { id: 'sound', label: 'Sound', right: muted ? PX.mute : PX.sound, run: () => setMuted((v) => !v) },
       { id: 'pattern', label: 'Desktop Pattern', sub: [{ items: PATTERNS.map((name, i) => ({
-        id: name, label: name, left: pattern === i ? PX.check : <span className="mi-blank" />, run: () => { setPattern(i); ding() },
+        id: name, label: name, left: pattern === i ? PX.check : <span className="mi-blank" />, run: () => setPattern(i),
       })) }] },
     ] },
   ]
 
-  const pos = tidy ? TIDY : SCATTER
-  const icon = (k, glyph, name) => <div className={`dt-icon ${k === 'trash' && trash === 0 ? 'is-empty' : ''}`} style={{ left: `${pos[k][0]}%`, top: `${pos[k][1]}%` }}>{glyph}<span>{name}</span></div>
-
-  return (
-    <div className="monitor" ref={ref}>
-      <div className="desk" data-auto={auto ? '' : undefined}>
-        {PATTERNS.map((p, i) => <div key={p} className={`dt-pattern p-${p}`} style={{ opacity: pattern === i ? 1 : 0 }} />)}
-        <div className="dt-bar">
-          <span className="dt-mark" aria-hidden="true">{px([[7, 1, 2, 2], [3, 4, 10, 1], [2, 5, 12, 8], [4, 13, 8, 1]])}</span>
-          <Menu title="Special" sections={sections} cfg={CLASSIC_CFG} auto={auto} offset={offset} stageRef={ref} />
-          <Clock />
-        </div>
-        {icon('disk', PX.disk, 'Hard Disk')}
-        {icon('note', PX.bigNote, 'Notes')}
-        {icon('trash', PX.bigTrash(trash > 0), 'Trash')}
-        <div className={`dt-note ${noteOpen ? 'on' : ''}`} aria-hidden={!noteOpen}>
-          <div className="dt-note-bar"><i /><b>Note Pad</b></div>
-          <p>Hold the button, drag down, let go. A menu was a gesture before it was a list.</p>
-        </div>
-      </div>
-    </div>
-  )
+  return <div className="stage" ref={ref}><Menu sections={sections} cfg={CLASSIC_CFG} auto={auto} offset={offset} /></div>
 }
 
 /* ================= LUXURIOUS · At Your Service =================
-   A suite's concierge menu. Nothing is hurried: a gold hairline moves between rows and
-   a press gilds the row. Each request is answered by the room itself. */
+   Nothing is hurried: a gold hairline moves between rows and a press gilds the row. */
 const li = (d) => (
   <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     {d.map((p, i) => <path key={i} d={p} />)}
@@ -446,90 +360,26 @@ function LuxuriousSet({ auto, offset }) {
   const [dnd, setDnd] = useState(false)
   const [letters, setLetters] = useState(2)
   const [bottle, setBottle] = useState(false)
-  const [note, setNote] = useState('Good evening.')
-  const c = useSpring(curtains ? 1 : 0, { damping: 1, response: 1.1 })
-  const b = useSpring(bottle ? 1 : 0, { damping: 0.8, response: 0.7 })
+  const drawCurtains = () => setCurtains((v) => !v)
 
-  const drawCurtains = () => { setCurtains((v) => { setNote(v ? 'The curtains are open.' : 'The curtains are drawn.'); return !v }) }
-  const checkout = () => setNote('Departure is held until two.')
-  useShortcuts(ref, { u: drawCurtains, i: checkout }, auto)
+  useShortcuts(ref, { u: drawCurtains }, auto)
 
   const sections = [
     { label: 'The Suite', items: [
       { id: 'curtains', label: curtains ? 'Open the Curtains' : 'Draw the Curtains', left: LI.curtain, shortcut: '⌘U', run: drawCurtains },
       { id: 'light', label: 'Lighting', left: LI.lamp, sub: [{ items: LIGHT.map((name, i) => ({
-        id: name, label: name, left: light === i ? LI.check : <span className="mi-blank" />, run: () => { setLight(i); setNote(`${name}, as you wish.`) },
+        id: name, label: name, left: light === i ? LI.check : <span className="mi-blank" />, run: () => setLight(i),
       })) }] },
-      { id: 'dnd', label: 'Do Not Disturb', right: dnd ? LI.moon : <span className="mi-ring" />, run: () => { setDnd((v) => { setNote(v ? 'The door is open to visitors.' : 'You will not be disturbed.'); return !v }) } },
+      { id: 'dnd', label: 'Do Not Disturb', right: dnd ? LI.moon : <span className="mi-ring" />, run: () => setDnd((v) => !v) },
     ] },
     { label: 'Service', items: [
-      { id: 'bottle', label: bottle ? 'Clear the Champagne' : 'Champagne on Ice', run: () => { setBottle((v) => { setNote(v ? 'Cleared with thanks.' : 'On ice, at your table.'); return !v }) } },
-      { id: 'letters', label: 'Correspondence', left: LI.letter, badge: letters || undefined, run: () => { setNote(letters ? 'Your letters have been read.' : 'Two letters have arrived.'); setLetters(letters ? 0 : 2) } },
-      { id: 'late', label: 'Late Departure', left: LI.bell, shortcut: '⌘I', run: checkout },
+      { id: 'bottle', label: bottle ? 'Clear the Champagne' : 'Champagne on Ice', run: () => setBottle((v) => !v) },
+      { id: 'letters', label: 'Correspondence', left: LI.letter, badge: letters || undefined, run: () => setLetters(letters ? 0 : 2) },
+      { id: 'late', label: 'Late Departure', left: LI.bell, shortcut: '⌘I' },
     ] },
   ]
 
-  return (
-    <div className={`suite light-${light}`} ref={ref}>
-      <svg className="room" viewBox="0 0 960 560" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
-        <defs>
-          <linearGradient id="lx-sky0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#0b1020" /><stop offset="1" stopColor="#2a2238" /></linearGradient>
-          <linearGradient id="lx-sky1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3a3560" /><stop offset=".7" stopColor="#c0746a" /><stop offset="1" stopColor="#eab27e" /></linearGradient>
-          <linearGradient id="lx-sky2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#a9cde0" /><stop offset="1" stopColor="#f0e7d6" /></linearGradient>
-          <linearGradient id="lx-drape" x1="0" y1="0" x2="1" y2="0" spreadMethod="repeat" gradientUnits="userSpaceOnUse" gradientTransform="scale(26 1)">
-            <stop offset="0" stopColor="#3b2a1c" /><stop offset=".5" stopColor="#6b5033" /><stop offset="1" stopColor="#3b2a1c" />
-          </linearGradient>
-          <radialGradient id="lx-glow"><stop offset="0" stopColor="#ffd9a0" stopOpacity=".85" /><stop offset="1" stopColor="#ffd9a0" stopOpacity="0" /></radialGradient>
-          <clipPath id="lx-arch"><path d="M544 470V210a150 150 0 0 1 300 0v260z" /></clipPath>
-        </defs>
-        <rect width="960" height="560" fill="#191410" />
-        {/* wall panels */}
-        <g fill="none" stroke="#d9c39a" strokeOpacity=".13">
-          <rect x="30" y="40" width="470" height="420" /><rect x="880" y="40" width="60" height="420" />
-        </g>
-        {/* window */}
-        <g clipPath="url(#lx-arch)">
-          {[0, 1, 2].map((i) => <rect key={i} className="lx-sky" x="544" y="60" width="300" height="410" fill={`url(#lx-sky${i})`} style={{ opacity: light === i ? 1 : 0 }} />)}
-          <g className="lx-city" fill="#0a0a10">
-            <path d="M544 470V370h40v-40h34v60h36v-90h44v50h34v-30h46v60h66v90z" />
-          </g>
-          <g className="lx-lights" fill="#ffd38a" transform="translate(44 0)">
-            {[[516, 400], [552, 350], [590, 410], [622, 330], [640, 372], [668, 390], [712, 382], [744, 412], [770, 430], [530, 440], [610, 446], [690, 440]].map(([x, y], i) => <rect key={i} x={x} y={y} width="4" height="5" />)}
-          </g>
-          <rect x="544" y="60" width={150 * c.value} height="410" fill="url(#lx-drape)" />
-          <rect x={844 - 150 * c.value} y="60" width={150 * c.value} height="410" fill="url(#lx-drape)" />
-        </g>
-        <path d="M544 470V210a150 150 0 0 1 300 0v260z" fill="none" stroke="#d9c39a" strokeOpacity=".55" strokeWidth="2" />
-        <path d="M694 60v410M544 280h300" stroke="#d9c39a" strokeOpacity=".3" />
-        {/* floor + table */}
-        <rect y="470" width="960" height="90" fill="#0f0c09" />
-        <path d="M0 470h960" stroke="#d9c39a" strokeOpacity=".3" />
-        <g transform="translate(70 0)">
-          <ellipse cx="400" cy="434" rx="96" ry="10" fill="#2b2118" stroke="#d9c39a" strokeOpacity=".5" />
-          <path d="M400 444v80M372 530h56" stroke="#d9c39a" strokeOpacity=".6" strokeWidth="2" fill="none" />
-          {/* letters */}
-          <g style={{ opacity: letters ? 1 : 0, transition: 'opacity .5s' }}>
-            <path d="M326 426l50-5 6 8-50 5z" fill="#efe6d2" /><path d="M334 421l44-7 6 7-44 7z" fill="#d8ccb2" />
-          </g>
-          {/* champagne */}
-          <g style={{ opacity: b.value, transform: `translateY(${(1 - b.value) * 18}px)` }}>
-            <path d="M420 430h44l-6-26h-32z" fill="#b89c6b" />
-            <path d="M437 406v-26l3-8v-16h6v16l3 8v26z" fill="#10241a" stroke="#d9c39a" strokeOpacity=".6" />
-          </g>
-        </g>
-        {/* pendant */}
-        <path d="M470 0v120" stroke="#d9c39a" strokeOpacity=".6" />
-        <circle className="lx-halo" cx="470" cy="150" r="170" fill="url(#lx-glow)" />
-        <path d="M438 150a32 32 0 0 1 64 0z" fill="#d9c39a" />
-        {/* door sign */}
-        <circle cx="910" cy="240" r="5" fill={dnd ? '#e05a4a' : '#3a2f24'} style={{ transition: 'fill .6s', filter: dnd ? 'drop-shadow(0 0 6px #e05a4a)' : 'none' }} />
-        <rect x="888" y="226" width="44" height="28" rx="14" fill="none" stroke="#d9c39a" strokeOpacity=".4" />
-      </svg>
-      <div className="lx-veil" />
-      <Menu title={<><span className="lx-mono" aria-hidden="true">C</span>Concierge</>} sections={sections} cfg={LUX_CFG} auto={auto} offset={offset} stageRef={ref} />
-      <div className="lx-note" aria-live="polite"><span key={note}>{note}</span></div>
-    </div>
-  )
+  return <div className="stage" ref={ref}><Menu sections={sections} cfg={LUX_CFG} auto={auto} offset={offset} /></div>
 }
 
 /* ================= page ================= */
@@ -589,7 +439,7 @@ function Wall() {
     window.parent.postMessage('wall:ready', window.location.origin)
     return () => window.removeEventListener('message', onMessage)
   }, [embedded])
-  const [layout] = useState(() => ({ cols: Math.max(1, Math.round(window.innerWidth / 620)), rows: Math.ceil(window.innerHeight / 480) + 1 }))
+  const [layout] = useState(() => ({ cols: Math.max(1, Math.round(window.innerWidth / 620)), rows: Math.ceil(window.innerHeight / 320) + 1 }))
   return (
     <div className="wall" aria-hidden="true">
       {active && Array.from({ length: layout.cols }, (_, c) => (
