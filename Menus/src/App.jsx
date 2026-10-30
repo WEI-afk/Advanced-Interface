@@ -366,6 +366,9 @@ function useDevice(auto) {
 
 /* ----- FUTURISTIC · Quick Access: no hardware, no panel. Each row is a small frame holding its icon, with the text outside it; one glowing ring snaps between the frames ----- */
 const DECK_ICON = {
+  home: li(['M3 9.500L10 3.500l7 6', 'M5 8.500V16.500h10V8.500', 'M8.500 16.500v-4.500h3v4.500']),
+  globe: li(['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M3 10h14', 'M10 3c2 2 3 4.500 3 7s-1 5-3 7c-2-2-3-4.500-3-7s1-5 3-7z']),
+  drop: li(['M10 2.500c3 3.500 5 6 5 8.500a5 5 0 0 1-10 0c0-2.500 2-5 5-8.500z']),
   lib: li(['M3 4h6v12H3z', 'M11 4h6v5h-6z', 'M11 11h6v5h-6z']),
   down: li(['M10 3v10', 'M6 9.500l4 4 4-4', 'M4 17h12']),
   wifi: li(['M2.500 8a11 11 0 0 1 15 0', 'M5.500 11a7 7 0 0 1 9 0', 'M8.500 14a2.500 2.500 0 0 1 3 0', 'M10 16.500v.100']),
@@ -383,13 +386,13 @@ function DeckSet({ auto, offset }) {
   const [home, setHome] = useState(false)
   const sections = [
     { label: 'Browse', items: [
-      { id: 'home', label: home ? 'Back to Home' : 'Home', left: <i className="tile-dot" />, run: () => setHome((v) => !v) },
+      { id: 'home', label: home ? 'Back to Home' : 'Home', left: DECK_ICON.home, run: () => setHome((v) => !v) },
       { id: 'lib', label: 'Library', left: DECK_ICON.lib, shortcut: '⌘L' },
       { id: 'dl', label: 'Downloads', left: DECK_ICON.down, badge: dl || undefined, run: () => setDl(dl ? 0 : 2) },
     ] },
     { label: 'System', items: [
-      { id: 'wifi', label: 'Wi-Fi', left: <i className="tile-dot" />, right: wifi ? DECK_ICON.wifi : DECK_ICON.off, run: () => setWifi((v) => !v) },
-      { id: 'accent', label: 'Accent Color', left: <i className="tile-dot" />, sub: [{ items: ACCENTS.map((a, i) => ({ id: a.name, label: a.name, left: accent === i ? DECK_ICON.check : <i className="tile-dot" />, run: () => setAccent(i) })) }] },
+      { id: 'wifi', label: 'Wi-Fi', left: DECK_ICON.globe, right: wifi ? DECK_ICON.wifi : DECK_ICON.off, run: () => setWifi((v) => !v) },
+      { id: 'accent', label: 'Accent Color', left: DECK_ICON.drop, sub: [{ items: ACCENTS.map((a, i) => ({ id: a.name, label: a.name, left: <i className="swatch" style={{ background: a.c }}>{accent === i && DECK_ICON.check}</i>, run: () => setAccent(i) })) }] },
     ] },
   ]
   return (
@@ -405,7 +408,7 @@ const SETS = [
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
-const DRAFT_VERSION = 'spec-1'
+const DRAFT_VERSION = 'spec-2'
 function DraftThumb({ set }) {
   const ref = useRef(null)
   const [box, setBox] = useState(null)
