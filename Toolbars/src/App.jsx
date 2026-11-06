@@ -88,7 +88,7 @@ function CouchSet({ auto, offset = 0 }) {
   const [cap, setCap] = useState({ n: 3, total: 24, fav: false, edit: false })
 
   const groups = [
-    [[{ id: 'back', i: 'back', opt: true }], [{ id: 'all', t: 'All', sel: shelf === 'all' }, { id: 'inst', t: 'Installed', sel: shelf === 'inst' }, { id: 'fav', t: 'Favorites', sel: shelf === 'fav' }], [{ id: 'filter', i: 'filter', t: 'Filter', lab: true }, { id: 'search', i: 'search', opt: true }]],
+    [[{ id: 'back', i: 'back', opt: true }], [{ id: 'all', t: 'All', excl: true, sel: shelf === 'all' }, { id: 'inst', t: 'Installed', excl: true, sel: shelf === 'inst' }, { id: 'fav', t: 'Favorites', excl: true, sel: shelf === 'fav' }], [{ id: 'filter', i: 'filter', t: 'Filter', lab: true }, { id: 'search', i: 'search', opt: true }]],
     [[{ id: 'eps', i: 'list', t: 'Episodes', lab: true }], [{ id: 'prev', i: 'prev' }, { id: 'play', i: play.on ? 'pause' : 'play' }, { id: 'next', i: 'next' }], [{ id: 'cc', i: 'cc', t: 'Subtitles', lab: true, sel: play.cc }, { id: 'vol', i: play.mute ? 'mute' : 'vol', opt: true }]],
     [[{ id: 'back', i: 'back' }], [{ id: 'edit', i: 'edit', t: cap.edit ? 'Done' : 'Edit', lab: true, sel: cap.edit }, { id: 'share', i: 'share', t: 'Share', lab: true }, { id: 'trash', i: 'trash', t: 'Delete', lab: true }], [{ id: 'fav', i: 'heart', sel: cap.fav }]],
   ][si].map((g) => g.filter((b) => !(narrow && b.opt)))
@@ -183,12 +183,16 @@ function CouchSet({ auto, offset = 0 }) {
   const fid = flat[f]?.id
   const ring = useMarker(barRef, fid ? `[data-id="${fid}"] .cm-target` : null, [fid, si, narrow, play.on, play.mute, cap.edit, flash])
   const shown = TILES.filter((t) => shelf === 'all' || t[1] === shelf)
+  const sel = useMarker(barRef, si === 0 ? `[data-id="${shelf}"] .cm-target` : null, [shelf, si, narrow])
+  const tabsRef = useRef(null)
+  const tabLine = useMarker(tabsRef, `[data-i="${si}"]`, [si, narrow])
 
   return (
     <div className="cm" ref={stage} tabIndex={auto ? -1 : 0} aria-label="Couch Mode toolbar, three scenarios">
-      <div className="cm-tabs" role="tablist" aria-label="Scenario">
+      <div className="cm-tabs" ref={tabsRef} role="tablist" aria-label="Scenario">
+        {tabLine && <i className="cm-tab-line" aria-hidden="true" style={{ transform: `translateX(${tabLine.x}px)`, width: tabLine.w }} />}
         <button type="button" tabIndex={-1} className="cm-shoulder" onClick={() => go(-1)} aria-label="Previous scenario"><Glyph k="lb" on={held === 'lb'} /></button>
-        {COUCH.map((n, i) => <button key={n} type="button" tabIndex={-1} role="tab" aria-selected={i === si} className={i === si ? 'on' : ''} onClick={() => { setSi(i); setFocus(1) }}>{n}</button>)}
+        {COUCH.map((n, i) => <button key={n} type="button" tabIndex={-1} role="tab" data-i={i} aria-selected={i === si} className={i === si ? 'on' : ''} onClick={() => { setSi(i); setFocus(1) }}>{n}</button>)}
         <button type="button" tabIndex={-1} className="cm-shoulder" onClick={() => go(1)} aria-label="Next scenario"><Glyph k="rb" on={held === 'rb'} /></button>
       </div>
 
@@ -211,6 +215,7 @@ function CouchSet({ auto, offset = 0 }) {
       </div>
 
       <div className="tb cm-bar" ref={barRef} role="toolbar" aria-label={`${COUCH[si]} toolbar`}>
+        {sel && <i key={`sel${si}`} className="cm-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
         {ring && <i className={`cm-ring ${down === fid ? 'is-press' : ''}`} aria-hidden="true" style={{ transform: `translate(${ring.x}px, ${ring.y}px)`, width: ring.w, height: ring.h }} />}
         <div className="cm-groups" key={si}>
           {groups.map((g, gi) => (
@@ -220,7 +225,7 @@ function CouchSet({ auto, offset = 0 }) {
                 const label = flash?.id === b.id && flash.label ? flash.label : b.t
                 return (
                   <button key={b.id} type="button" tabIndex={-1} data-id={b.id} aria-label={b.t ? undefined : b.id} aria-pressed={b.sel != null ? !!b.sel : undefined}
-                    className={`tb-btn cm-btn ${b.i ? '' : 'cm-text'} ${idx === f ? 'is-focus' : ''} ${b.sel ? 'is-sel' : ''} ${down === b.id ? 'is-press' : ''}`}
+                    className={`tb-btn cm-btn ${b.i ? '' : 'cm-text'} ${idx === f ? 'is-focus' : ''} ${b.sel ? 'is-sel' : ''} ${b.excl ? 'is-excl' : ''} ${down === b.id ? 'is-press' : ''}`}
                     onPointerEnter={() => !auto && setFocus(idx)} onPointerDown={() => !auto && setDown(b.id)} onPointerUp={() => setDown(null)} onPointerLeave={() => setDown(null)}
                     onClick={() => { if (!auto) { setFocus(idx); press(b) } }}>
                     {b.i ? <span className="cm-frame cm-target">{li(IC[b.i])}</span> : <span className="cm-target cm-textframe">{label}</span>}
@@ -316,7 +321,7 @@ function ClearSet({ auto, offset = 0 }) {
       </div>
       <div className="cl-field">
         <div className="tb cl-bar" ref={barRef} role="toolbar" aria-label={`${CLEAR[si]} toolbar`}>
-          {pill && <i className="cl-pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
+          {pill && <i key={`pill${si}`} className="cl-pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
           {groups.map((grp, gi) => (
             <div key={gi} className={`tb-group g${gi}`}>
               {grp.map((b) => (
