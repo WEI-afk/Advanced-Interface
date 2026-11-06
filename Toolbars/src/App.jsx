@@ -170,10 +170,94 @@ function LanSet({ auto, offset = 0 }) {
   )
 }
 
+/* ----- FUTURISTIC · Quick Access: the Week 6 menu laid on its side. Icons sit in small frames, labels stay outside them,
+   and one glowing ring rests on the current page and glides to whatever you point at ----- */
+const li = (d) => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d.map((p, i) => <path key={i} d={p} />)}</svg>
+)
+const QA = {
+  home: li(['M3 9.500L10 3.500l7 6', 'M5 8.500V16.500h10V8.500', 'M8.500 16.500v-4.500h3v4.500']),
+  lib: li(['M3 4h6v12H3z', 'M11 4h6v5h-6z', 'M11 11h6v5h-6z']),
+  down: li(['M10 3v10', 'M6 9.500l4 4 4-4', 'M4 17h12']),
+  wifi: li(['M2.500 8a11 11 0 0 1 15 0', 'M5.500 11a7 7 0 0 1 9 0', 'M8.500 14a2.500 2.500 0 0 1 3 0', 'M10 16.500v.100']),
+  off: li(['M4 4l12 12', 'M5.500 11a7 7 0 0 1 3-1.700', 'M8.500 14a2.500 2.500 0 0 1 3 0']),
+  search: li(['M9 3.500a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z', 'M13 13l4 4']),
+  back: li(['M12 4.500L6.500 10l5.500 5.500']),
+}
+const QA_ACCENTS = [['Blue', '#1a9fff'], ['Violet', '#a06bff'], ['Mint', '#2fd6a6']]
+const QA_ORDER = ['back', 'home', 'lib', 'down', 'wifi', 'accent', 'search']
+
+function QaSet({ auto, offset = 0 }) {
+  const ref = useRef(null)
+  const [cur, setCur] = useState('home')
+  const [hot, setHot] = useState(null)
+  const [down, setDown] = useState(null)
+  const [wifi, setWifi] = useState(true)
+  const [accent, setAccent] = useState(0)
+  const [dl, setDl] = useState(2)
+  const [ring, setRing] = useState(null)
+  const rove = useRoving(ref)
+  const groups = [
+    [{ id: 'back', name: 'Back', icon: QA.back }, { id: 'home', label: 'Home', icon: QA.home, opt: true }],
+    [{ id: 'lib', label: 'Library', icon: QA.lib, opt: true }, { id: 'down', label: 'Downloads', icon: QA.down, opt: true, badge: dl }, { id: 'wifi', label: 'Wi-Fi', icon: wifi ? QA.wifi : QA.off, opt: true }],
+    [{ id: 'accent', label: QA_ACCENTS[accent][0] }, { id: 'search', name: 'Search', icon: QA.search }],
+  ]
+  const press = (b) => {
+    if (['home', 'lib', 'down'].includes(b.id)) { setCur(b.id); if (b.id === 'down') setDl(0) }
+    else if (b.id === 'wifi') setWifi((v) => !v)
+    else if (b.id === 'accent') setAccent((v) => (v + 1) % 3)
+    else if (b.id === 'back') setCur('home')
+  }
+  const target = hot || cur
+  // the ring measures the frame it should sit on (or the whole text button) and glides there
+  const measure = () => {
+    const el = ref.current?.querySelector(`[data-id="${target}"] .qa-target`) || ref.current?.querySelector(`[data-id="${target}"].qa-target`)
+    if (!el) return
+    const a = el.getBoundingClientRect(), b = ref.current.getBoundingClientRect()
+    setRing({ x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height })
+  }
+  useLayoutEffect(measure, [target, accent, wifi, dl])
+  useEffect(() => {
+    const ro = new ResizeObserver(measure)
+    ro.observe(ref.current)
+    return () => ro.disconnect()
+  })
+  useEffect(() => {
+    if (!auto) return
+    let k = offset
+    const t = setInterval(() => { k++; setHot(QA_ORDER[k % QA_ORDER.length]) }, 700)
+    return () => clearInterval(t)
+  }, [auto, offset])
+
+  return (
+    <div className="qa" style={{ '--acc': QA_ACCENTS[accent][1] }}>
+      <div className="tb qa-bar tb-live" ref={ref} role="toolbar" aria-label="Quick access" onKeyDown={rove.onKeyDown}
+        onFocus={(e) => { rove.onFocus(e); if (e.target.matches(':focus-visible')) setHot(e.target.dataset.id) }} onBlur={() => setHot(null)}
+        onPointerLeave={() => { if (!auto) { setHot(null); setDown(null) } }}>
+        {ring && <i className={`qa-ring ${down === target ? 'is-press' : ''}`} aria-hidden="true" style={{ transform: `translate(${ring.x}px, ${ring.y}px)`, width: ring.w, height: ring.h }} />}
+        {groups.map((g, i) => (
+          <div key={i} className={`tb-group g${i}`}>
+            {g.map((b) => (
+              <button key={b.id} type="button" data-id={b.id} aria-label={b.label ? undefined : b.name} aria-current={cur === b.id ? 'page' : undefined}
+                className={`tb-btn qa-btn ${b.icon ? '' : 'qa-text qa-target'} ${target === b.id ? 'is-hot' : ''} ${down === b.id ? 'is-press' : ''}`}
+                onPointerEnter={() => !auto && setHot(b.id)} onPointerDown={() => setDown(b.id)} onPointerUp={() => setDown(null)} onPointerCancel={() => setDown(null)}
+                onClick={() => press(b)}>
+                {b.icon && <span className="qa-frame qa-target">{b.icon}{b.badge ? <span className="qa-badge">{b.badge}</span> : null}</span>}
+                {b.label && <span className={`tb-label ${b.opt ? 'opt' : ''}`}>{b.label}</span>}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /* ================= page ================= */
 const SETS = [
   { id: 'gum', tone: 'Playful, Gumdrop', Body: GumSet },
   { id: 'lan', tone: 'Mysterious, Lantern', Body: LanSet },
+  { id: 'qa', tone: 'Futuristic, Quick Access', Body: QaSet },
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */

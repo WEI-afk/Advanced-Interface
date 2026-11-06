@@ -75,6 +75,31 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; overflow-x: c
 @property --mx { syntax: '<length-percentage>'; inherits: true; initial-value: 70%; }
 @keyframes wander { 0% { --mx: 6%; } 50% { --mx: 55%; } 100% { --mx: 94%; } }
 
+.s-qa h2 { font: 600 42px/1.1 Inter, sans-serif; letter-spacing: -0.03em; color: #15171b; }
+/* ================= FUTURISTIC · Quick Access =================
+   the Week 6 tokens: frame 40, radius 8, stroke 1 · icon 20 stroke 1 · label outside the frame, gap 12, Inter 500 15/20 · text button 40 high, padding 0 14
+   ring 2 + glow on a spring (.24 s, overshoot) · pressed: ring .88, frame fills · bar 56, groups spread, buttons 4 apart */
+@property --acc { syntax: '<color>'; inherits: true; initial-value: #1a9fff; }
+.qa { padding: 110px 40px; border-radius: 24px; background: #0a0d12; transition: --acc .5s; }
+.qa-bar { width: 100%; height: 56px; gap: 16px; color: #98a2ad; }
+.qa .tb-group { gap: 4px; }
+.qa-btn { z-index: 1; height: 56px; padding: 0 8px; gap: 12px; font: 500 15px/20px Inter, sans-serif; transition: color .14s; }
+.qa-btn:focus-visible { outline: none; }
+.qa-frame { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 8px; box-shadow: inset 0 0 0 1px #2a313a; color: #aab3bd; transition: color .1s, transform .12s cubic-bezier(.3,1.3,.5,1), background-color .1s; }
+.qa-frame svg { width: 20px; height: 20px; }
+.qa-text { height: 40px; padding: 0 14px; border-radius: 8px; box-shadow: inset 0 0 0 1px #2a313a; transition: color .14s, transform .12s cubic-bezier(.3,1.3,.5,1); }
+.qa-btn.is-hot, .qa-btn.is-hot .qa-frame, .qa-btn[aria-current="page"] .qa-frame { color: #fff; }
+.qa-btn.is-hot .tb-label { color: #fff; }
+.qa-frame { position: relative; }
+.qa-badge { position: absolute; right: -7px; top: -7px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--acc); color: #06121c; font: 700 11px/18px Inter, sans-serif; box-shadow: 0 0 0 2px #0a0d12; transition: background-color .5s; }
+/* one ring glides from frame to frame */
+.qa-ring { position: absolute; z-index: 2; left: 0; top: 0; border-radius: 8px; pointer-events: none;
+  box-shadow: inset 0 0 0 2px #fff, 0 0 18px var(--acc), 0 0 42px color-mix(in srgb, var(--acc) 45%, transparent);
+  transition: transform .24s cubic-bezier(.3,1.25,.5,1), width .24s cubic-bezier(.3,1.25,.5,1), height .24s cubic-bezier(.3,1.25,.5,1), scale .08s, background-color .08s; }
+.qa-ring.is-press { scale: .88; background: color-mix(in srgb, var(--acc) 70%, transparent); }
+.qa-btn.is-press .qa-frame, .qa-text.is-press { transform: scale(.88); }
+.qa-btn.is-press .tb-label { color: var(--acc); }
+
 @container set (max-width: 700px) {
   .tb-label.opt { display: none; }
   .gum .tb-btn.has-icon { padding: 0 13px; }
@@ -91,6 +116,14 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; overflow-x: c
   .gum .tb-btn.has-icon, .gum .tb-btn:not(.has-label) { padding: 0 9px; }
   .lan-bar { padding: 4px; }
   .lan .tb-btn, .lan .tb-btn.has-icon, .lan .tb-btn:not(.has-label) { min-width: 38px; padding: 0 9px; }
+  .qa { padding: 80px 12px; }
+  .qa-bar { gap: 4px; }
+  .qa .tb-group { gap: 0; }
+  .qa-btn { padding: 0 2px; }
+  .qa-frame { width: 34px; height: 34px; }
+  .qa-text { height: 34px; }
+  .qa-text { padding: 0 10px; }
+  .s-qa h2 { font-size: 32px; }
   .s-gum h2 { font-size: 34px; } .s-lan h2 { font-size: 38px; }
   .draft-ref { width: 88px; }
 }
