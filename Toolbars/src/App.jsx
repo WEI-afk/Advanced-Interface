@@ -17,237 +17,334 @@ const P = {
 }
 
 /* ================= the toolbar system =================
-   One bar, three groups: start, center, end. Each group can be used alone (left, center or right aligned) or all three spread.
-   Every button is the same structure: [icon] [label], either one optional. Arrow keys move between buttons, Home and End jump. */
-function Btn({ b, on, onPress, lit }) {
-  return (
-    <button type="button" className={`tb-btn ${b.icon ? 'has-icon' : ''} ${b.label ? 'has-label' : ''} ${on ? 'is-on' : ''} ${lit ? 'is-lit' : ''} ${b.title ? 'is-title' : ''}`}
-      aria-label={b.label ? undefined : b.name} aria-pressed={b.toggle ? !!on : undefined} data-id={b.id} onClick={() => onPress?.(b)}>
-      {b.icon && <span className="tb-ic">{b.icon}</span>}
-      {b.label && <span className={`tb-label ${b.opt ? 'opt' : ''}`}>{b.label}</span>}
-    </button>
-  )
-}
-
-function useRoving(ref) {
-  // one tab stop for the whole toolbar; arrows walk the buttons
-  const onKeyDown = (e) => {
-    const list = [...ref.current.querySelectorAll('.tb-live .tb-btn')]
-    const i = list.indexOf(document.activeElement)
-    if (i < 0) return
-    let j = null
-    if (e.key === 'ArrowRight') j = mod(i + 1, list.length)
-    else if (e.key === 'ArrowLeft') j = mod(i - 1, list.length)
-    else if (e.key === 'Home') j = 0
-    else if (e.key === 'End') j = list.length - 1
-    if (j == null) return
-    e.preventDefault()
-    list[j].focus()
-  }
-  useLayoutEffect(() => {
-    const list = [...ref.current.querySelectorAll('.tb-live .tb-btn')]
-    list.forEach((b, i) => { b.tabIndex = i ? -1 : 0 })
-  })
-  const onFocus = (e) => {
-    const list = [...ref.current.querySelectorAll('.tb-live .tb-btn')]
-    list.forEach((b) => { b.tabIndex = b === e.target ? 0 : -1 })
-  }
-  return { onKeyDown, onFocus }
-}
-
-/* ----- PLAYFUL · Gumdrop: a sticker of a toolbar. Buttons pop up when you point at them and squash when you press; the blue pill hops between tools ----- */
-const TOOLS = ['draw', 'stickers', 'text']
-function GumSet({ auto, offset = 0 }) {
-  const ref = useRef(null)
-  const [tool, setTool] = useState(offset % 3)
-  const [hist, setHist] = useState({ n: 3, at: 3 })
-  const [shared, setShared] = useState(false)
-  const [done, setDone] = useState(false)
-  const [pill, setPill] = useState(null)
-  const [demo, setDemo] = useState(-1)
-  const rove = useRoving(ref)
-
-  const groups = [
-    [{ id: 'undo', name: 'Undo', icon: ic(P.undo, 2.2) }, { id: 'redo', name: 'Redo', icon: ic(P.redo, 2.2) }],
-    [{ id: 'draw', label: 'Draw', icon: ic(P.pen, 2.2), opt: true }, { id: 'stickers', label: 'Stickers', icon: ic(P.sticker, 2.2), opt: true }, { id: 'text', label: 'Text', icon: ic(P.text, 2.2), opt: true }],
-    [{ id: 'share', label: shared ? 'Copied' : 'Share', icon: ic(shared ? P.check : P.share, 2.2), opt: true }, { id: 'done', label: done ? 'Saved' : 'Done' }],
-  ]
-  const press = (b) => {
-    if (TOOLS.includes(b.id)) setTool(TOOLS.indexOf(b.id))
-    else if (b.id === 'undo') setHist((h) => ({ ...h, at: Math.max(0, h.at - 1) }))
-    else if (b.id === 'redo') setHist((h) => ({ ...h, at: Math.min(h.n, h.at + 1) }))
-    else if (b.id === 'share') { setShared(true); setTimeout(() => setShared(false), 1400) }
-    else if (b.id === 'done') { setDone(true); setTimeout(() => setDone(false), 1400) }
-  }
-  // the selection pill measures the chosen tool and springs to it
-  useLayoutEffect(() => {
-    const el = ref.current?.querySelector(`[data-id="${TOOLS[tool]}"]`)
-    if (el) setPill({ x: el.offsetLeft + el.offsetParent.offsetLeft, w: el.offsetWidth })
-  }, [tool, shared])
-  useEffect(() => {
-    const ro = new ResizeObserver(() => {
-      const el = ref.current?.querySelector(`[data-id="${TOOLS[tool]}"]`)
-      if (el) setPill({ x: el.offsetLeft + el.offsetParent.offsetLeft, w: el.offsetWidth })
-    })
-    ro.observe(ref.current)
-    return () => ro.disconnect()
-  }, [tool])
-
-  useEffect(() => {
-    if (!auto) return
-    let k = offset
-    const t = setInterval(() => { k++; if (k % 2) setDemo(mod(k, 7)); else { setDemo(-1); setTool((v) => (v + 1) % 3) } }, 900)
-    return () => clearInterval(t)
-  }, [auto, offset])
-
-  const ids = groups.flat().map((b) => b.id)
-  return (
-    <div className="gum">
-      <div className="tb gum-bar tb-live" ref={ref} role="toolbar" aria-label="Sticker tools" onKeyDown={rove.onKeyDown} onFocus={rove.onFocus}>
-        {pill && <i className="gum-pill" aria-hidden="true" style={{ transform: `translateX(${pill.x}px)`, width: pill.w }} />}
-        {groups.map((g, i) => (
-          <div key={i} className={`tb-group g${i}`}>
-            {g.map((b) => <Btn key={b.id} b={b} on={TOOLS[tool] === b.id} lit={demo >= 0 && ids[demo] === b.id} onPress={press} />)}
-          </div>
-        ))}
-      </div>
-      <p className="gum-note" aria-live="polite">Step {hist.at} of {hist.n}</p>
-    </div>
-  )
-}
-
-/* ----- MYSTERIOUS · Lantern: the bar stays dark. A small light follows your pointer, and only what it touches is lit: gold labels, hairline edges ----- */
-const CHAPTERS = ['V · The Stair', 'VI · The Hall', 'VII · The Cellar', 'VIII · The Well']
-function LanSet({ auto, offset = 0 }) {
-  const ref = useRef(null)
-  const stage = useRef(null)
-  const [ch, setCh] = useState(2)
-  const [marked, setMarked] = useState(false)
-  const [search, setSearch] = useState(false)
-  const [lightOn, setLightOn] = useState(!!auto)
-  const rove = useRoving(ref)
-  const groups = [
-    [{ id: 'back', name: 'Back', icon: ic(P.back, 1.2) }, { id: 'chapters', label: 'Chapters', icon: ic(P.list, 1.2), opt: true }],
-    [{ id: 'prev', name: 'Previous chapter', icon: ic(P.prev, 1.2) }, { id: 'title', label: <>{CHAPTERS[ch].split(' · ')[0]}<span className="tb-rest"> · {CHAPTERS[ch].split(' · ')[1]}</span></>, title: true }, { id: 'next', name: 'Next chapter', icon: ic(P.next, 1.2) }],
-    [{ id: 'search', label: 'Search', icon: ic(P.search, 1.2), opt: true, toggle: true }, { id: 'mark', name: 'Bookmark', icon: ic(P.mark, 1.2), toggle: true }],
-  ]
-  const onState = { mark: marked, search }
-  const press = (b) => {
-    if (b.id === 'prev') setCh((v) => Math.max(0, v - 1))
-    else if (b.id === 'next') setCh((v) => Math.min(CHAPTERS.length - 1, v + 1))
-    else if (b.id === 'mark') setMarked((v) => !v)
-    else if (b.id === 'search') setSearch((v) => !v)
-  }
-  const move = (e) => {
-    const r = ref.current.getBoundingClientRect()
-    stage.current.style.setProperty('--mx', `${e.clientX - r.left}px`)
-    stage.current.style.setProperty('--my', `${e.clientY - r.top}px`)
-    setLightOn(true)
-  }
-  const bar = (live) => (
-    <div className={`tb lan-bar ${live ? 'tb-live' : 'lan-lit'}`} ref={live ? ref : undefined} role={live ? 'toolbar' : undefined} aria-hidden={live ? undefined : true}
-      aria-label={live ? 'Reading tools' : undefined} onKeyDown={live ? rove.onKeyDown : undefined} onFocus={live ? rove.onFocus : undefined}>
-      {groups.map((g, i) => (
-        <div key={i} className={`tb-group g${i}`}>
-          {g.map((b) => <Btn key={b.id} b={b} on={onState[b.id]} onPress={live ? press : undefined} />)}
-        </div>
-      ))}
-    </div>
-  )
-  return (
-    <div className={`lan ${lightOn ? 'is-on' : ''} ${auto ? 'is-auto' : ''}`} ref={stage} onPointerMove={auto ? undefined : move} onPointerLeave={() => !auto && setLightOn(false)}
-      onFocusCapture={(e) => {
-        if (auto || !e.target.matches?.(':focus-visible')) return
-        const r = ref.current.getBoundingClientRect(), b = e.target.getBoundingClientRect()
-        stage.current.style.setProperty('--mx', `${b.left + b.width / 2 - r.left}px`); stage.current.style.setProperty('--my', `${b.top + b.height / 2 - r.top}px`); setLightOn(true)
-      }}>
-      <div className="lan-wrap">
-        <i className="lan-glow" aria-hidden="true" />
-        {bar(true)}
-        {bar(false)}
-      </div>
-    </div>
-  )
-}
-
-/* ----- FUTURISTIC · Quick Access: the Week 6 menu laid on its side. Icons sit in small frames, labels stay outside them,
-   and one glowing ring rests on the current page and glides to whatever you point at ----- */
-const li = (d) => (
-  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d.map((p, i) => <path key={i} d={p} />)}</svg>
+   One bar, three groups: start, center, end. Each group can stand alone (left, center or right aligned) or all three spread.
+   Every button is the same structure: [icon] [label], either one optional. The system is shown in several scenarios,
+   because a toolbar is defined by where it lives, not by one task. */
+const li = (d, w = 1) => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d.map((p, i) => <path key={i} d={p} />)}</svg>
 )
-const QA = {
-  home: li(['M3 9.500L10 3.500l7 6', 'M5 8.500V16.500h10V8.500', 'M8.500 16.500v-4.500h3v4.500']),
-  lib: li(['M3 4h6v12H3z', 'M11 4h6v5h-6z', 'M11 11h6v5h-6z']),
-  down: li(['M10 3v10', 'M6 9.500l4 4 4-4', 'M4 17h12']),
-  wifi: li(['M2.500 8a11 11 0 0 1 15 0', 'M5.500 11a7 7 0 0 1 9 0', 'M8.500 14a2.500 2.500 0 0 1 3 0', 'M10 16.500v.100']),
-  off: li(['M4 4l12 12', 'M5.500 11a7 7 0 0 1 3-1.700', 'M8.500 14a2.500 2.500 0 0 1 3 0']),
-  search: li(['M9 3.500a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z', 'M13 13l4 4']),
-  back: li(['M12 4.500L6.500 10l5.500 5.500']),
+const IC = {
+  back: ['M12 4.500L6.500 10l5.500 5.500'], search: ['M9 3.500a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z', 'M13 13l4 4'], filter: ['M3 5h14', 'M6 10h8', 'M8.500 15h3'],
+  prev: ['M14 5v10l-7-5z', 'M5 5v10'], next: ['M6 5v10l7-5z', 'M15 5v10'], play: ['M6.500 4.500v11l9-5.500z'], pause: ['M7 4.500v11', 'M13 4.500v11'],
+  list: ['M7 5h10', 'M7 10h10', 'M7 15h10', 'M3.500 5h.010', 'M3.500 10h.010', 'M3.500 15h.010'], cc: ['M3 5h14v10H3z', 'M8.500 8.500a2 2 0 1 0 0 3', 'M14 8.500a2 2 0 1 0 0 3'],
+  vol: ['M3 8v4h3l4 3V5L6 8z', 'M13 7.500a3.500 3.500 0 0 1 0 5', 'M15 5.500a6.500 6.500 0 0 1 0 9'], mute: ['M3 8v4h3l4 3V5L6 8z', 'M13 8l4 4', 'M17 8l-4 4'],
+  edit: ['M4 16l3-.500 9-9-2.500-2.500-9 9z', 'M12 5l2.500 2.500'], share: ['M10 3v10', 'M6.500 6.500L10 3l3.500 3.500', 'M4.500 11v5.500h11V11'], trash: ['M4 6h12', 'M8 6V4h4v2', 'M5.500 6l1 10h7l1-10'],
+  heart: ['M10 16s-6-3.500-6-8a3.200 3.200 0 0 1 6-1.500A3.200 3.200 0 0 1 16 8c0 4.500-6 8-6 8z'], undo: ['M7.500 11.500L4 8l3.500-3.500', 'M4 8h8.500a4 4 0 0 1 0 8H10'], redo: ['M12.500 11.500L16 8l-3.500-3.500', 'M16 8H7.500a4 4 0 0 0 0 8H10'],
+  bold: ['M6 4h5a3 3 0 0 1 0 6H6z', 'M6 10h6a3 3 0 0 1 0 6H6z'], italic: ['M9 4h6', 'M5 16h6', 'M12 4l-4 12'], link: ['M8.500 11.500a3 3 0 0 0 4.200 0l2.500-2.500a3 3 0 0 0-4.200-4.200l-.800.800', 'M11.500 8.500a3 3 0 0 0-4.200 0L4.800 11a3 3 0 0 0 4.200 4.200l.800-.800'],
+  arrow: ['M4 10h12', 'M11 5l5 5-5 5'], grid: ['M4 4h5v5H4z', 'M11 4h5v5h-5z', 'M4 11h5v5H4z', 'M11 11h5v5h-5z'], rows: ['M4 5h12', 'M4 10h12', 'M4 15h12'], chev: ['M6 8l4 4 4-4'], check: ['M4.500 10.500l3.500 3.500L16 6'],
 }
-const QA_ACCENTS = [['Blue', '#1a9fff'], ['Violet', '#a06bff'], ['Mint', '#2fd6a6']]
-const QA_ORDER = ['back', 'home', 'lib', 'down', 'wifi', 'accent', 'search']
 
-function QaSet({ auto, offset = 0 }) {
-  const ref = useRef(null)
-  const [cur, setCur] = useState('home')
-  const [hot, setHot] = useState(null)
-  const [down, setDown] = useState(null)
-  const [wifi, setWifi] = useState(true)
-  const [accent, setAccent] = useState(0)
-  const [dl, setDl] = useState(2)
-  const [ring, setRing] = useState(null)
-  const rove = useRoving(ref)
-  const groups = [
-    [{ id: 'back', name: 'Back', icon: QA.back }, { id: 'home', label: 'Home', icon: QA.home, opt: true }],
-    [{ id: 'lib', label: 'Library', icon: QA.lib, opt: true }, { id: 'down', label: 'Downloads', icon: QA.down, opt: true, badge: dl }, { id: 'wifi', label: 'Wi-Fi', icon: wifi ? QA.wifi : QA.off, opt: true }],
-    [{ id: 'accent', label: QA_ACCENTS[accent][0] }, { id: 'search', name: 'Search', icon: QA.search }],
-  ]
-  const press = (b) => {
-    if (['home', 'lib', 'down'].includes(b.id)) { setCur(b.id); if (b.id === 'down') setDl(0) }
-    else if (b.id === 'wifi') setWifi((v) => !v)
-    else if (b.id === 'accent') setAccent((v) => (v + 1) % 3)
-    else if (b.id === 'back') setCur('home')
-  }
-  const target = hot || cur
-  // the ring measures the frame it should sit on (or the whole text button) and glides there
+// measure where an element sits inside its bar, so one marker (ring or pill) can glide to it
+function useMarker(barRef, selector, deps) {
+  const [box, setBox] = useState(null)
   const measure = () => {
-    const el = ref.current?.querySelector(`[data-id="${target}"] .qa-target`) || ref.current?.querySelector(`[data-id="${target}"].qa-target`)
-    if (!el) return
-    const a = el.getBoundingClientRect(), b = ref.current.getBoundingClientRect()
-    setRing({ x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height })
+    const bar = barRef.current
+    const el = bar && selector && bar.querySelector(selector)
+    if (!el) { setBox(null); return }
+    const a = el.getBoundingClientRect(), b = bar.getBoundingClientRect()
+    setBox({ x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height })
   }
-  useLayoutEffect(measure, [target, accent, wifi, dl])
+  useLayoutEffect(measure, deps) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
+    // groups can change width (labels hide, text changes) without the bar changing size, so watch them too
     const ro = new ResizeObserver(measure)
-    ro.observe(ref.current)
+    if (barRef.current) { ro.observe(barRef.current); barRef.current.querySelectorAll(".tb-group, [data-i]").forEach((c) => ro.observe(c)) }
+    window.addEventListener('resize', measure)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+  }, deps) // eslint-disable-line react-hooks/exhaustive-deps
+  return box
+}
+
+function useNarrow(ref, at = 640) {
+  const [narrow, setNarrow] = useState(false)
+  useLayoutEffect(() => { if (ref.current) setNarrow(ref.current.offsetWidth < at) }, [at]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const ro = new ResizeObserver(([e]) => setNarrow(e.contentRect.width < at))
+    if (ref.current) ro.observe(ref.current)
     return () => ro.disconnect()
-  })
+  }, [at]) // eslint-disable-line react-hooks/exhaustive-deps
+  return narrow
+}
+
+/* ----- FUTURISTIC · Couch Mode: the toolbar of a living-room screen. It is read from three meters away and driven by a controller:
+   one ring holds the focus, the D-pad walks it along the bar, A presses, B backs out, LB / RB carry the same bar into the next app ----- */
+const GLYPHS = { lb: 'LB', rb: 'RB', a: 'A', b: 'B' }
+const Glyph = ({ k, on }) => <i className={`glyph ${k.length > 1 ? 'wide' : ''} ${on ? 'on' : ''}`}>{GLYPHS[k] || k}</i>
+const COUCH = ['Library', 'Player', 'Capture']
+const TILES = [['Driftline', 'inst'], ['Low Orbit', 'fav'], ['Saltmarsh', 'inst'], ['Ember Basin', 'fav'], ['Night Ferry', ''], ['Glass Hours', 'inst'], ['Tidewater', ''], ['Northbound', 'fav'], ['Paper Moon', 'inst'], ['Static', '']]
+const TILE_C = ['#1b2a44', '#2a1f45', '#123a3a', '#3a2a1a', '#24304a']
+
+function CouchSet({ auto, offset = 0 }) {
+  const stage = useRef(null)
+  const barRef = useRef(null)
+  const narrow = useNarrow(stage)
+  const [si, setSi] = useState(offset % 3)
+  const [focus, setFocus] = useState(1)
+  const [down, setDown] = useState(null)
+  const [held, setHeld] = useState('')
+  const [flash, setFlash] = useState(null)
+  const [shelf, setShelf] = useState('all')
+  const [play, setPlay] = useState({ on: false, t: 0.42, ep: 4, cc: false, mute: false })
+  const [cap, setCap] = useState({ n: 3, total: 24, fav: false, edit: false })
+
+  const groups = [
+    [[{ id: 'back', i: 'back', opt: true }], [{ id: 'all', t: 'All', sel: shelf === 'all' }, { id: 'inst', t: 'Installed', sel: shelf === 'inst' }, { id: 'fav', t: 'Favorites', sel: shelf === 'fav' }], [{ id: 'filter', i: 'filter', t: 'Filter', lab: true }, { id: 'search', i: 'search', opt: true }]],
+    [[{ id: 'eps', i: 'list', t: 'Episodes', lab: true }], [{ id: 'prev', i: 'prev' }, { id: 'play', i: play.on ? 'pause' : 'play' }, { id: 'next', i: 'next' }], [{ id: 'cc', i: 'cc', t: 'Subtitles', lab: true, sel: play.cc }, { id: 'vol', i: play.mute ? 'mute' : 'vol', opt: true }]],
+    [[{ id: 'back', i: 'back' }], [{ id: 'edit', i: 'edit', t: cap.edit ? 'Done' : 'Edit', lab: true, sel: cap.edit }, { id: 'share', i: 'share', t: 'Share', lab: true }, { id: 'trash', i: 'trash', t: 'Delete', lab: true }], [{ id: 'fav', i: 'heart', sel: cap.fav }]],
+  ][si].map((g) => g.filter((b) => !(narrow && b.opt)))
+  const flat = groups.flat()
+  const f = Math.min(focus, flat.length - 1)
+  const say = (id, label) => { setFlash({ id, label }); setTimeout(() => setFlash((v) => (v?.id === id ? null : v)), 1100) }
+
+  const go = (d) => { setSi((v) => mod(v + d, 3)); setFocus(narrow ? 0 : 1); setDown(null) }
+  const press = (b) => {
+    if (!b) return
+    const id = b.id
+    if (si === 0) { if (['all', 'inst', 'fav'].includes(id)) setShelf(id); else if (id === 'back') go(-1); else say(id, id === 'filter' ? 'Sorted' : null) }
+    if (si === 1) {
+      if (id === 'play') setPlay((p) => ({ ...p, on: !p.on }))
+      else if (id === 'prev') setPlay((p) => ({ ...p, ep: Math.max(1, p.ep - 1), t: 0 }))
+      else if (id === 'next') setPlay((p) => ({ ...p, ep: p.ep + 1, t: 0 }))
+      else if (id === 'cc') setPlay((p) => ({ ...p, cc: !p.cc }))
+      else if (id === 'vol') setPlay((p) => ({ ...p, mute: !p.mute }))
+      else say(id, null)
+    }
+    if (si === 2) {
+      if (id === 'back') go(-1)
+      else if (id === 'edit') setCap((c) => ({ ...c, edit: !c.edit }))
+      else if (id === 'share') say(id, 'Shared')
+      else if (id === 'trash') setCap((c) => ({ ...c, total: Math.max(1, c.total - 1), n: Math.min(c.n, c.total - 1) }))
+      else if (id === 'fav') setCap((c) => ({ ...c, fav: !c.fav }))
+    }
+  }
+
+  // playing moves the progress line
+  useEffect(() => {
+    if (!play.on) return
+    const t = setInterval(() => setPlay((p) => ({ ...p, t: p.t >= 1 ? 0 : p.t + 0.004 })), 50)
+    return () => clearInterval(t)
+  }, [play.on])
+
+  /* input: keys while the pointer or focus is on the stage, and a real controller any time */
+  const latest = useRef()
+  latest.current = { flat, f, press, go }
+  const input = (k, isDown) => {
+    const L = latest.current
+    if (isDown) setHeld(k)
+    else { setHeld((v) => (v === k ? '' : v)); if (k === 'a') { setDown(null); L.press(L.flat[L.f]) } return }
+    if (k === 'left') setFocus(mod(L.f - 1, L.flat.length))
+    else if (k === 'right') setFocus(mod(L.f + 1, L.flat.length))
+    else if (k === 'a') setDown(L.flat[L.f]?.id)
+    else if (k === 'b') { const back = L.flat.findIndex((x) => x.id === 'back'); if (back >= 0) { setFocus(back); L.press(L.flat[back]) } }
+    else if (k === 'lb') L.go(-1)
+    else if (k === 'rb') L.go(1)
+  }
+  const inputRef = useRef(); inputRef.current = input
+  useEffect(() => {
+    if (auto) return
+    const map = { ArrowLeft: 'left', ArrowRight: 'right', Enter: 'a', ' ': 'a', Escape: 'b', Backspace: 'b', q: 'lb', e: 'rb' }
+    const hot = () => stage.current?.matches(':hover') || stage.current?.contains(document.activeElement)
+    const kd = (e) => { const k = map[e.key]; if (!k || !hot() || e.metaKey || e.ctrlKey) return; e.preventDefault(); if (!e.repeat || k === 'left' || k === 'right') inputRef.current(k, true) }
+    const ku = (e) => { const k = map[e.key]; if (k) inputRef.current(k, false) }
+    window.addEventListener('keydown', kd, true)
+    window.addEventListener('keyup', ku, true)
+    // a real controller: buttons and the stick drive the same input, and directions repeat while held
+    const BTN = { 0: 'a', 1: 'b', 4: 'lb', 5: 'rb', 14: 'left', 15: 'right' }
+    const was = {}, rep = {}
+    let raf
+    const loop = (now) => {
+      const g = navigator.getGamepads && [...navigator.getGamepads()].find(Boolean)
+      if (g && !document.hidden) {
+        const dn = {}
+        for (const [i, k] of Object.entries(BTN)) if (g.buttons[i]?.pressed) dn[k] = true
+        if ((g.axes[0] || 0) < -0.55) dn.left = true
+        if ((g.axes[0] || 0) > 0.55) dn.right = true
+        for (const k of new Set([...Object.keys(dn), ...Object.keys(was)])) {
+          if (dn[k] && !was[k]) { inputRef.current(k, true); rep[k] = now + 380 }
+          else if (!dn[k] && was[k]) inputRef.current(k, false)
+          else if (dn[k] && (k === 'left' || k === 'right') && now > rep[k]) { inputRef.current(k, true); rep[k] = now + 130 }
+        }
+        Object.keys(was).forEach((k) => delete was[k]); Object.assign(was, dn)
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => { window.removeEventListener('keydown', kd, true); window.removeEventListener('keyup', ku, true); cancelAnimationFrame(raf) }
+  }, [auto])
+
+  /* wall: it drives itself */
   useEffect(() => {
     if (!auto) return
-    let k = offset
-    const t = setInterval(() => { k++; setHot(QA_ORDER[k % QA_ORDER.length]) }, 700)
+    let k = 0
+    const t = setInterval(() => { k++; const step = k % 6; if (step === 5) inputRef.current('rb', true); else if (step === 3) { inputRef.current('a', true); setTimeout(() => inputRef.current('a', false), 140) } else inputRef.current('right', true) }, 800)
     return () => clearInterval(t)
-  }, [auto, offset])
+  }, [auto])
+
+  const fid = flat[f]?.id
+  const ring = useMarker(barRef, fid ? `[data-id="${fid}"] .cm-target` : null, [fid, si, narrow, play.on, play.mute, cap.edit, flash])
+  const shown = TILES.filter((t) => shelf === 'all' || t[1] === shelf)
 
   return (
-    <div className="qa" style={{ '--acc': QA_ACCENTS[accent][1] }}>
-      <div className="tb qa-bar tb-live" ref={ref} role="toolbar" aria-label="Quick access" onKeyDown={rove.onKeyDown}
-        onFocus={(e) => { rove.onFocus(e); if (e.target.matches(':focus-visible')) setHot(e.target.dataset.id) }} onBlur={() => setHot(null)}
-        onPointerLeave={() => { if (!auto) { setHot(null); setDown(null) } }}>
-        {ring && <i className={`qa-ring ${down === target ? 'is-press' : ''}`} aria-hidden="true" style={{ transform: `translate(${ring.x}px, ${ring.y}px)`, width: ring.w, height: ring.h }} />}
-        {groups.map((g, i) => (
-          <div key={i} className={`tb-group g${i}`}>
-            {g.map((b) => (
-              <button key={b.id} type="button" data-id={b.id} aria-label={b.label ? undefined : b.name} aria-current={cur === b.id ? 'page' : undefined}
-                className={`tb-btn qa-btn ${b.icon ? '' : 'qa-text qa-target'} ${target === b.id ? 'is-hot' : ''} ${down === b.id ? 'is-press' : ''}`}
-                onPointerEnter={() => !auto && setHot(b.id)} onPointerDown={() => setDown(b.id)} onPointerUp={() => setDown(null)} onPointerCancel={() => setDown(null)}
-                onClick={() => press(b)}>
-                {b.icon && <span className="qa-frame qa-target">{b.icon}{b.badge ? <span className="qa-badge">{b.badge}</span> : null}</span>}
-                {b.label && <span className={`tb-label ${b.opt ? 'opt' : ''}`}>{b.label}</span>}
-              </button>
-            ))}
+    <div className="cm" ref={stage} tabIndex={auto ? -1 : 0} aria-label="Couch Mode toolbar, three scenarios">
+      <div className="cm-tabs" role="tablist" aria-label="Scenario">
+        <button type="button" tabIndex={-1} className="cm-shoulder" onClick={() => go(-1)} aria-label="Previous scenario"><Glyph k="lb" on={held === 'lb'} /></button>
+        {COUCH.map((n, i) => <button key={n} type="button" tabIndex={-1} role="tab" aria-selected={i === si} className={i === si ? 'on' : ''} onClick={() => { setSi(i); setFocus(1) }}>{n}</button>)}
+        <button type="button" tabIndex={-1} className="cm-shoulder" onClick={() => go(1)} aria-label="Next scenario"><Glyph k="rb" on={held === 'rb'} /></button>
+      </div>
+
+      <div className="cm-view" key={si}>
+        {si === 0 && <div className="cm-tiles">{shown.map(([n], i) => <div key={n} className="cm-tile" style={{ background: TILE_C[TILES.findIndex((t) => t[0] === n) % 5], '--i': i }}><span>{n}</span></div>)}</div>}
+        {si === 1 && (
+          <div className="cm-poster">
+            <span className="cm-ep">Episode {play.ep}</span>
+            {play.cc && <span className="cm-cc">“The tide comes in whether you watch it or not.”</span>}
+            <div className="cm-progress"><i style={{ width: `${play.t * 100}%` }} /></div>
           </div>
-        ))}
+        )}
+        {si === 2 && (
+          <div className={`cm-photo ${cap.edit ? 'is-edit' : ''}`}>
+            <i className="cm-crop" />
+            {cap.fav && <span className="cm-heart">{li(IC.heart, 1.4)}</span>}
+            <span className="cm-count">{cap.n} / {cap.total}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="tb cm-bar" ref={barRef} role="toolbar" aria-label={`${COUCH[si]} toolbar`}>
+        {ring && <i className={`cm-ring ${down === fid ? 'is-press' : ''}`} aria-hidden="true" style={{ transform: `translate(${ring.x}px, ${ring.y}px)`, width: ring.w, height: ring.h }} />}
+        <div className="cm-groups" key={si}>
+          {groups.map((g, gi) => (
+            <div key={gi} className={`tb-group g${gi}`}>
+              {g.map((b) => {
+                const idx = flat.indexOf(b)
+                const label = flash?.id === b.id && flash.label ? flash.label : b.t
+                return (
+                  <button key={b.id} type="button" tabIndex={-1} data-id={b.id} aria-label={b.t ? undefined : b.id} aria-pressed={b.sel != null ? !!b.sel : undefined}
+                    className={`tb-btn cm-btn ${b.i ? '' : 'cm-text'} ${idx === f ? 'is-focus' : ''} ${b.sel ? 'is-sel' : ''} ${down === b.id ? 'is-press' : ''}`}
+                    onPointerEnter={() => !auto && setFocus(idx)} onPointerDown={() => !auto && setDown(b.id)} onPointerUp={() => setDown(null)} onPointerLeave={() => setDown(null)}
+                    onClick={() => { if (!auto) { setFocus(idx); press(b) } }}>
+                    {b.i ? <span className="cm-frame cm-target">{li(IC[b.i])}</span> : <span className="cm-target cm-textframe">{label}</span>}
+                    {b.i && b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{label}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="cm-legend" aria-hidden="true">
+        <span><Glyph k="a" on={held === 'a'} />Select</span>
+        <span><Glyph k="b" on={held === 'b'} />Back</span>
+        <span className="cm-dpad"><Glyph k="◀" on={held === 'left'} /><Glyph k="▶" on={held === 'right'} />Move</span>
+      </div>
+    </div>
+  )
+}
+
+/* ----- ELEGANT · Clear: one quiet bar for an editor, a checkout and a gallery. White, hairline, one ink; the only motion is a soft fill
+   that arrives under your pointer and a pill that slides between exclusive choices ----- */
+const CLEAR = ['Write', 'Checkout', 'Gallery']
+const STYLES = ['Body', 'Heading', 'Quote']
+const STEPS = ['Bag', 'Shipping', 'Payment']
+
+function ClearSet({ auto, offset = 0 }) {
+  const stage = useRef(null)
+  const barRef = useRef(null)
+  const tabsRef = useRef(null)
+  const narrow = useNarrow(stage)
+  const [si, setSi] = useState(offset % 3)
+  const [w, setW] = useState({ style: 0, b: true, i: false, link: false, pub: false })
+  const [step, setStep] = useState(1)
+  const [g, setG] = useState({ rows: false, few: false, sel: false })
+  const [hot, setHot] = useState(null)
+
+  const groups = [
+    [[{ id: 'undo', i: 'undo' }, { id: 'redo', i: 'redo', opt: true }], [{ id: 'style', t: STYLES[w.style], dd: true }, { id: 'b', i: 'bold', sel: w.b }, { id: 'i', i: 'italic', sel: w.i }, { id: 'link', i: 'link', sel: w.link }], [{ id: 'share', t: 'Share', opt: true }, { id: 'pub', t: w.pub ? 'Published' : 'Publish', i: w.pub ? 'check' : null, prim: true }]],
+    [[{ id: 'back', i: 'back', t: 'Bag', lab: true }], STEPS.map((s, i) => ({ id: 's' + i, t: s, excl: true, sel: step === i, dim: step !== i, opt: step !== i })), [{ id: 'go', t: step === 2 ? 'Pay $148' : 'Continue', i: 'arrow', prim: true }]],
+    [[{ id: 'select', t: g.sel ? 'Cancel' : 'Select' }], [{ id: 'grid', i: 'grid', excl: true, sel: !g.rows }, { id: 'rows', i: 'rows', excl: true, sel: g.rows }], [{ id: 'filter', i: 'filter', t: g.few ? 'Liked' : 'Filter', lab: true, sel: g.few }, { id: 'share', i: 'share' }]],
+  ][si].map((grp) => grp.filter((b) => !(narrow && b.opt)))
+
+  const press = (id) => {
+    if (si === 0) {
+      if (id === 'style') setW((v) => ({ ...v, style: (v.style + 1) % 3 }))
+      else if (['b', 'i', 'link'].includes(id)) setW((v) => ({ ...v, [id]: !v[id] }))
+      else if (id === 'pub') { setW((v) => ({ ...v, pub: true })); setTimeout(() => setW((v) => ({ ...v, pub: false })), 1600) }
+      else if (id === 'undo') setW({ style: 0, b: false, i: false, link: false, pub: false })
+    }
+    if (si === 1) {
+      if (id === 'go') setStep((s) => (s < 2 ? s + 1 : 0))
+      else if (id === 'back') setStep((s) => Math.max(0, s - 1))
+      else if (id[0] === 's') setStep(+id.slice(1))
+    }
+    if (si === 2) {
+      if (id === 'grid') setG((v) => ({ ...v, rows: false }))
+      else if (id === 'rows') setG((v) => ({ ...v, rows: true }))
+      else if (id === 'filter') setG((v) => ({ ...v, few: !v.few }))
+      else if (id === 'select') setG((v) => ({ ...v, sel: !v.sel }))
+    }
+  }
+
+  useEffect(() => {
+    if (!auto) return
+    let k = 0
+    const t = setInterval(() => {
+      k++
+      if (k % 5 === 0) { setSi((v) => (v + 1) % 3); setHot(null); return }
+      const ids = [...(barRef.current?.querySelectorAll('.tb-btn') || [])].map((b) => b.dataset.id)
+      const id = ids[k % ids.length]
+      setHot(id)
+      if (k % 2) press(id)
+    }, 900)
+    return () => clearInterval(t)
+  }) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selId = groups.flat().find((b) => b.excl && b.sel)?.id
+  const pill = useMarker(barRef, selId ? `[data-id="${selId}"]` : null, [selId, si, narrow])
+  const tab = useMarker(tabsRef, `[data-i="${si}"]`, [si, narrow])
+  const n = g.few ? 5 : 12
+
+  return (
+    <div className="cl" ref={stage}>
+      <div className="cl-tabs" ref={tabsRef} role="tablist" aria-label="Scenario">
+        {tab && <i className="cl-tab-line" style={{ transform: `translateX(${tab.x}px)`, width: tab.w }} />}
+        {CLEAR.map((s, i) => <button key={s} type="button" role="tab" data-i={i} aria-selected={i === si} className={i === si ? 'on' : ''} onClick={() => setSi(i)}>{s}</button>)}
+      </div>
+      <div className="cl-field">
+        <div className="tb cl-bar" ref={barRef} role="toolbar" aria-label={`${CLEAR[si]} toolbar`}>
+          {pill && <i className="cl-pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
+          {groups.map((grp, gi) => (
+            <div key={gi} className={`tb-group g${gi}`}>
+              {grp.map((b) => (
+                <button key={b.id} type="button" data-id={b.id} aria-label={b.t ? undefined : b.id} aria-pressed={b.sel != null && !b.excl ? !!b.sel : undefined} aria-current={b.excl && b.sel ? 'true' : undefined}
+                  className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.sel && !b.excl ? 'is-sel' : ''} ${b.excl && b.sel ? 'is-excl' : ''} ${b.dim ? 'is-dim' : ''} ${hot === b.id ? 'is-hot' : ''}`}
+                  onClick={() => press(b.id)}>
+                  {b.i && <span className="tb-ic">{li(IC[b.i], 1.25)}</span>}
+                  {b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{b.t}</span>}
+                  {b.dd && <span className="cl-dd">{li(IC.chev, 1.25)}</span>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="cl-view" key={si}>
+          {si === 0 && (
+            <p className={`cl-doc s-${w.style}`}>
+              The light comes in low across the table, and for a moment <span className={`${w.b ? 'b' : ''} ${w.i ? 'i' : ''} ${w.link ? 'a' : ''}`}>everything is still</span>. Then the kettle, the door, the day.
+            </p>
+          )}
+          {si === 1 && (
+            <div className="cl-order">
+              <div className="cl-item"><i /><div><b>Linen Overshirt</b><span>Size M · Sand</span></div><b>$148</b></div>
+              <p className="cl-step" key={step}>{['Your bag has one piece.', 'Ships to Pasadena, CA · arrives Thursday.', 'Card ending 4242 · billed on shipping.'][step]}</p>
+            </div>
+          )}
+          {si === 2 && (
+            <div className={`cl-photos ${g.rows ? 'rows' : ''} ${g.sel ? 'sel' : ''}`}>
+              {Array.from({ length: n }, (_, i) => <div key={i} className="cl-ph" style={{ '--t': ['#ecebe7', '#e4e3de', '#efeeea'][i % 3] }}><i /><span>IMG_{2040 + i}</span></div>)}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -255,9 +352,8 @@ function QaSet({ auto, offset = 0 }) {
 
 /* ================= page ================= */
 const SETS = [
-  { id: 'gum', tone: 'Playful, Gumdrop', Body: GumSet },
-  { id: 'lan', tone: 'Mysterious, Lantern', Body: LanSet },
-  { id: 'qa', tone: 'Futuristic, Quick Access', Body: QaSet },
+  { id: 'couch', tone: 'Futuristic, Couch Mode', Body: CouchSet },
+  { id: 'clear', tone: 'Elegant, Clear', Body: ClearSet },
 ]
 
 /* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
@@ -310,7 +406,7 @@ function Wall() {
     window.parent.postMessage('wall:ready', window.location.origin)
     return () => window.removeEventListener('message', onMessage)
   }, [embedded])
-  const [layout] = useState(() => ({ cols: Math.max(1, Math.round(window.innerWidth / 820)), rows: Math.ceil(window.innerHeight / 300) + 1 }))
+  const [layout] = useState(() => ({ cols: Math.max(1, Math.round(window.innerWidth / 820)), rows: Math.ceil(window.innerHeight / 480) + 1 }))
   return (
     <div className="wall" aria-hidden="true">
       {active && Array.from({ length: layout.cols }, (_, c) => (
