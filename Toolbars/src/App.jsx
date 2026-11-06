@@ -31,7 +31,7 @@ const IC = {
   edit: ['M4 16l3-.500 9-9-2.500-2.500-9 9z', 'M12 5l2.500 2.500'], share: ['M10 3v10', 'M6.500 6.500L10 3l3.500 3.500', 'M4.500 11v5.500h11V11'], trash: ['M4 6h12', 'M8 6V4h4v2', 'M5.500 6l1 10h7l1-10'],
   heart: ['M10 16s-6-3.500-6-8a3.200 3.200 0 0 1 6-1.500A3.200 3.200 0 0 1 16 8c0 4.500-6 8-6 8z'], undo: ['M7.500 11.500L4 8l3.500-3.500', 'M4 8h8.500a4 4 0 0 1 0 8H10'], redo: ['M12.500 11.500L16 8l-3.500-3.500', 'M16 8H7.500a4 4 0 0 0 0 8H10'],
   bold: ['M6 4h5a3 3 0 0 1 0 6H6z', 'M6 10h6a3 3 0 0 1 0 6H6z'], italic: ['M9 4h6', 'M5 16h6', 'M12 4l-4 12'], link: ['M8.500 11.500a3 3 0 0 0 4.200 0l2.500-2.500a3 3 0 0 0-4.200-4.200l-.800.800', 'M11.500 8.500a3 3 0 0 0-4.200 0L4.800 11a3 3 0 0 0 4.200 4.200l.800-.800'],
-  arrow: ['M4 10h12', 'M11 5l5 5-5 5'], grid: ['M4 4h5v5H4z', 'M11 4h5v5h-5z', 'M4 11h5v5H4z', 'M11 11h5v5h-5z'], rows: ['M4 5h12', 'M4 10h12', 'M4 15h12'], chev: ['M6 8l4 4 4-4'], check: ['M4.500 10.500l3.500 3.500L16 6'],
+  arrow: ['M4 10h12', 'M11 5l5 5-5 5'], plus: ['M10 4v12', 'M4 10h12'], grid: ['M4 4h5v5H4z', 'M11 4h5v5h-5z', 'M4 11h5v5H4z', 'M11 11h5v5h-5z'], rows: ['M4 5h12', 'M4 10h12', 'M4 15h12'], chev: ['M6 8l4 4 4-4'], check: ['M4.500 10.500l3.500 3.500L16 6'],
 }
 
 // measure where an element sits inside its bar, so one marker (ring or pill) can glide to it
@@ -242,8 +242,11 @@ function CouchSet({ auto, offset = 0 }) {
   )
 }
 
-/* ----- ELEGANT · Clear: one quiet bar for an editor, a checkout and a gallery. White, hairline, one ink; the only motion is a soft fill
-   that arrives under your pointer and a pill that slides between exclusive choices ----- */
+/* ----- ELEGANT · Clear: one bar of frosted glass for an editor, a checkout and a gallery, floating over a softly blurred photo.
+   Bold white glyphs; the chosen item sinks into a dark recess that slides between choices; the main action is a light solid pill ----- */
+const GRID_FILLED = (
+  <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3 4.500A1.500 1.500 0 0 1 4.500 3h3A1.500 1.500 0 0 1 9 4.500v3A1.500 1.500 0 0 1 7.500 9h-3A1.500 1.500 0 0 1 3 7.500zM11 4.500A1.500 1.500 0 0 1 12.500 3h3A1.500 1.500 0 0 1 17 4.500v3A1.500 1.500 0 0 1 15.500 9h-3A1.500 1.500 0 0 1 11 7.500zM3 12.500A1.500 1.500 0 0 1 4.500 11h3A1.500 1.500 0 0 1 9 12.500v3A1.500 1.500 0 0 1 7.500 17h-3A1.500 1.500 0 0 1 3 15.500zM11 12.500a1.500 1.500 0 0 1 1.500-1.500h3a1.500 1.500 0 0 1 1.500 1.500v3a1.500 1.500 0 0 1-1.500 1.500h-3a1.500 1.500 0 0 1-1.500-1.500z" /></svg>
+)
 const CLEAR = ['Write', 'Checkout', 'Gallery']
 const STYLES = ['Body', 'Heading', 'Quote']
 const STEPS = ['Bag', 'Shipping', 'Payment']
@@ -256,13 +259,13 @@ function ClearSet({ auto, offset = 0 }) {
   const [si, setSi] = useState(offset % 3)
   const [w, setW] = useState({ style: 0, b: true, i: false, link: false, pub: false })
   const [step, setStep] = useState(1)
-  const [g, setG] = useState({ rows: false, few: false, sel: false })
+  const [g, setG] = useState({ rows: false, few: false, sel: false, extra: 0 })
   const [hot, setHot] = useState(null)
 
   const groups = [
     [[{ id: 'undo', i: 'undo' }, { id: 'redo', i: 'redo', opt: true }], [{ id: 'style', t: STYLES[w.style], dd: true }, { id: 'b', i: 'bold', sel: w.b }, { id: 'i', i: 'italic', sel: w.i }, { id: 'link', i: 'link', sel: w.link }], [{ id: 'share', t: 'Share', opt: true }, { id: 'pub', t: w.pub ? 'Published' : 'Publish', i: w.pub ? 'check' : null, prim: true }]],
     [[{ id: 'back', i: 'back', t: 'Bag', lab: true }], STEPS.map((s, i) => ({ id: 's' + i, t: s, excl: true, sel: step === i, dim: step !== i, opt: step !== i })), [{ id: 'go', t: step === 2 ? 'Pay $148' : 'Continue', i: 'arrow', prim: true }]],
-    [[{ id: 'select', t: g.sel ? 'Cancel' : 'Select' }], [{ id: 'grid', i: 'grid', excl: true, sel: !g.rows }, { id: 'rows', i: 'rows', excl: true, sel: g.rows }], [{ id: 'filter', i: 'filter', t: g.few ? 'Liked' : 'Filter', lab: true, sel: g.few }, { id: 'share', i: 'share' }]],
+    [[{ id: 'select', t: g.sel ? 'Cancel' : 'Select' }], [{ id: 'grid', i: 'grid', excl: true, sel: !g.rows }, { id: 'rows', i: 'rows', excl: true, sel: g.rows }], [{ id: 'filter', i: 'filter', t: g.few ? 'Liked' : 'Filter', lab: true, sel: g.few }, { id: 'add', i: 'plus', prim: true }]],
   ][si].map((grp) => grp.filter((b) => !(narrow && b.opt)))
 
   const press = (id) => {
@@ -282,6 +285,7 @@ function ClearSet({ auto, offset = 0 }) {
       else if (id === 'rows') setG((v) => ({ ...v, rows: true }))
       else if (id === 'filter') setG((v) => ({ ...v, few: !v.few }))
       else if (id === 'select') setG((v) => ({ ...v, sel: !v.sel }))
+      else if (id === 'add') setG((v) => ({ ...v, extra: (v.extra + 1) % 4 }))
     }
   }
 
@@ -302,7 +306,7 @@ function ClearSet({ auto, offset = 0 }) {
   const selId = groups.flat().find((b) => b.excl && b.sel)?.id
   const pill = useMarker(barRef, selId ? `[data-id="${selId}"]` : null, [selId, si, narrow])
   const tab = useMarker(tabsRef, `[data-i="${si}"]`, [si, narrow])
-  const n = g.few ? 5 : 12
+  const n = g.few ? 5 : 12 + g.extra
 
   return (
     <div className="cl" ref={stage}>
@@ -319,9 +323,9 @@ function ClearSet({ auto, offset = 0 }) {
                 <button key={b.id} type="button" data-id={b.id} aria-label={b.t ? undefined : b.id} aria-pressed={b.sel != null && !b.excl ? !!b.sel : undefined} aria-current={b.excl && b.sel ? 'true' : undefined}
                   className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.sel && !b.excl ? 'is-sel' : ''} ${b.excl && b.sel ? 'is-excl' : ''} ${b.dim ? 'is-dim' : ''} ${hot === b.id ? 'is-hot' : ''}`}
                   onClick={() => press(b.id)}>
-                  {b.i && <span className="tb-ic">{li(IC[b.i], 1.25)}</span>}
+                  {b.i && <span className="tb-ic">{b.i === 'grid' ? GRID_FILLED : li(IC[b.i], 2)}</span>}
                   {b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{b.t}</span>}
-                  {b.dd && <span className="cl-dd">{li(IC.chev, 1.25)}</span>}
+                  {b.dd && <span className="cl-dd">{li(IC.chev, 2)}</span>}
                 </button>
               ))}
             </div>
