@@ -251,6 +251,12 @@ function Menu({ sections, cfg, auto, offset = 0, ctl, onActive }) {
     },
     up() { if (pressed) m.choose(pressed.level, pressed.i) },
     jump(id) { const i = flat.findIndex((it) => it.id === id); if (i >= 0) { setIdx(i); setSubOpen(false); m.press(0, i) } },
+    section(d) {
+      const starts = []
+      sections.reduce((n, sec) => { starts.push(n); return n + sec.items.length }, 0)
+      const cur = starts.filter((st) => st <= Math.max(0, idx)).length - 1
+      setIdx(starts[mod(cur + d, starts.length)]); setSubIdx(-1); setSubOpen(false)
+    },
   }
   const activeItem = subOpen && subIdx >= 0 ? subFlat[subIdx] : flat[idx]
   const activeKey = activeItem?.id
@@ -334,7 +340,7 @@ const li = (d) => (
 )
 
 /* arrows, Enter and Esc work while the pointer or focus is on the menu */
-function useDevice(auto) {
+function useDevice(auto, pad) {
   const ref = useRef(null)
   const ctl = useRef(null)
   const [held, setHeld] = useState('')
@@ -344,6 +350,7 @@ function useDevice(auto) {
     if (k === 'a') ctl.current?.down()
     else if (k.startsWith('row:')) ctl.current?.jump(k.slice(4))
     else if (k === 'b') ctl.current?.back()
+    else if (k === 'lb' || k === 'rb') ctl.current?.section(k === 'lb' ? -1 : 1)
     else ctl.current?.key(k)
   }
   const release = (k) => {
@@ -353,7 +360,8 @@ function useDevice(auto) {
   }
   useEffect(() => {
     if (auto) return
-    const map = { ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight', Enter: 'a', ' ': 'a', Escape: 'b', Backspace: 'b' }
+    const map = { ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight', Enter: 'a', ' ': 'a', Escape: 'b', Backspace: 'b',
+      ...(pad ? { q: 'lb', e: 'rb', y: 'row:lib' } : {}) }
     const hot = () => ref.current?.matches(':hover') || ref.current?.contains(document.activeElement)
     const onDown = (e) => { const k = map[e.key]; if (!k || !hot() || e.metaKey || e.ctrlKey) return; e.preventDefault(); e.stopPropagation(); if (!e.repeat) press(k) }
     const onUp = (e) => { const k = map[e.key]; if (k) release(k) }
@@ -361,7 +369,40 @@ function useDevice(auto) {
     window.addEventListener('keyup', onUp, true)
     return () => { window.removeEventListener('keydown', onDown, true); window.removeEventListener('keyup', onUp, true) }
   }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
-  return { ref, ctl }
+
+  /* a real controller: buttons and the stick drive the same presses as the keys. Directions repeat while held */
+  const [connected, setConnected] = useState(false)
+  useEffect(() => {
+    if (auto || !pad || !navigator.getGamepads) return
+    const BTN = { 0: 'a', 1: 'b', 3: 'row:lib', 4: 'lb', 5: 'rb', 12: 'ArrowUp', 13: 'ArrowDown', 14: 'ArrowLeft', 15: 'ArrowRight' }
+    const was = {}
+    const rep = {}
+    let raf
+    const loop = (now) => {
+      const g = [...navigator.getGamepads()].find(Boolean)
+      setConnected(!!g)
+      if (g && !document.hidden) {
+        const down = {}
+        for (const [i, k] of Object.entries(BTN)) if (g.buttons[i]?.pressed) down[k] = true
+        const [x = 0, y = 0] = g.axes
+        if (y < -0.55) down.ArrowUp = true
+        if (y > 0.55) down.ArrowDown = true
+        if (x < -0.55) down.ArrowLeft = true
+        if (x > 0.55) down.ArrowRight = true
+        for (const k of new Set([...Object.keys(down), ...Object.keys(was)])) {
+          if (down[k] && !was[k]) { press(k); rep[k] = now + 380 }
+          else if (!down[k] && was[k]) release(k)
+          else if (down[k] && k.startsWith('Arrow') && now > rep[k]) { press(k); rep[k] = now + 120 }
+        }
+        Object.keys(was).forEach((k) => delete was[k])
+        Object.assign(was, down)
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+  }, [auto, pad]) // eslint-disable-line react-hooks/exhaustive-deps
+  return { ref, ctl, held, connected }
 }
 
 /* ----- FUTURISTIC · Quick Access: no hardware, no panel. Each row is a small frame holding its icon, with the text outside it; one glowing ring snaps between the frames ----- */
@@ -398,6 +439,43 @@ function DeckSet({ auto, offset }) {
   return (
     <div className="stage" ref={d.ref} style={{ '--acc': ACCENTS[accent].c }}>
       <Menu sections={sections} cfg={DECK_CFG} auto={auto} offset={offset} ctl={d.ctl} />
+    </div>
+  )
+}
+
+/* ----- FUTURISTIC · Quick Access, controller: the same menu, read from a couch. Shortcuts become the buttons that do them,
+   the shoulder buttons hop between sections, and the legend lights up under your thumb ----- */
+const Glyph = ({ k, on, wide }) => <i className={`glyph ${wide ? 'wide' : ''} ${on ? 'on' : ''}`}>{k}</i>
+const LEGEND = [[[['a', 'A']], 'Select'], [[['b', 'B']], 'Back'], [[['lb', 'LB'], ['rb', 'RB']], 'Section'], [[['row:lib', 'Y']], 'Library']]
+
+function PadSet({ auto, offset }) {
+  const d = useDevice(auto, true)
+  const [accent, setAccent] = useState(0)
+  const [wifi, setWifi] = useState(true)
+  const [dl, setDl] = useState(2)
+  const [home, setHome] = useState(false)
+  const sections = [
+    { label: 'Browse', items: [
+      { id: 'home', label: home ? 'Back to Home' : 'Home', left: DECK_ICON.home, run: () => setHome((v) => !v) },
+      { id: 'lib', label: 'Library', left: DECK_ICON.lib, right: <Glyph k="Y" on={d.held === 'row:lib'} /> },
+      { id: 'dl', label: 'Downloads', left: DECK_ICON.down, badge: dl || undefined, run: () => setDl(dl ? 0 : 2) },
+    ] },
+    { label: 'System', items: [
+      { id: 'wifi', label: 'Wi-Fi', left: DECK_ICON.globe, right: wifi ? DECK_ICON.wifi : DECK_ICON.off, run: () => setWifi((v) => !v) },
+      { id: 'accent', label: 'Accent Color', left: DECK_ICON.drop, sub: [{ items: ACCENTS.map((a, i) => ({ id: a.name, label: a.name, left: <i className="swatch" style={{ background: a.c }}>{accent === i && DECK_ICON.check}</i>, run: () => setAccent(i) })) }] },
+    ] },
+  ]
+  return (
+    <div className="stage pad" ref={d.ref} style={{ '--acc': ACCENTS[accent].c }}>
+      <Menu sections={sections} cfg={DECK_CFG} auto={auto} offset={offset} ctl={d.ctl} />
+      <div className="pad-legend" aria-label="Controls">
+        {LEGEND.map(([keys, word]) => (
+          <span key={word} className="pad-item">
+            <span className="pad-keys">{keys.map(([k, t]) => <Glyph key={k} k={t} wide={t.length > 1} on={d.held === k} />)}</span>{word}
+          </span>
+        ))}
+        {!auto && <span className="pad-status">{d.connected ? 'Controller connected' : 'Keys: Enter · Esc · Q / E · Y'}</span>}
+      </div>
     </div>
   )
 }
@@ -892,6 +970,7 @@ function CampSet({ auto, offset = 0 }) {
 /* ================= page ================= */
 const SETS = [
   { id: 'deck', tone: 'Futuristic, Quick Access', Body: DeckSet },
+  { id: 'pad', tone: 'Futuristic, Quick Access · Controller', Body: PadSet },
   { id: 'ring', tone: 'Dramatic, Full Turn', Body: RingSet },
   { id: 'camp', tone: 'Rebellious, Base Camp', Body: CampSet, vibe: true },
 ]
@@ -954,7 +1033,7 @@ function Wall() {
         <div key={c} className="wall-col">
           {Array.from({ length: layout.rows }, (_, r) => {
             const set = SETS[(c + r) % SETS.length]
-            return <div key={r} className={`wall-tile s-${set.id}`}><div className={set.id === 'deck' ? 'frame' : ''}><set.Body auto offset={c * 2 + r} /></div></div>
+            return <div key={r} className={`wall-tile s-${set.id}`}><div className={['deck', 'pad'].includes(set.id) ? 'frame' : ''}><set.Body auto offset={c * 2 + r} /></div></div>
           })}
         </div>
       ))}
@@ -977,7 +1056,7 @@ export default function App() {
             <h2>{set.tone}</h2>
             {set.vibe ? <span className="vibe-only">Vibe only</span> : <DraftThumb set={set} />}
           </div>
-          <div className={set.id === 'deck' ? 'frame' : ''}><set.Body /></div>
+          <div className={['deck', 'pad'].includes(set.id) ? 'frame' : ''}><set.Body /></div>
         </section>
       ))}
     </main>
