@@ -380,34 +380,36 @@ function ClearSet({ auto, offset = 0 }) {
     else if (a.id === 'z100') setZ(1)
     else if (a.id === 'export') say('Exported 2 frames')
     else if (a.id === 'dup') say('Duplicated selection')
-    setSearching(false); setQuery('')
+    endSearch()
   }
   const pickTool = (id) => { if (id === 'rect' || id === 'ellipse') setShape(id); setTool(id) }
   const toggle = () => { setOpen((v) => !v); setSearching(false); setQuery('') }
-  const startSearch = () => { setOpen(true); setSearching(true) }
+  // the Search button and the field are one object: remember where it was, so the next layout can grow it from there
+  const morph = useRef(null)
+  const rectIn = (sel) => bodyRef.current?.querySelector(`.fx-mode.in ${sel}`)?.getBoundingClientRect()
+  const startSearch = () => { if (open && !searching) morph.current = { to: 'search', rect: rectIn('[data-id="search"]') }; setOpen(true); setSearching(true) }
+  const endSearch = () => { morph.current = { to: 'tools', rect: rectIn('.fx-field') }; setSearching(false); setQuery('') }
   const press = (id) => {
     if (TOOLS[id]) pickTool(id)
     else if (id === 'zoom') setZ((v) => (v + 1) % ZOOMS.length)
     else if (id === 'search') startSearch()
     else if (id === 'share') say('Share link copied')
-    else if (id === 'exit') { setSearching(false); setQuery('') }
+    else if (id === 'exit') endSearch()
   }
 
-  // the search field takes the keyboard as soon as it appears; stepping back hands focus to the control that opened it
-  const was = useRef({ searching, open })
+  // closing the bar hands focus back to the circle (search focus is handled once its content has swapped in, below)
+  const wasOpen = useRef(open)
   useEffect(() => {
-    const prev = was.current
-    was.current = { searching, open }
+    const prev = wasOpen.current
+    wasOpen.current = open
     if (auto) return
-    const lost = !stage.current?.contains(document.activeElement)
-    if (searching) inputRef.current?.focus({ preventScroll: true })
-    else if (prev.searching && open && lost) stage.current?.querySelector('[data-id="search"]')?.focus({ preventScroll: true })
-    else if (prev.open && !open && (lost || bodyRef.current?.contains(document.activeElement))) stage.current?.querySelector('.fx-handle')?.focus({ preventScroll: true })
-  }, [searching, open, auto])
+    const lost = !stage.current?.contains(document.activeElement) || bodyRef.current?.contains(document.activeElement)
+    if (prev && !open && lost) stage.current?.querySelector('.fx-handle')?.focus({ preventScroll: true })
+  }, [open, auto])
 
   /* keys while the pointer or focus is on the example: tool letters, / or ⌘K to search, Esc to step back */
   const latest = useRef()
-  latest.current = { open, searching, results, run, pickTool, startSearch }
+  latest.current = { open, searching, results, run, pickTool, startSearch, endSearch }
   useEffect(() => {
     if (auto) return
     const onKey = (e) => {
@@ -416,7 +418,7 @@ function ClearSet({ auto, offset = 0 }) {
       const L = latest.current
       const inField = e.target === inputRef.current
       if (e.key === 'Escape') {
-        if (L.searching) { e.preventDefault(); setSearching(false); setQuery('') }
+        if (L.searching) { e.preventDefault(); L.endSearch() }
         else if (L.open) { e.preventDefault(); setOpen(false) }
         return
       }
@@ -463,18 +465,72 @@ function ClearSet({ auto, offset = 0 }) {
   }, [])
   const width = open ? Math.min(rowW, PAD * 2 + bodyW + GAP + HANDLE) : H
 
+  const mode = searching ? 'search' : 'tools'
+  const seq = useRef(0)
+  const [layers, setLayers] = useState([{ mode, key: 0 }])
+  useLayoutEffect(() => {
+    setLayers((v) => (v[v.length - 1].mode === mode ? v : [{ ...v[v.length - 1], out: true }, { mode, key: ++seq.current }]))
+  }, [mode])
+  useEffect(() => {
+    if (!layers.some((l) => l.out)) return
+    const t = setTimeout(() => setLayers((v) => v.filter((l) => !l.out)), 260)
+    return () => clearTimeout(t)
+  }, [layers])
+  const topKey = layers[layers.length - 1].key
+  // once the new content is in: the search field takes the keyboard, and leaving search hands focus back to the Search button
+  const prevTop = useRef(mode)
+  useEffect(() => {
+    const top = layers[layers.length - 1].mode
+    const before = prevTop.current
+    prevTop.current = top
+    if (auto || top === before) return
+    const lost = !stage.current?.contains(document.activeElement) || !!document.activeElement?.closest('.fx-mode.out') // focus inside the leaving layer is about to be lost
+    if (top === 'search') inputRef.current?.focus({ preventScroll: true })
+    else if (lost && open) stage.current?.querySelector('.fx-mode.in [data-id="search"]')?.focus({ preventScroll: true })
+  }, [topKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    const m = morph.current
+    morph.current = null
+    const body = bodyRef.current
+    if (!m?.rect || !body || reduced()) return
+    const ease = 'cubic-bezier(0.2, 0, 0, 1)'
+    if (m.to === 'search') {
+      // the Search button stretches open into the field
+      const field = body.querySelector('.fx-mode.in .fx-field')
+      if (!field) return
+      const r = field.getBoundingClientRect()
+      field.animate([
+        { transform: `translateX(${m.rect.left - r.left}px)`, clipPath: `inset(0 ${Math.max(0, r.width - m.rect.width)}px 0 0 round 24px)`, backgroundColor: 'rgba(255,255,255,0)' },
+        { transform: 'none', clipPath: 'inset(0 0 0 0 round 20px)', backgroundColor: 'rgba(0,0,0,.12)' },
+      ], { duration: 300, easing: ease })
+      field.querySelector('input')?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, delay: 120, easing: 'ease-out', fill: 'backwards' })
+    } else {
+      // the field folds back into the Search button
+      const btnEl = body.querySelector('.fx-mode.in [data-id="search"]')
+      const ghost = body.querySelector('.fx-mode.out .fx-field')
+      if (!btnEl || !ghost) return
+      const r = btnEl.getBoundingClientRect(), g = ghost.getBoundingClientRect()
+      ghost.animate([
+        { transform: 'none', clipPath: 'inset(0 0 0 0 round 20px)' },
+        { transform: `translateX(${r.left - g.left}px)`, clipPath: `inset(0 ${Math.max(0, g.width - r.width)}px 0 0 round 24px)` },
+      ], { duration: 240, easing: ease, fill: 'forwards' })
+      btnEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, delay: 140, easing: 'ease-out', fill: 'backwards' })
+    }
+  }, [topKey])
+
   const shapeSlot = shape
-  const groups = searching ? null : [
+  const groups = [
     ['move', 'frame', shapeSlot, 'pen', 'text', 'comment'].map((id) => ({ id, d: TOOLS[id].d, excl: true, sel: tool === id, opt: id === 'pen' || id === 'comment' || id === shapeSlot, title: `${TOOLS[id].name} (${TOOLS[id].key})` })),
     [{ id: 'zoom', t: ZOOMS[z], opt: true }],
     [{ id: 'search', d: IC.search, t: 'Search', lab: true }, { id: 'share', t: 'Share', prim: true }],
   ].map((g) => g.filter((b) => !(narrow && b.opt)))
-  const pill = useMarker(bodyRef, !searching && open ? `[data-id="${tool}"]` : null, [tool, shape, searching, open, narrow])
+  const pill = useMarker(bodyRef, !searching && open ? `.fx-mode.in [data-id="${tool}"]` : null, [tool, shape, searching, open, narrow, topKey])
 
-  const btn = (b) => (
+  // each item arrives in order, starting next to the circle it came out of
+  const btn = (b, k = 0, dir = 1) => (
     <button key={b.id} type="button" data-id={b.id} title={b.title} aria-label={b.t ? undefined : (b.title || b.id)} aria-current={b.excl && b.sel ? 'true' : undefined}
-      className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.excl && b.sel ? 'is-excl' : ''} ${hot === b.id ? 'is-hot' : ''}`}
-      onClick={() => press(b.id)}>
+      className={`tb-btn cl-btn fx-item ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.excl && b.sel ? 'is-excl' : ''} ${hot === b.id ? 'is-hot' : ''}`}
+      style={{ '--k': k, '--dir': dir }} onClick={() => press(b.id)}>
       {b.d && <span className="tb-ic">{li(b.d, 2)}</span>}
       {b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{b.t}</span>}
     </button>
@@ -486,6 +542,33 @@ function ClearSet({ auto, offset = 0 }) {
       <span className="tb-ic fx-b">{li(FX_IC.close, 2)}</span>
     </button>
   )
+  const dirOut = anchor === 0 ? -1 : 1
+  const flatTools = groups.flat()
+  const renderLayer = (l) => {
+    const isIn = !l.out
+    const cls = `fx-mode ${isIn ? 'in' : 'out'}`
+    if (l.mode === 'search') return (
+      <div className={cls} key={l.key} inert={isIn ? undefined : ''} aria-hidden={isIn ? undefined : true}>
+        {!narrow && <div className="tb-group">{btn({ id: 'exit', d: IC.back, title: 'Exit search (Esc)' }, 3, 1)}</div>}
+        <label className="fx-field">
+          <span className="tb-ic">{li(IC.search, 2)}</span>
+          <input ref={isIn ? inputRef : undefined} readOnly={!isIn} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={narrow ? 'Search' : 'Search tools'} aria-label="Search tools and actions" spellCheck={false} />
+        </label>
+        <div className="tb-group">
+          {results.map((a, i) => (
+            <button key={a.id} type="button" className={`tb-btn cl-btn has-label fx-item ${i === 0 ? 'is-hot' : ''}`} style={{ '--k': i + 4, '--dir': -1 }} onClick={() => run(a)}>
+              <span className="tb-ic">{li(a.d, 2)}</span><span className="tb-label">{a.name}</span>{!narrow && <span className="fx-key">{a.key}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+    return (
+      <div className={cls} key={l.key} inert={isIn ? undefined : ''} aria-hidden={isIn ? undefined : true}>
+        {groups.map((g, gi) => <div key={gi} className="tb-group">{g.map((b) => btn(b, dirOut === 1 ? flatTools.length - 1 - flatTools.indexOf(b) : flatTools.indexOf(b), dirOut))}</div>)}
+      </div>
+    )
+  }
   const status = note || (searching
     ? (results.length ? `Search · Enter runs “${results[0].name}”` : 'Search · no match')
     : open ? `${TOOLS[tool].name} tool · zoom ${ZOOMS[z]}` : `Collapsed · ${TOOLS[tool].name} tool`)
@@ -498,26 +581,7 @@ function ClearSet({ auto, offset = 0 }) {
             {anchor === 0 && handle}
             <div className="fx-body" id={`fx-body-${offset}`} ref={bodyRef} inert={open ? undefined : ''}>
               {pill && <i key={`pill${searching}`} className="cl-pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
-              {searching ? (
-                <div className="fx-mode" key="search">
-                  {!narrow && <div className="tb-group">{btn({ id: 'exit', d: IC.back, title: 'Exit search (Esc)' })}</div>}
-                  <label className="fx-field">
-                    <span className="tb-ic">{li(IC.search, 2)}</span>
-                    <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={narrow ? 'Search' : 'Search tools'} aria-label="Search tools and actions" spellCheck={false} />
-                  </label>
-                  <div className="tb-group">
-                    {results.map((a, i) => (
-                      <button key={a.id} type="button" className={`tb-btn cl-btn has-label ${i === 0 ? 'is-hot' : ''}`} onClick={() => run(a)}>
-                        <span className="tb-ic">{li(a.d, 2)}</span><span className="tb-label">{a.name}</span>{!narrow && <span className="fx-key">{a.key}</span>}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="fx-mode" key="tools">
-                  {groups.map((g, gi) => <div key={gi} className="tb-group">{g.map(btn)}</div>)}
-                </div>
-              )}
+              {layers.map(renderLayer)}
             </div>
             {anchor !== 0 && handle}
           </div>
@@ -671,7 +735,7 @@ const SETS = [
       ['Shape', [['Corner radius', 'toolbar 32 · buttons 24 · field 20'], ['Stroke width', 'toolbar 1 · top highlight 1']]],
       ['Color', [['Glass', '#8E939A to #74787E at 72% · blur 24'], ['Glyphs', 'white'], ['Selected', '#282C32 16% recess'], ['Primary', 'white 88% · ink #3A3A3A']]],
       ['States', [['Hover', 'white 16% fill'], ['Pressed', 'light recess, .97'], ['Selected', 'one recess slides between tools']]],
-      ['Motion', [['Expand', '280 ms cubic-bezier(0.2, 0, 0, 1)'], ['Contents', 'unblur 200 ms'], ['Collapse', '180 ms ease-in'], ['Icon to close', '120 ms'], ['Recess', '220 ms']]],
+      ['Motion', [['Expand', '280 ms cubic-bezier(0.2, 0, 0, 1) · items arrive from the circle, 22 ms apart'], ['Search', 'the button stretches into the field, 300 ms · results follow 22 ms apart'], ['Leaving content', 'fades where it stood, 110 ms ease-in'], ['Collapse', '180 ms ease-in'], ['Icon to close', '120 ms'], ['Recess', '220 ms']]],
       ['Input', [['Open', 'press the circle'], ['Step back', 'Esc: search first, then the bar'], ['Tools', 'V F R O P T C'], ['Search', '/ or ⌘K · Enter runs the first result']]],
       ['Phone', [['Size', 'toolbar 58 high · buttons 44'], ['Hidden', 'Pen, Comment, shape, zoom · one search result']]],
     ],
