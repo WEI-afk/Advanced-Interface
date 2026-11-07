@@ -225,7 +225,7 @@ function CouchSet({ auto, offset = 0 }) {
 
   /* input: keys while the pointer or focus is on the example, and a real controller any time */
   const latest = useRef()
-  latest.current = { flat, f, press, go }
+  latest.current = { flat, f, press, go, align: (d) => { slide(); setAl((v) => mod(v + d, ALIGN.length)) } }
   const input = (k, isDown) => {
     const L = latest.current
     if (!isDown) { if (k === 'a') { setDown(null); L.press(L.flat[L.f]) } return }
@@ -235,11 +235,13 @@ function CouchSet({ auto, offset = 0 }) {
     else if (k === 'b') { const back = L.flat.findIndex((x) => x.id === 'back'); if (back >= 0) { setFocus(back); L.press(L.flat[back]) } }
     else if (k === 'lb') L.go(-1)
     else if (k === 'rb') L.go(1)
+    else if (k === 'al-') L.align(-1)
+    else if (k === 'al+') L.align(1)
   }
   const inputRef = useRef(); inputRef.current = input
   useEffect(() => {
     if (auto) return
-    const map = { ArrowLeft: 'left', ArrowRight: 'right', Enter: 'a', ' ': 'a', Escape: 'b', Backspace: 'b', q: 'lb', e: 'rb' }
+    const map = { ArrowLeft: 'left', ArrowRight: 'right', Enter: 'a', ' ': 'a', Escape: 'b', Backspace: 'b', q: 'lb', e: 'rb', z: 'al-', c: 'al+' }
     const hot = () => stage.current?.matches(':hover') || stage.current?.contains(document.activeElement)
     const kd = (e) => { const k = map[e.key]; if (!k || !hot() || e.metaKey || e.ctrlKey || e.target.closest?.('.sw')) return; e.preventDefault(); if (!e.repeat || k === 'left' || k === 'right') inputRef.current(k, true) }
     const ku = (e) => { const k = map[e.key]; if (k) inputRef.current(k, false) }
@@ -289,7 +291,7 @@ function CouchSet({ auto, offset = 0 }) {
 
   return (
     <div className="ex">
-      <div className="ex-stage" ref={stage} tabIndex={auto ? -1 : 0} aria-label="Couch Mode toolbar. Arrow keys move, Enter presses, Escape goes back, Q and E switch example.">
+      <div className="ex-stage" ref={stage} tabIndex={auto ? -1 : 0} aria-label="Couch Mode toolbar. Arrow keys move, Enter presses, Escape goes back, Q and E switch example, Z and C switch alignment.">
         <div className={`tb cm-bar al-${al}`} ref={barRef} role="toolbar" aria-label={`${COUCH[si]} toolbar`}>
           {sel && <i key={`sel${si}`} className="cm-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
           {ring && <i className={`cm-ring ${down === fid ? 'is-press' : ''}`} aria-hidden="true" style={{ translate: `${ring.x}px ${ring.y}px`, width: ring.w, height: ring.h }} />}
@@ -717,7 +719,13 @@ const SETS = [
   {
     id: 'couch', tone: 'Futuristic, Couch Mode', Body: CouchSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=14-2',
     about: 'A controller-first toolbar for a living-room screen. One focus ring walks the bar: the D-pad moves it, A presses, B goes back.',
-    try: 'Point at a button or use the arrow keys, then press. LB / RB, or Q / E, switch the example.',
+    keys: [
+      { d: 'Move', k: [['←', '→']], or: 'or point' },
+      { d: 'Press', k: [['Enter']], or: 'or click' },
+      { d: 'Back', k: [['Esc']] },
+      { d: 'Switch example', k: [['Q', 'E'], ['LB', 'RB']] },
+      { d: 'Switch alignment', k: [['Z', 'C']] },
+    ],
     configs: [
       { title: 'Alignment', items: [
         ['Spread: left, center and right groups', <CouchStatic groups={LIB} align={0} />],
@@ -745,14 +753,20 @@ const SETS = [
       ['Color', [['Toolbar', '#0F141B · stroke #1D232B'], ['Frame', '#2A313A'], ['Label', '#98A2AD · focused #FFFFFF'], ['Focus glow', '#1A9FFF · 12 / 28']]],
       ['States', [['Hover, focus', 'the ring glides here, label turns white'], ['Pressed', 'frame .94, fills accent 35%'], ['Selected', 'white 8% fill + 1.5 edge, slides between choices']]],
       ['Motion', [['Feedback', '120 ms ease-out'], ['Ring, selection', '220 ms cubic-bezier(0.2, 0, 0, 1)'], ['Alignment', '240 ms, groups slide']]],
-      ['Input', [['Move', 'arrows · D-pad'], ['Press', 'Enter · A'], ['Back', 'Esc · B'], ['Example', 'Q / E · LB / RB']]],
+      ['Input', [['Move', 'arrows · D-pad'], ['Press', 'Enter · A'], ['Back', 'Esc · B'], ['Example', 'Q / E · LB / RB'], ['Alignment', 'Z / C']]],
       ['Phone', [['Frame', '36 · text 14'], ['Hidden', 'Back, Search, Volume, secondary labels']]],
     ],
   },
   {
     id: 'clear', tone: 'Elegant, Clear', Body: ClearSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=15-2',
     about: 'A floating tool bar for a design canvas in soft, frosted warm glass with thin line icons. One circle holds the current tool and opens out of itself into the full set.',
-    try: 'Press the circle to open it. Pick tools, press Search or /, and Esc to step back.',
+    keys: [
+      { d: 'Open', or: 'click the circle' },
+      { d: 'Pick a tool', k: [['V', 'F', 'R', 'O', 'P', 'T', 'C']] },
+      { d: 'Search', k: [['/'], ['⌘', 'K']] },
+      { d: 'Choose a result', k: [['↑', '↓'], ['Enter']] },
+      { d: 'Step back', k: [['Esc']] },
+    ],
     configs: [
       { title: 'Expand', items: [
         ['Collapsed: one circle holding the current tool', <ClearStatic collapsed anchor={0} />],
@@ -792,6 +806,23 @@ const SETS = [
     ],
   },
 ]
+
+/* the example's controls: each action, then its keys as keycaps; alternatives are split by "or" */
+function KeyHints({ items }) {
+  return (
+    <ul className="keys" aria-label="Controls">
+      {items.map((it) => (
+        <li key={it.d}>
+          <span className="keys-d">{it.d}</span>
+          {(it.k || []).map((g, gi) => (
+            <span key={gi} className="keys-g">{gi > 0 && <i>or</i>}{g.map((k) => <kbd key={k}>{k}</kbd>)}</span>
+          ))}
+          {it.or && <i>{it.or}</i>}
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 /* wall (home page hover background): the toolbars operating themselves, repeated to fill the screen */
 function Wall() {
@@ -842,7 +873,7 @@ function SetPage({ set }) {
     <header className="sec-head">
       <span className="sec-n">{String(n).padStart(2, '0')}</span>
       <h2>{title}</h2>
-      {note && <p>{note}</p>}
+      {note && (typeof note === 'string' ? <p>{note}</p> : note)}
     </header>
   )
   return (
@@ -862,7 +893,7 @@ function SetPage({ set }) {
       </aside>
       <main className="content">
         <section className="sec" id="example">
-          {head(1, 'example', 'Example', set.try)}
+          {head(1, 'example', 'Example', <KeyHints items={set.keys} />)}
           <set.Body />
         </section>
         <section className="sec" id="configurations">
