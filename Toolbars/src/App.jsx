@@ -617,7 +617,8 @@ function ClearSet({ auto, offset = 0 }) {
                 ))}
               </div>
             )}
-            <div className={`tb cl-bar fx ${open ? 'open' : ''}`} role="toolbar" aria-label="Design tools" style={{ width, height: H }}>
+            <div className={`tb cl-bar fx ${open ? 'open' : ''}`} role="toolbar" aria-label="Design tools" style={{ width, height: H }}
+              onClick={(e) => { if (!open && !e.target.closest('.fx-handle')) toggle() }}>
               {anchor === 0 && handle}
               <div className="fx-body" id={`fx-body-${offset}`} ref={bodyRef} inert={open ? undefined : ''}>
                 {layers.map(renderLayer)}

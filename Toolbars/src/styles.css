@@ -159,8 +159,14 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .fx-row.at-0 { justify-content: flex-start; }
 .fx-row.at-1 { justify-content: center; }
 .fx-row.at-2 { justify-content: flex-end; }
-.cl-bar.fx { flex: none; overflow: hidden; justify-content: flex-end; border-radius: 32px; transition: width 180ms ease-in, border-radius 180ms ease-in; }
+.cl-bar.fx { flex: none; overflow: hidden; justify-content: flex-end; border-radius: 32px; transition: width 180ms ease-in, border-radius 180ms ease-in, scale var(--t-fb) ease-out; }
 .cl-bar.fx.open { border-radius: 20px; transition: width 280ms var(--e-std), border-radius 280ms var(--e-std); } /* the circle's corners ease to the panel's as it opens */
+/* collapsed, the circle is the button: hover lights the whole circle and a press presses it, never a square inside it */
+.cl-bar.fx:not(.open) { cursor: pointer; }
+.cl-bar.fx::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: rgba(255,255,255,.08); opacity: 0; pointer-events: none; transition: opacity var(--t-fb) ease-out; }
+.cl-bar.fx:not(.open):hover::after { opacity: 1; }
+.cl-bar.fx:not(.open):active { scale: .97; }
+.cl-bar.fx:not(.open) .fx-handle { border-radius: 24px; background: none; transform: none; }
 .fx-row.at-0 .cl-bar.fx { justify-content: flex-start; }
 .fx-body { position: relative; flex: none; display: flex; opacity: 0; filter: blur(6px); pointer-events: none; transition: opacity 150ms ease-in, filter 150ms ease-in; }
 .fx.open .fx-body { opacity: 1; filter: none; pointer-events: auto; transition: opacity 200ms var(--e-std), filter 200ms var(--e-std); }
