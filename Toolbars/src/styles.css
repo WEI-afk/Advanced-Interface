@@ -121,6 +121,11 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .cm-btn.is-sel.is-excl .cm-textframe { box-shadow: none; } /* the sliding selection indicator draws its edge */
 .cm-btn.is-sel .cm-frame { color: #fff; box-shadow: inset 0 0 0 1px #5d6773; }
 .cm-btn.is-sel .cm-frame svg { fill: rgba(255,255,255,.18); }
+/* a toggle that is on (Favorite, Sort, Subtitles, Edit) fills with the accent, so on and off read apart from across the room */
+.cm-btn.is-on .cm-frame, .cm-btn.is-on .cm-textframe { background: var(--acc); color: #fff; box-shadow: none; }
+.cm-btn.is-on .cm-frame svg { fill: none; }
+.cm-btn.is-on .ic-heart svg { fill: currentColor; }
+.cm-btn.is-on .tb-label { color: #fff; }
 /* one selection indicator for the single-choice group: a restrained fill and edge that moves and resizes between choices */
 .cm-sel { position: absolute; z-index: 0; left: 0; top: 0; border-radius: 8px; pointer-events: none; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.9); transition: transform var(--t-ind) var(--e-std), width var(--t-ind) var(--e-std), height var(--t-ind) var(--e-std); }
 /* one focus ring */

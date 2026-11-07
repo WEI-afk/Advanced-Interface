@@ -302,10 +302,10 @@ function CouchSet({ auto, offset = 0 }) {
                   const idx = flat.indexOf(b)
                   return (
                     <button key={b.id} type="button" tabIndex={-1} data-id={b.id} aria-label={b.t ? undefined : b.id} aria-pressed={b.sel != null ? !!b.sel : undefined}
-                      className={`tb-btn cm-btn ${idx === f ? 'is-focus' : ''} ${b.sel ? 'is-sel' : ''} ${b.excl ? 'is-excl' : ''} ${down === b.id ? 'is-press' : ''}`}
+                      className={`tb-btn cm-btn ${idx === f ? 'is-focus' : ''} ${b.sel ? 'is-sel' : ''} ${b.sel && !b.excl ? 'is-on' : ''} ${b.excl ? 'is-excl' : ''} ${down === b.id ? 'is-press' : ''}`}
                       onPointerEnter={() => !auto && setFocus(idx)} onPointerDown={() => { if (!auto) { setFocus(idx); setDown(b.id) } }} onPointerUp={() => setDown(null)} onPointerLeave={() => setDown(null)}
                       onClick={() => { if (!auto) { setFocus(idx); press(b) } }}>
-                      {b.i ? <span className="cm-frame cm-target">{li(IC[b.i])}</span> : <span className="cm-target cm-textframe">{b.t}</span>}
+                      {b.i ? <span className={`cm-frame cm-target ic-${b.i}`}>{li(IC[b.i])}</span> : <span className="cm-target cm-textframe">{b.t}</span>}
                       {b.i && b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{b.t}</span>}
                     </button>
                   )
@@ -682,8 +682,8 @@ function CouchStatic({ groups, align = 0, hug }) {
       {groups.map((g, gi) => (
         <div key={gi} className="tb-group">
           {g.map((b, bi) => (
-            <span key={bi} className={`tb-btn cm-btn ${b.st ? 'is-focus st-' + b.st : ''} ${b.st === 'press' ? 'is-press' : ''} ${b.sel ? 'is-sel st-sel' : ''}`}>
-              {b.i ? <span className="cm-frame cm-target">{li(IC[b.i])}</span> : <span className="cm-target cm-textframe">{b.t}</span>}
+            <span key={bi} className={`tb-btn cm-btn ${b.st ? 'is-focus st-' + b.st : ''} ${b.st === 'press' ? 'is-press' : ''} ${b.sel ? 'is-sel st-sel' : ''} ${b.on ? 'is-sel is-on' : ''}`}>
+              {b.i ? <span className={`cm-frame cm-target ic-${b.i}`}>{li(IC[b.i])}</span> : <span className="cm-target cm-textframe">{b.t}</span>}
               {b.i && b.t && <span className="tb-label">{b.t}</span>}
             </span>
           ))}
@@ -771,6 +771,8 @@ const SETS = [
       ['Hover and focus', <CouchStatic hug groups={[[{ i: 'filter', t: 'Sort', st: 'hover' }]]} />],
       ['Pressed', <CouchStatic hug groups={[[{ i: 'filter', t: 'Sort', st: 'press' }]]} />],
       ['Selected', <CouchStatic hug groups={[[{ t: 'Installed', sel: true }]]} />],
+      ['On', <CouchStatic hug groups={[[{ i: 'heart', on: true }, { i: 'cc', t: 'Subtitles', on: true }]]} />],
+      ['Off', <CouchStatic hug groups={[[{ i: 'heart' }, { i: 'cc', t: 'Subtitles' }]]} />],
     ],
     spec: [
       ['Layout', [['Toolbar', '800 × 64, narrows with its container'], ['Padding', '0 × 10'], ['Group spacing', '16'], ['Button spacing', '4']]],
@@ -778,7 +780,7 @@ const SETS = [
       ['Type', [['Font', 'Inter Medium'], ['Size / line height', '15 / 20']]],
       ['Shape', [['Corner radius', 'toolbar 16 · frame 8 · rings 8'], ['Stroke width', 'toolbar 1 · frame 1 · focus 2 · selection 1.5']]],
       ['Color', [['Toolbar', '#0F141B · stroke #1D232B'], ['Frame', '#2A313A'], ['Label', '#98A2AD · focused #FFFFFF'], ['Focus glow', '#1A9FFF · 12 / 28']]],
-      ['States', [['Hover, focus', 'the ring glides here, label turns white'], ['Pressed', 'frame .94, fills accent 35%'], ['Selected', 'white 8% fill + 1.5 edge, slides between choices']]],
+      ['States', [['Hover, focus', 'the ring glides here, label turns white'], ['Pressed', 'frame .94, fills accent 35%'], ['Selected', 'white 8% fill + 1.5 edge, slides between choices'], ['On (toggles)', 'frame fills accent #1A9FFF, glyph white, the heart turns solid']]],
       ['Motion', [['Feedback', '120 ms ease-out'], ['Ring, selection', '220 ms cubic-bezier(0.2, 0, 0, 1)'], ['Alignment', '240 ms, groups slide']]],
       ['Input', [['Move', 'arrows · D-pad'], ['Press', 'Enter · A'], ['Back', 'Esc · B'], ['Example', 'Q / E · LB / RB'], ['Alignment', 'Z / C']]],
       ['Phone', [['Frame', '36 · text 14'], ['Hidden', 'Back, Search, Volume, secondary labels']]],
