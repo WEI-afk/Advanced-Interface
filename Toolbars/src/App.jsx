@@ -787,13 +787,6 @@ const SETS = [
   {
     id: 'clear', tone: 'Elegant, Clear', Body: ClearSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=15-2',
     about: 'A floating tool bar for a design canvas in soft, frosted warm glass with thin line icons. One circle holds the tools and opens out of itself into the full set.',
-    keys: [
-      { d: 'Open', or: 'click the circle' },
-      { d: 'Pick a tool', k: [['V', 'F', 'R', 'O', 'P', 'T', 'C']] },
-      { d: 'Search', k: [['/'], ['⌘', 'K']] },
-      { d: 'Choose a result', k: [['↑', '↓'], ['Enter']] },
-      { d: 'Step back', k: [['Esc']] },
-    ],
     configs: [
       { title: 'Expand', items: [
         ['Collapsed: one circle holding the tools, always the toolbox mark', <ClearStatic collapsed anchor={0} />],
@@ -922,7 +915,7 @@ function SetPage({ set }) {
       </aside>
       <main className="content">
         <section className="sec" id="example">
-          {head(1, 'example', 'Example', <KeyHints items={set.keys} />)}
+          {head(1, 'example', 'Example', set.keys && <KeyHints items={set.keys} />)}
           <set.Body />
         </section>
         <section className="sec" id="configurations">
