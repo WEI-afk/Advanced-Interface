@@ -584,7 +584,7 @@ function ClearSet({ auto, offset = 0 }) {
   // each item arrives in order, starting next to the circle it came out of
   const btn = (b, k = 0, dir = 1) => (
     <button key={b.id} type="button" data-id={b.id} title={b.title} aria-label={b.t ? undefined : (b.title || b.id)} aria-current={b.excl && b.sel ? 'true' : undefined}
-      className={`tb-btn cl-btn fx-item ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.excl && b.sel ? 'is-sel' : ''} ${hot === b.id ? 'is-hot' : ''}`}
+      className={`tb-btn cl-btn fx-item ${b.t ? 'has-label' : ''} ${b.id === 'zoom' ? 'fx-zoom' : ''} ${b.prim ? 'is-prim' : ''} ${b.excl && b.sel ? 'is-sel' : ''} ${hot === b.id ? 'is-hot' : ''}`}
       style={{ '--k': k, '--dir': dir }} onClick={() => press(b.id)}>
       {b.d && <span className="tb-ic">{li(b.d, 2)}</span>}
       {b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{b.t}</span>}
@@ -713,7 +713,7 @@ function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'mov
                   {g.map((b, bi) => b.field ? (
                     <span key={bi} className="fx-field" style={{ width: b.w }}><span className="tb-ic">{li(IC.search, 2)}</span><span className="fx-ph">Search tools and actions</span></span>
                   ) : (
-                    <span key={bi} className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.sel ? 'is-sel' : ''} ${b.st === 'hover' ? 'is-hot' : ''} ${b.st === 'press' ? 'is-down' : ''}`}>
+                    <span key={bi} className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.zoom ? 'fx-zoom' : ''} ${b.prim ? 'is-prim' : ''} ${b.sel ? 'is-sel' : ''} ${b.st === 'hover' ? 'is-hot' : ''} ${b.st === 'press' ? 'is-down' : ''}`}>
                       {b.d && <span className="tb-ic">{li(b.d, 2)}</span>}
                       {b.t && <span className="tb-label">{b.t}</span>}
                       {b.k && <span className="fx-key">{b.k}</span>}
@@ -733,7 +733,7 @@ function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'mov
 
 /* ================= the two sets: what each page shows ================= */
 const LIB = [[{ i: 'back' }], [{ t: 'All', sel: true }, { t: 'Installed' }, { t: 'Favorites' }], [{ i: 'filter', t: 'Sort' }, { i: 'search' }]]
-const FIGMA_TOOLS = [[{ d: TOOLS.move.d, sel: true }, { d: TOOLS.frame.d }, { d: TOOLS.rect.d }, { d: TOOLS.pen.d }, { d: TOOLS.text.d }, { d: TOOLS.comment.d }], [{ t: '100%' }], [{ d: IC.search, t: 'Search' }, { t: 'Share', prim: true }]]
+const FIGMA_TOOLS = [[{ d: TOOLS.move.d, sel: true }, { d: TOOLS.frame.d }, { d: TOOLS.rect.d }, { d: TOOLS.pen.d }, { d: TOOLS.text.d }, { d: TOOLS.comment.d }], [{ t: '100%', zoom: true }], [{ d: IC.search, t: 'Search' }, { t: 'Share', prim: true }]]
 
 const SETS = [
   {
@@ -788,7 +788,7 @@ const SETS = [
       ] },
       { title: 'Button types', row: true, items: [
         ['Icon only', <ClearStatic noHandle groups={[[{ d: TOOLS.move.d, sel: true }, { d: TOOLS.frame.d }, { d: TOOLS.text.d }]]} />],
-        ['Text only', <ClearStatic noHandle groups={[[{ t: '100%' }], [{ t: 'Share', prim: true }]]} />],
+        ['Text only', <ClearStatic noHandle groups={[[{ t: '100%', zoom: true }], [{ t: 'Share', prim: true }]]} />],
         ['Icon and text', <ClearStatic noHandle groups={[[{ d: IC.search, t: 'Search' }]]} />],
       ] },
     ],
@@ -801,7 +801,7 @@ const SETS = [
     ],
     spec: [
       ['Layout', [['Collapsed', '64 × 64 circle'], ['Expanded', 'hugs its content, up to 720 × 64'], ['Padding', '0 × 8'], ['Group spacing', '12'], ['Button spacing', '4']]],
-      ['Button', [['Size', '48 high · icon only 48 × 48'], ['Padding', '0 × 18 with a label'], ['Icon to label', '8'], ['Icon', '22 × 22 · stroke 2'], ['Search field', '40 high, fills the bar']]],
+      ['Button', [['Size', '48 high · icon only 48 × 48'], ['Padding', '0 × 18 with a label'], ['Icon to label', '8'], ['Icon', '22 × 22 · stroke 2'], ['Zoom', '76 wide whatever it reads, so the bar keeps its length'], ['Search field', '40 high, fills the bar']]],
       ['Results list', [['Position', '10 above the bar, as wide as the bar'], ['Padding', '6 · rows 2 apart'], ['Row', '40 high · radius 18 · padding 0 × 12 · icon 18'], ['Label', 'Geist 500 12 / 16, white 50%'], ['Highlight', 'the droplet, grown in place']]],
       ['Type', [['Font', 'Geist Medium, −0.5%'], ['Size / line height', '15 / 20'], ['Shortcut hints', 'Geist Mono 12 / 16']]],
       ['Shape', [['Corner radius', 'toolbar 32 · buttons 24 · field 20'], ['Stroke width', 'rim 1 · droplet edge 1']]],

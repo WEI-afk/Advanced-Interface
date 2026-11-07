@@ -145,6 +145,8 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .cl-btn { z-index: 1; height: 48px; min-width: 48px; padding: 0; gap: 8px; border-radius: 24px; color: #fff; font: 500 15px/20px Geist, Inter, sans-serif; letter-spacing: -0.005em;
   transition: background-color var(--t-fb) ease-out, transform var(--t-fb) ease-out, color var(--t-fb) ease-out; }
 .cl-btn.has-label { padding: 0 18px; }
+/* the zoom value changes (50%, 100%, 200%, Fit) but its button does not: fixed to the widest value, so the bar never changes length */
+.cl-btn.fx-zoom { width: 76px; padding: 0; font-variant-numeric: tabular-nums; }
 .cl-btn .tb-ic { width: 22px; height: 22px; }
 .cl-btn:hover, .cl-btn.is-hot { background: rgba(255,255,255,.08); }
 /* pressing swells the glass a little and lets more light through */
