@@ -1,13 +1,37 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #050505; color: #ededeb; color-scheme: dark; -webkit-font-smoothing: antialiased; }
-main { max-width: 1040px; margin: 0 auto; padding: 40px 16px 64px; overflow-x: clip; }
-h1 { margin: 0 0 8px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.02em; }
-.up { display: inline-block; margin-bottom: 18px; font: 400 13px/20px Inter, sans-serif; color: #8e8e8a; text-decoration: none; }
+/* ================= page: a sticky outline on the left, the study on the right ================= */
+.page { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 56px; max-width: 1120px; margin: 0 auto; padding: 48px 24px 120px; }
+.rail { position: sticky; top: 48px; align-self: start; display: flex; flex-direction: column; }
+.up { align-self: flex-start; margin-bottom: 20px; font: 400 13px/20px Inter, sans-serif; color: #8e8e8a; text-decoration: none; }
 .up::before { content: '← '; }
 .up:hover { color: #ededeb; }
-.about { max-width: 640px; margin: 0 0 40px; font: 400 15px/22px Inter, sans-serif; color: #8e8e8a; }
-.set { margin-bottom: 48px; container: set / inline-size; }
-.set h2, .spec h2 { margin: 0 0 16px; font: 600 17px/24px Inter, sans-serif; letter-spacing: -0.01em; }
+h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0.02em; }
+.about { margin: 0 0 28px; font: 400 13px/20px Inter, sans-serif; color: #8e8e8a; }
+.toc { display: flex; flex-direction: column; gap: 2px; padding-top: 16px; border-top: 1px solid #222220; }
+.toc a { display: flex; gap: 12px; padding: 6px 0; font: 500 13px/20px Inter, sans-serif; color: #8e8e8a; text-decoration: none; transition: color var(--t-fb) ease-out; }
+.toc a span { font: 400 12px/20px "Geist Mono", ui-monospace, monospace; color: #55554f; transition: color var(--t-fb) ease-out; }
+.toc a:hover, .toc a.on { color: #ededeb; }
+.toc a.on span { color: #ededeb; }
+.figma { align-self: flex-start; margin-top: 20px; padding-top: 16px; font: 400 13px/20px Inter, sans-serif; color: #8e8e8a; text-decoration: none; }
+.figma:hover { color: #ededeb; }
+.content { min-width: 0; }
+.sec { padding-bottom: 56px; scroll-margin-top: 32px; container: set / inline-size; }
+.sec + .sec { padding-top: 40px; border-top: 1px solid #1a1a19; }
+.sec-head { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: baseline; margin-bottom: 24px; }
+.sec-n { font: 400 12px/24px "Geist Mono", ui-monospace, monospace; color: #55554f; }
+.sec-head h2 { margin: 0; font: 600 17px/24px Inter, sans-serif; letter-spacing: -0.01em; }
+.sec-head p { grid-column: 2; margin: 4px 0 0; font: 400 13px/20px Inter, sans-serif; color: #8e8e8a; }
+.group { margin-bottom: 28px; }
+.group:last-child { margin-bottom: 0; }
+.group-k { margin: 0 0 12px; font: 600 11px/16px Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #6f6f6b; }
+.group.row .group-items { display: flex; flex-wrap: wrap; gap: 0 40px; }
+.index-page { max-width: 760px; margin: 0 auto; padding: 48px 24px 96px; }
+.index-page h1 { font-size: 28px; }
+
+/* motion tokens (Desktop/Documents/motion.md): feedback 120 ms ease-out · indicators 220 ms standard · entrances 240 ms standard · exits 150 ms ease-in
+   no overshoot or bounce on routine controls; transitions name only the properties that change */
+:root { --t-fb: 120ms; --t-ind: 220ms; --t-in: 240ms; --t-out: 150ms; --e-std: cubic-bezier(0.2, 0, 0, 1); }
 
 /* ================= index ================= */
 .index { margin: 32px 0 0; padding: 0; list-style: none; }
@@ -17,10 +41,10 @@ h1 { margin: 0 0 8px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.0
 .index p { max-width: 640px; margin: 4px 0 0; font: 400 14px/21px Inter, sans-serif; color: #8e8e8a; }
 
 /* ================= static samples ================= */
-.sample { margin: 0 0 6px; }
+.sample { margin: 0; }
 .sample figcaption { font: 400 13px/20px Inter, sans-serif; color: #8e8e8a; }
-.sample-body { overflow-x: auto; margin: -4px -32px 0; padding: 12px 32px 44px; } /* room for the glass shadow, so it is never cut */
-.states { display: flex; flex-wrap: wrap; gap: 0 40px; }
+.sample-body { overflow-x: auto; margin: 0 -32px; padding: 8px 32px 20px; }
+.page-clear .sample-body { padding-bottom: 40px; } /* room for the glass shadow, so it is never cut */
 .tb.hug { width: fit-content; max-width: none; }
 .st-hover .cm-target, .st-press .cm-target { box-shadow: inset 0 0 0 2px #fff, 0 0 12px rgba(26,159,255,.8), 0 0 28px rgba(26,159,255,.3); }
 .st-sel .cm-textframe { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.9); background: rgba(255,255,255,.08); }
@@ -32,19 +56,24 @@ h1 { margin: 0 0 8px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.0
 .fx-ph { font: 500 15px/20px Geist, Inter, sans-serif; letter-spacing: -0.005em; color: rgba(255,255,255,.6); white-space: nowrap; }
 .cl-btn.is-down { background: rgba(40,44,50,.16); box-shadow: inset 0 1px 3px rgba(0,0,0,.14), inset 0 -1px 0 rgba(255,255,255,.18); transform: scale(.97); }
 
-/* ================= specifications ================= */
-.spec { margin-top: 8px; padding-top: 28px; border-top: 1px solid #222220; }
-.spec table { width: 100%; border-collapse: collapse; font: 400 13px/20px Inter, sans-serif; }
-.spec th, .spec td { padding: 9px 16px 9px 0; text-align: left; vertical-align: top; border-bottom: 1px solid #1a1a19; }
-.spec th { width: 190px; font-weight: 500; color: #8e8e8a; }
-.spec td { color: #ededeb; font-variant-numeric: tabular-nums; }
-.spec-note { margin: 14px 0 0; font: 400 13px/20px Inter, sans-serif; color: #8e8e8a; }
-.spec-note a { color: #ededeb; text-underline-offset: 3px; }
-@media (max-width: 560px) { .spec th { width: 120px; } }
+/* ================= specifications: grouped, two columns ================= */
+.spec-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 48px; }
+.spec-group dl { margin: 0; }
+.spec-row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; padding: 7px 0; border-top: 1px solid #1a1a19; font: 400 13px/20px Inter, sans-serif; }
+.spec-row dt { color: #8e8e8a; }
+.spec-row dd { margin: 0; color: #ededeb; font-variant-numeric: tabular-nums; }
 
-/* motion tokens (Desktop/Documents/motion.md): feedback 120 ms ease-out · indicators 220 ms standard · entrances 240 ms standard · exits 150 ms ease-in
-   no overshoot or bounce on routine controls; transitions name only the properties that change */
-:root { --t-fb: 120ms; --t-ind: 220ms; --t-in: 240ms; --t-out: 150ms; --e-std: cubic-bezier(0.2, 0, 0, 1); }
+/* phones and narrow windows: the outline becomes a header with the sections in a row */
+@media (max-width: 900px) {
+  .page { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 32px 16px 96px; }
+  .sample-body { margin: 0 -16px; padding-left: 16px; padding-right: 16px; } /* the sample row bleeds only as far as the page margin */
+  .rail { position: static; }
+  .about { margin-bottom: 16px; }
+  .toc { flex-direction: row; flex-wrap: wrap; gap: 4px 18px; padding: 12px 0; border-bottom: 1px solid #222220; }
+  .toc a { padding: 2px 0; gap: 6px; }
+  .figma { display: none; }
+  .spec-grid { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* ================= example controls: outside the toolbar, plain ================= */
 .ex { display: flex; flex-direction: column; gap: 16px; }
