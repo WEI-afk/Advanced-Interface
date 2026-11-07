@@ -134,35 +134,13 @@ function CouchSegment({ label, items, value, onChange }) {
   )
 }
 
-// liquid glass catches the light where the pointer is
-const glint = (e) => {
-  const r = e.currentTarget.getBoundingClientRect()
-  e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`)
-  e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`)
-}
-
-// a new selection sends one soft ripple through the glass where it lands; it never plays on first render
-function useRipple(ref, selector, value) {
-  const first = useRef(true)
-  useEffect(() => {
-    if (first.current) { first.current = false; return }
-    const el = ref.current?.querySelector(selector)
-    if (!el?.animate || reduced()) return
-    el.animate([
-      { opacity: 1, boxShadow: '0 0 0 0 rgba(255,255,255,.45)' },
-      { opacity: 1, boxShadow: '0 0 0 8px rgba(255,255,255,0)' },
-    ], { duration: 420, easing: 'cubic-bezier(0.2, 0, 0, 1)', pseudoElement: '::after' })
-  }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
-}
-
 function ClearSegment({ label, items, value, onChange }) {
   const bar = useRef(null)
   const keys = useSegmentKeys(items, value, onChange)
-  useRipple(bar, `[data-i="${value}"]`, value)
   return (
     <div className="sw">
       <span className="sw-k">{label}</span>
-      <div className="tb cl-bar hug sw-bar" ref={bar} role="radiogroup" aria-label={label} onKeyDown={keys} onPointerMove={glint}>
+      <div className="tb cl-bar hug sw-bar" ref={bar} role="radiogroup" aria-label={label} onKeyDown={keys}>
         <div className="tb-group">
           {items.map((it, i) => (
             <button key={it} type="button" role="radio" aria-checked={i === value} tabIndex={i === value ? 0 : -1} data-i={i}
@@ -382,12 +360,12 @@ function usePresence(on, ms) {
   return { mounted: on || mounted, leaving: !on && mounted }
 }
 
-// one row of the results list; the highlighted row holds a droplet, like a selected tool
+// one row of the results list; the highlighted row takes the selected fill, like a selected tool
 function ResultRow({ a, id, on, onHover, onRun }) {
   return (
     <div id={id} role="option" aria-selected={on} className={`fx-opt ${on ? 'is-sel' : ''}`}
       onPointerMove={onHover} onPointerDown={(e) => e.preventDefault()} onClick={onRun}>
-      <span className="tb-ic">{li(a.d, 2)}</span>
+      <span className="tb-ic">{li(a.d, 1.5)}</span>
       <span className="fx-opt-n">{a.name}</span>
       <span className="fx-opt-c">{a.kind}</span>
       <span className="fx-key">{a.key}</span>
@@ -555,8 +533,8 @@ function ClearSet({ auto, offset = 0 }) {
       if (!field) return
       const r = field.getBoundingClientRect()
       field.animate([
-        { transform: `translateX(${m.rect.left - r.left}px)`, clipPath: `inset(0 ${Math.max(0, r.width - m.rect.width)}px 0 0 round 24px)`, backgroundColor: 'rgba(255,255,255,0)' },
-        { transform: 'none', clipPath: 'inset(0 0 0 0 round 20px)', backgroundColor: getComputedStyle(field).backgroundColor },
+        { transform: `translateX(${m.rect.left - r.left}px)`, clipPath: `inset(0 ${Math.max(0, r.width - m.rect.width)}px 0 0 round 12px)`, backgroundColor: 'rgba(255,255,255,0)' },
+        { transform: 'none', clipPath: 'inset(0 0 0 0 round 12px)', backgroundColor: getComputedStyle(field).backgroundColor },
       ], { duration: 300, easing: ease })
       field.querySelector('input')?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, delay: 120, easing: 'ease-out', fill: 'backwards' })
     } else {
@@ -566,14 +544,13 @@ function ClearSet({ auto, offset = 0 }) {
       if (!btnEl || !ghost) return
       const r = btnEl.getBoundingClientRect(), g = ghost.getBoundingClientRect()
       ghost.animate([
-        { transform: 'none', clipPath: 'inset(0 0 0 0 round 20px)' },
-        { transform: `translateX(${r.left - g.left}px)`, clipPath: `inset(0 ${Math.max(0, g.width - r.width)}px 0 0 round 24px)` },
+        { transform: 'none', clipPath: 'inset(0 0 0 0 round 12px)' },
+        { transform: `translateX(${r.left - g.left}px)`, clipPath: `inset(0 ${Math.max(0, g.width - r.width)}px 0 0 round 12px)` },
       ], { duration: 240, easing: ease, fill: 'forwards' })
       btnEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, delay: 140, easing: 'ease-out', fill: 'backwards' })
     }
   }, [topKey])
 
-  useRipple(bodyRef, `.fx-mode.in [data-id="${tool}"]`, tool)
   const shapeSlot = shape
   const groups = [
     ['move', 'frame', shapeSlot, 'pen', 'text', 'comment'].map((id) => ({ id, d: TOOLS[id].d, excl: true, sel: tool === id, opt: id === 'pen' || id === 'comment' || id === shapeSlot, title: `${TOOLS[id].name} (${TOOLS[id].key})` })),
@@ -586,15 +563,15 @@ function ClearSet({ auto, offset = 0 }) {
     <button key={b.id} type="button" data-id={b.id} title={b.title} aria-label={b.t ? undefined : (b.title || b.id)} aria-current={b.excl && b.sel ? 'true' : undefined}
       className={`tb-btn cl-btn fx-item ${b.t ? 'has-label' : ''} ${b.id === 'zoom' ? 'fx-zoom' : ''} ${b.prim ? 'is-prim' : ''} ${b.excl && b.sel ? 'is-sel' : ''} ${hot === b.id ? 'is-hot' : ''}`}
       style={{ '--k': k, '--dir': dir }} onClick={() => press(b.id)}>
-      {b.d && <span className="tb-ic">{li(b.d, 2)}</span>}
+      {b.d && <span className="tb-ic">{li(b.d, 1.5)}</span>}
       {b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{b.t}</span>}
     </button>
   )
   const handle = (
     <button type="button" className={`tb-btn cl-btn fx-handle ${open ? 'is-open' : ''}`} aria-expanded={open} aria-controls={`fx-body-${offset}`}
       aria-label={open ? 'Close tools' : `Open tools, ${TOOLS[tool].name} selected`} title={open ? 'Close (Esc)' : 'Open tools'} onClick={toggle}>
-      <span className="tb-ic fx-a">{li(TOOLS[tool].d, 2)}</span>
-      <span className="tb-ic fx-b">{li(FX_IC.close, 2)}</span>
+      <span className="tb-ic fx-a">{li(TOOLS[tool].d, 1.5)}</span>
+      <span className="tb-ic fx-b">{li(FX_IC.close, 1.5)}</span>
     </button>
   )
   const dirOut = anchor === 0 ? -1 : 1
@@ -606,7 +583,7 @@ function ClearSet({ auto, offset = 0 }) {
       <div className={`${cls} is-search`} key={l.key} style={{ width: toolsW || undefined }} inert={isIn ? undefined : ''} aria-hidden={isIn ? undefined : true}>
         {!narrow && <div className="tb-group">{btn({ id: 'exit', d: IC.back, title: 'Exit search (Esc)' }, 3, 1)}</div>}
         <label className="fx-field">
-          <span className="tb-ic">{li(IC.search, 2)}</span>
+          <span className="tb-ic">{li(IC.search, 1.5)}</span>
           <input ref={isIn ? inputRef : undefined} readOnly={!isIn} value={query} onChange={(e) => type(e.target.value)} placeholder={narrow ? 'Search' : 'Search tools and actions'}
             role="combobox" aria-expanded={isIn} aria-controls={listId} aria-autocomplete="list" aria-activedescendant={isIn && results[hi] ? `${listId}-${results[hi].id}` : undefined}
             aria-label="Search tools and actions" spellCheck={false} />
@@ -633,14 +610,14 @@ function ClearSet({ auto, offset = 0 }) {
         <div className={`fx-row at-${anchor}`} ref={rowRef}>
           <div className="fx-anchor">
             {list.mounted && (
-              <div className={`fx-list ${list.leaving ? 'out' : ''}`} id={listId} role="listbox" aria-label="Results" onPointerMove={glint}>
+              <div className={`fx-list ${list.leaving ? 'out' : ''}`} id={listId} role="listbox" aria-label="Results">
                 <p className="fx-list-k">{shown.current.label}</p>
                 {shown.current.items.map((a, i) => (
                   <ResultRow key={a.id} a={a} id={`${listId}-${a.id}`} on={i === shown.current.hi} onHover={() => setHi(i)} onRun={() => run(a)} />
                 ))}
               </div>
             )}
-            <div className={`tb cl-bar fx ${open ? 'open' : ''}`} role="toolbar" aria-label="Design tools" style={{ width, height: H }} onPointerMove={glint}>
+            <div className={`tb cl-bar fx ${open ? 'open' : ''}`} role="toolbar" aria-label="Design tools" style={{ width, height: H }}>
               {anchor === 0 && handle}
               <div className="fx-body" id={`fx-body-${offset}`} ref={bodyRef} inert={open ? undefined : ''}>
                 {layers.map(renderLayer)}
@@ -690,8 +667,8 @@ function CouchStatic({ groups, align = 0, hug }) {
 function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'move', list }) {
   const handle = !noHandle && (
     <span className={`tb-btn cl-btn fx-handle ${collapsed ? '' : 'is-open'}`}>
-      <span className="tb-ic fx-a">{li(TOOLS[tool].d, 2)}</span>
-      <span className="tb-ic fx-b">{li(FX_IC.close, 2)}</span>
+      <span className="tb-ic fx-a">{li(TOOLS[tool].d, 1.5)}</span>
+      <span className="tb-ic fx-b">{li(FX_IC.close, 1.5)}</span>
     </span>
   )
   return (
@@ -711,10 +688,10 @@ function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'mov
               {groups.map((g, gi) => (
                 <div key={gi} className="tb-group">
                   {g.map((b, bi) => b.field ? (
-                    <span key={bi} className="fx-field" style={{ width: b.w }}><span className="tb-ic">{li(IC.search, 2)}</span><span className="fx-ph">Search tools and actions</span></span>
+                    <span key={bi} className="fx-field" style={{ width: b.w }}><span className="tb-ic">{li(IC.search, 1.5)}</span><span className="fx-ph">Search tools and actions</span></span>
                   ) : (
                     <span key={bi} className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.zoom ? 'fx-zoom' : ''} ${b.prim ? 'is-prim' : ''} ${b.sel ? 'is-sel' : ''} ${b.st === 'hover' ? 'is-hot' : ''} ${b.st === 'press' ? 'is-down' : ''}`}>
-                      {b.d && <span className="tb-ic">{li(b.d, 2)}</span>}
+                      {b.d && <span className="tb-ic">{li(b.d, 1.5)}</span>}
                       {b.t && <span className="tb-label">{b.t}</span>}
                       {b.k && <span className="fx-key">{b.k}</span>}
                     </span>
@@ -773,7 +750,7 @@ const SETS = [
   },
   {
     id: 'clear', tone: 'Elegant, Clear', Body: ClearSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=15-2',
-    about: 'A floating liquid-glass tool bar for a design canvas. One circle holds the current tool and opens out of itself into the full set.',
+    about: 'A floating tool bar for a design canvas in soft, frosted warm glass with thin line icons. One circle holds the current tool and opens out of itself into the full set.',
     try: 'Press the circle to open it. Pick tools, press Search or /, and Esc to step back.',
     configs: [
       { title: 'Expand', items: [
@@ -801,14 +778,14 @@ const SETS = [
     ],
     spec: [
       ['Layout', [['Collapsed', '64 × 64 circle'], ['Expanded', 'hugs its content, up to 720 × 64'], ['Padding', '0 × 8'], ['Group spacing', '12'], ['Button spacing', '4']]],
-      ['Button', [['Size', '48 high · icon only 48 × 48'], ['Padding', '0 × 18 with a label'], ['Icon to label', '8'], ['Icon', '22 × 22 · stroke 2'], ['Zoom', '76 wide whatever it reads, so the bar keeps its length'], ['Search field', '40 high, fills the bar']]],
-      ['Results list', [['Position', '10 above the bar, as wide as the bar'], ['Padding', '6 · rows 2 apart'], ['Row', '40 high · radius 18 · padding 0 × 12 · icon 18'], ['Label', 'Geist 500 12 / 16, white 50%'], ['Highlight', 'the droplet, grown in place']]],
-      ['Type', [['Font', 'Geist Medium, −0.5%'], ['Size / line height', '15 / 20'], ['Shortcut hints', 'Geist Mono 12 / 16']]],
-      ['Shape', [['Corner radius', 'toolbar 32 · buttons 24 · field 20'], ['Stroke width', 'rim 1 · droplet edge 1']]],
-      ['Material', [['Glass', 'white 12% to 5%'], ['Backdrop', 'blur 14 · saturate 1.8'], ['Rim', 'white 55% to 4%, lit top left'], ['Glint', '120 circle at the pointer']]],
-      ['Color', [['Droplet', 'white 24% to 10%'], ['Field', 'black 28%, a dip'], ['Primary', 'white 88% · ink #1D1D1F'], ['Glyphs', 'white']]],
-      ['States', [['Hover', 'white 8% fill'], ['Pressed', 'the glass swells to 1.04 and brightens'], ['Selected', 'a raised glass droplet']]],
-      ['Motion', [['Expand', '280 ms cubic-bezier(0.2, 0, 0, 1) · items arrive from the circle, 22 ms apart'], ['Search', 'the bar holds its width, the button stretches into the field, 300 ms · the list rises above once the field is nearly open, 260 ms after 140 ms'], ['Leaving content', 'fades where it stood, 110 ms ease-in'], ['Collapse', '180 ms ease-in'], ['Icon to close', '120 ms'], ['Selection', 'nothing slides: the new droplet grows in place from 0.7, 260 ms · the old one sinks, 150 ms ease-in'], ['Ripple', 'one ring 8 px out from the new droplet, 420 ms']]],
+      ['Button', [['Size', '48 high · icon only 48 × 48'], ['Padding', '0 × 16 with a label'], ['Icon to label', '10'], ['Icon', '20 × 20 · line 1.5'], ['Zoom', '76 wide whatever it reads, so the bar keeps its length'], ['Search field', '40 high, fills the bar']]],
+      ['Results list', [['Position', '10 above the bar, as wide as the bar'], ['Padding', '6 · rows 2 apart'], ['Row', '40 high · radius 14 · padding 0 × 12 · icon 20'], ['Label', 'Inter 500 11 / 16, caps, +6%, white 72%'], ['Highlight', 'the selected fill, grown in place']]],
+      ['Type', [['Font', 'Inter Regular'], ['Size / line height', '15 / 20'], ['Shortcut hints', 'Geist Mono 12 / 16, white 50%']]],
+      ['Shape', [['Corner radius', 'toolbar 20 · collapsed 32 · buttons and field 12 · list 20, rows 14'], ['Stroke width', 'edge 1 · icons 1.5']]],
+      ['Material', [['Frosted glass', 'warm gray #76726F to #686562 at 86%'], ['Backdrop', 'blur 32 · saturate 1.2'], ['Edge', 'white 10%, no rim light, no sheen'], ['Shadow', '0 18 40, black 40%']]],
+      ['Color', [['Text and icons', 'white 90%'], ['Field', 'black 16% · edge white 6%'], ['Primary', 'white 90% · ink #3A3734'], ['Labels', 'white 72%']]],
+      ['States', [['Hover', 'white 8% fill'], ['Pressed', 'white 18% fill, .97'], ['Selected', 'white 14% fill']]],
+      ['Motion', [['Expand', '280 ms cubic-bezier(0.2, 0, 0, 1) · corners ease from 32 to 20 · items arrive from the circle, 22 ms apart'], ['Search', 'the bar holds its width, the button stretches into the field, 300 ms · the list rises above once the field is nearly open, 260 ms after 140 ms'], ['Leaving content', 'fades where it stood, 110 ms ease-in'], ['Collapse', '180 ms ease-in'], ['Icon to close', '120 ms'], ['Selection', 'nothing slides: the new fill grows in place from 0.85, 240 ms · the old one fades, 150 ms ease-in']]],
       ['Input', [['Open', 'press the circle'], ['Step back', 'Esc: search first, then the bar'], ['Tools', 'V F R O P T C'], ['Search', '/ or ⌘K · ↑ ↓ choose · Enter runs']]],
       ['Phone', [['Size', 'toolbar 58 high · buttons 44'], ['Hidden', 'Pen, Comment, shape, zoom · the back button in search']]],
     ],
