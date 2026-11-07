@@ -480,10 +480,152 @@ function ClearSet({ auto, offset = 0 }) {
   )
 }
 
-/* ================= page ================= */
+/* ================= static samples: the same parts, frozen in one configuration or state ================= */
+function Sample({ label, children }) {
+  return (
+    <figure className="sample">
+      <figcaption>{label}</figcaption>
+      <div className="sample-body" inert="" aria-hidden="true">{children}</div>
+    </figure>
+  )
+}
+
+function CouchStatic({ groups, align = 0, hug }) {
+  return (
+    <div className={`tb cm-bar al-${align} ${hug ? 'hug' : ''}`}>
+      {groups.map((g, gi) => (
+        <div key={gi} className="tb-group">
+          {g.map((b, bi) => (
+            <span key={bi} className={`tb-btn cm-btn ${b.st ? 'is-focus st-' + b.st : ''} ${b.st === 'press' ? 'is-press' : ''} ${b.sel ? 'is-sel st-sel' : ''}`}>
+              {b.i ? <span className="cm-frame cm-target">{li(IC[b.i])}</span> : <span className="cm-target cm-textframe">{b.t}</span>}
+              {b.i && b.t && <span className="tb-label">{b.t}</span>}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'move' }) {
+  const handle = !noHandle && (
+    <span className={`tb-btn cl-btn fx-handle ${collapsed ? '' : 'is-open'}`}>
+      <span className="tb-ic fx-a">{li(TOOLS[tool].d, 2)}</span>
+      <span className="tb-ic fx-b">{li(FX_IC.close, 2)}</span>
+    </span>
+  )
+  return (
+    <div className={`fx-row at-${anchor}`}>
+      <div className={`tb cl-bar fx static ${collapsed ? '' : 'open'}`}>
+        {anchor === 0 && handle}
+        {!collapsed && (
+          <div className="fx-body">
+            <div className="fx-mode">
+              {groups.map((g, gi) => (
+                <div key={gi} className="tb-group">
+                  {g.map((b, bi) => b.field ? (
+                    <span key={bi} className="fx-field"><span className="tb-ic">{li(IC.search, 2)}</span><span className="fx-ph">Search tools</span></span>
+                  ) : (
+                    <span key={bi} className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.sel ? 'is-sel' : ''} ${b.st === 'hover' ? 'is-hot' : ''} ${b.st === 'press' ? 'is-down' : ''}`}>
+                      {b.d && <span className="tb-ic">{li(b.d, 2)}</span>}
+                      {b.t && <span className="tb-label">{b.t}</span>}
+                      {b.k && <span className="fx-key">{b.k}</span>}
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {anchor !== 0 && handle}
+      </div>
+    </div>
+  )
+}
+
+/* ================= the two sets: what each page shows ================= */
+const LIB = [[{ i: 'back' }], [{ t: 'All', sel: true }, { t: 'Installed' }, { t: 'Favorites' }], [{ i: 'filter', t: 'Sort' }, { i: 'search' }]]
+const FIGMA_TOOLS = [[{ d: TOOLS.move.d, sel: true }, { d: TOOLS.frame.d }, { d: TOOLS.rect.d }, { d: TOOLS.pen.d }, { d: TOOLS.text.d }, { d: TOOLS.comment.d }], [{ t: '100%' }], [{ d: IC.search, t: 'Search' }, { t: 'Share', prim: true }]]
+
 const SETS = [
-  { id: 'couch', tone: 'Futuristic, Couch Mode', Body: CouchSet },
-  { id: 'clear', tone: 'Elegant, Clear', Body: ClearSet },
+  {
+    id: 'couch', tone: 'Futuristic, Couch Mode', Body: CouchSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=14-2',
+    about: 'A controller-first toolbar for a living-room screen. One focus ring walks the bar: the D-pad moves it, A presses, B goes back, LB / RB switch the example.',
+    configs: [
+      ['Spread: left, center and right groups', <CouchStatic groups={LIB} align={0} />],
+      ['Left aligned', <CouchStatic groups={LIB} align={1} />],
+      ['Center aligned', <CouchStatic groups={LIB} align={2} />],
+      ['Right aligned', <CouchStatic groups={LIB} align={3} />],
+      ['Icon-only buttons', <CouchStatic hug groups={[[{ i: 'back' }], [{ i: 'prev' }, { i: 'play' }, { i: 'next' }], [{ i: 'vol' }, { i: 'heart' }]]} />],
+      ['Text-only buttons', <CouchStatic hug groups={[[{ t: 'All', sel: true }, { t: 'Installed' }, { t: 'Favorites' }]]} />],
+      ['Icon and text buttons', <CouchStatic hug groups={[[{ i: 'list', t: 'Episodes' }], [{ i: 'filter', t: 'Sort' }, { i: 'cc', t: 'Subtitles' }]]} />],
+    ],
+    states: [
+      ['Enabled', <CouchStatic hug groups={[[{ i: 'filter', t: 'Sort' }]]} />],
+      ['Hover and focus: the ring arrives', <CouchStatic hug groups={[[{ i: 'filter', t: 'Sort', st: 'hover' }]]} />],
+      ['Pressed: frame .94, fills accent', <CouchStatic hug groups={[[{ i: 'filter', t: 'Sort', st: 'press' }]]} />],
+      ['Selected', <CouchStatic hug groups={[[{ t: 'Installed', sel: true }]]} />],
+    ],
+    spec: [
+      ['Toolbar size', '800 × 64, narrows with its container'],
+      ['Toolbar padding', '0 × 10'],
+      ['Group spacing', '16'],
+      ['Button spacing', '4'],
+      ['Button size', '64 high hit area · icon frame 40 × 40 · text frame 40 high'],
+      ['Button padding', '0 × 6 · text frame 0 × 14'],
+      ['Icon to label', '12, the label sits outside the frame'],
+      ['Icon', '20 × 20 · stroke 1'],
+      ['Font', 'Inter Medium'],
+      ['Font size / line height', '15 / 20'],
+      ['Corner radius', 'toolbar 16 · frame 8 · focus ring 8 · selection 8'],
+      ['Stroke width', 'toolbar 1 · frame 1 · focus ring 2 · selection 1.5'],
+      ['Color', 'toolbar #0F141B · stroke #1D232B · frame #2A313A · label #98A2AD, focused #FFFFFF · focus glow #1A9FFF 12 / 28'],
+      ['Motion', 'feedback 120 ms ease-out · ring and selection 220 ms cubic-bezier(0.2, 0, 0, 1) · alignment 240 ms'],
+      ['Input', 'arrows or D-pad move · Enter or A press · Esc or B back · Q / E or LB / RB switch example'],
+      ['Phone', 'frame 36 · text 14 · Back, Search, Volume and secondary labels hide'],
+    ],
+  },
+  {
+    id: 'clear', tone: 'Elegant, Clear', Body: ClearSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=15-2',
+    about: 'A floating glass tool bar for a design canvas. One circle holds the current tool and opens out of itself into the full set; search finds any tool or action.',
+    configs: [
+      ['Collapsed: one circle holding the current tool', <ClearStatic collapsed anchor={0} />],
+      ['Expanded: the circle becomes close', <ClearStatic groups={FIGMA_TOOLS} anchor={2} />],
+      ['Search: Enter runs the first result', <ClearStatic anchor={2} groups={[[{ d: IC.back }], [{ field: true }], [{ d: TOOLS.ellipse.d, t: 'Ellipse', k: 'O', st: 'hover' }, { d: FX_IC.fit, t: 'Zoom to fit', k: '⇧1' }]]} />],
+      ['Left aligned: anchored left, opens to the right', <ClearStatic groups={FIGMA_TOOLS} anchor={0} />],
+      ['Center aligned: opens both ways', <ClearStatic groups={FIGMA_TOOLS} anchor={1} />],
+      ['Right aligned: anchored right, opens to the left', <ClearStatic groups={FIGMA_TOOLS} anchor={2} />],
+      ['Icon-only buttons', <ClearStatic noHandle groups={[FIGMA_TOOLS[0]]} />],
+      ['Text-only buttons', <ClearStatic noHandle groups={[[{ t: '100%' }], [{ t: 'Share', prim: true }]]} />],
+      ['Icon and text buttons', <ClearStatic noHandle groups={[[{ d: IC.search, t: 'Search' }], [{ d: TOOLS.ellipse.d, t: 'Ellipse' }, { d: FX_IC.fit, t: 'Zoom to fit' }]]} />],
+    ],
+    states: [
+      ['Enabled', <ClearStatic noHandle groups={[[{ d: IC.search, t: 'Search' }]]} />],
+      ['Hover: white 16%', <ClearStatic noHandle groups={[[{ d: IC.search, t: 'Search', st: 'hover' }]]} />],
+      ['Pressed: light recess, .97', <ClearStatic noHandle groups={[[{ d: IC.search, t: 'Search', st: 'press' }]]} />],
+      ['Selected', <ClearStatic noHandle groups={[[{ d: TOOLS.frame.d, sel: true }]]} />],
+      ['Primary', <ClearStatic noHandle groups={[[{ t: 'Share', prim: true }]]} />],
+    ],
+    spec: [
+      ['Toolbar size', 'collapsed 64 × 64 · expanded hugs its content, up to 720 × 64'],
+      ['Toolbar padding', '0 × 8'],
+      ['Group spacing', '12'],
+      ['Button spacing', '4'],
+      ['Button size', '48 high · icon only 48 × 48'],
+      ['Button padding', '0 × 18 with a label · 0 icon only'],
+      ['Icon to label', '8'],
+      ['Icon', '22 × 22 · stroke 2'],
+      ['Font', 'Geist Medium, −0.5% tracking · shortcut hints Geist Mono'],
+      ['Font size / line height', '15 / 20 · hints 12 / 16'],
+      ['Corner radius', 'toolbar 32 · buttons 24 · search field 20'],
+      ['Stroke width', 'toolbar 1 · top highlight 1'],
+      ['Search field', '200 × 40 (130 on phones) · black 12% recess · two results (one on phones)'],
+      ['Color', 'glass #8E939A to #74787E at 72%, blur 24 · white glyphs · hover white 16% · selected #282C32 16% recess · primary white 88% on #3A3A3A'],
+      ['Motion', 'expand 280 ms cubic-bezier(0.2, 0, 0, 1), contents unblur 200 ms · collapse 180 ms ease-in · icon to close 120 ms · recess 220 ms'],
+      ['Input', 'the circle opens · Esc closes search, then the bar · V F R O P T C pick tools · / or ⌘K search · Enter runs the first result'],
+      ['Phone', 'toolbar 58 high · buttons 44 · Pen, Comment, shape and zoom hide'],
+    ],
+  },
 ]
 
 /* wall (home page hover background): the toolbars operating themselves, repeated to fill the screen */
@@ -516,19 +658,50 @@ function Wall() {
   )
 }
 
-export default function App() {
-  if (new URLSearchParams(window.location.search).has('wall')) return <Wall />
+function SetPage({ set }) {
+  useEffect(() => { document.title = `${set.tone} · Toolbars` }, [set])
   return (
     <main>
-      <h1>Toolbars</h1>
-      <section aria-label="Examples">
-        {SETS.map((set) => (
-          <article key={set.id} className={`set s-${set.id}`}>
-            <h2>{set.tone}</h2>
-            <set.Body />
-          </article>
-        ))}
+      <a className="up" href="./">Toolbars</a>
+      <h1>{set.tone}</h1>
+      <p className="about">{set.about}</p>
+      <section className="set" aria-labelledby="ex-h">
+        <h2 id="ex-h">Example</h2>
+        <set.Body />
+      </section>
+      <section className="set" aria-labelledby="cf-h">
+        <h2 id="cf-h">Configurations</h2>
+        {set.configs.map(([label, node]) => <Sample key={label} label={label}>{node}</Sample>)}
+      </section>
+      <section className="set" aria-labelledby="st-h">
+        <h2 id="st-h">States</h2>
+        <div className="states">{set.states.map(([label, node]) => <Sample key={label} label={label}>{node}</Sample>)}</div>
+      </section>
+      <section className="spec" aria-labelledby="sp-h">
+        <h2 id="sp-h">Specifications</h2>
+        <table>
+          <tbody>{set.spec.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>)}</tbody>
+        </table>
+        <p className="spec-note">All values in px. <a href={set.figma} target="_blank" rel="noreferrer">Figma drawing</a></p>
       </section>
     </main>
   )
+}
+
+function Index() {
+  return (
+    <main>
+      <h1>Toolbars</h1>
+      <ul className="index">
+        {SETS.map((s) => <li key={s.id}><a href={`?set=${s.id}`}>{s.tone}</a><p>{s.about}</p></li>)}
+      </ul>
+    </main>
+  )
+}
+
+export default function App() {
+  const params = new URLSearchParams(window.location.search)
+  if (params.has('wall')) return <Wall />
+  const set = SETS.find((s) => s.id === params.get('set'))
+  return set ? <SetPage set={set} /> : <Index />
 }

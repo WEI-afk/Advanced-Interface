@@ -1,9 +1,46 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #f4f4f2; color: #1b1b1b; -webkit-font-smoothing: antialiased; }
 main { max-width: 1040px; margin: 0 auto; padding: 40px 16px 64px; overflow-x: clip; }
-h1 { margin: 0 0 32px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.02em; }
+h1 { margin: 0 0 8px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.02em; }
+.up { display: inline-block; margin-bottom: 18px; font: 400 13px/20px Inter, sans-serif; color: #6b6b68; text-decoration: none; }
+.up::before { content: '← '; }
+.up:hover { color: #1b1b1b; }
+.about { max-width: 640px; margin: 0 0 40px; font: 400 15px/22px Inter, sans-serif; color: #6b6b68; }
 .set { margin-bottom: 48px; container: set / inline-size; }
-.set h2 { margin: 0 0 14px; font: 600 17px/24px Inter, sans-serif; letter-spacing: -0.01em; }
+.set h2, .spec h2 { margin: 0 0 16px; font: 600 17px/24px Inter, sans-serif; letter-spacing: -0.01em; }
+
+/* ================= index ================= */
+.index { margin: 32px 0 0; padding: 0; list-style: none; }
+.index li { padding: 18px 0; border-top: 1px solid #deded9; }
+.index li:last-child { border-bottom: 1px solid #deded9; }
+.index a { font: 600 17px/24px Inter, sans-serif; color: #1b1b1b; text-underline-offset: 4px; }
+.index p { max-width: 640px; margin: 4px 0 0; font: 400 14px/21px Inter, sans-serif; color: #6b6b68; }
+
+/* ================= static samples ================= */
+.sample { margin: 0 0 6px; }
+.sample figcaption { font: 400 13px/20px Inter, sans-serif; color: #6b6b68; }
+.sample-body { overflow-x: auto; margin: -4px -32px 0; padding: 12px 32px 44px; } /* room for the glass shadow, so it is never cut */
+.states { display: flex; flex-wrap: wrap; gap: 0 40px; }
+.tb.hug { width: fit-content; max-width: none; }
+.st-hover .cm-target, .st-press .cm-target { box-shadow: inset 0 0 0 2px #fff, 0 0 12px rgba(26,159,255,.8), 0 0 28px rgba(26,159,255,.3); }
+.st-sel .cm-textframe { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.9); background: rgba(255,255,255,.08); }
+.fx.static { width: auto; transition: none; }
+.sample .fx.static .fx-body, .sample .fx.static .fx-mode, .sample .tb .tb-group { animation: none; transition: none; filter: none; opacity: 1; } /* samples are frozen: nothing animates in */
+/* on narrow screens a sample can be wider than the page: let it grow so it scrolls instead of clipping on the left */
+.sample .fx-row { width: max-content; min-width: min(720px, 100%); }
+.sample .tb:not(.hug):not(.fx) { min-width: max-content; }
+.fx-ph { font: 500 15px/20px Geist, Inter, sans-serif; letter-spacing: -0.005em; color: rgba(255,255,255,.6); white-space: nowrap; }
+.cl-btn.is-down { background: rgba(40,44,50,.16); box-shadow: inset 0 1px 3px rgba(0,0,0,.14), inset 0 -1px 0 rgba(255,255,255,.18); transform: scale(.97); }
+
+/* ================= specifications ================= */
+.spec { margin-top: 8px; padding-top: 28px; border-top: 1px solid #deded9; }
+.spec table { width: 100%; border-collapse: collapse; font: 400 13px/20px Inter, sans-serif; }
+.spec th, .spec td { padding: 9px 16px 9px 0; text-align: left; vertical-align: top; border-bottom: 1px solid #e6e6e1; }
+.spec th { width: 190px; font-weight: 500; color: #6b6b68; }
+.spec td { color: #1b1b1b; font-variant-numeric: tabular-nums; }
+.spec-note { margin: 14px 0 0; font: 400 13px/20px Inter, sans-serif; color: #6b6b68; }
+.spec-note a { color: #1b1b1b; text-underline-offset: 3px; }
+@media (max-width: 560px) { .spec th { width: 120px; } }
 
 /* motion tokens (Desktop/Documents/motion.md): feedback 120 ms ease-out · indicators 220 ms standard · entrances 240 ms standard · exits 150 ms ease-in
    no overshoot or bounce on routine controls; transitions name only the properties that change */
