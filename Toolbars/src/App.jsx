@@ -326,7 +326,7 @@ function CouchSet({ auto, offset = 0 }) {
   )
 }
 
-/* ----- ELEGANT · Clear: a floating glass tool bar for a design canvas. At rest it is one circle holding the current tool.
+/* ----- ELEGANT · Clear: a floating glass tool bar for a design canvas. At rest it is one circle holding the tools.
    Pressing it opens the bar out of that point into the full tool set; the circle's icon turns into close. Search finds any tool or action ----- */
 const TOOLS = {
   move: { name: 'Move', key: 'V', d: ['M5.500 3.500l9.500 5.800-4.300 1.200-2 4.500z'] },
@@ -341,6 +341,8 @@ const FX_IC = {
   close: ['M5.500 5.500l9 9', 'M14.500 5.500l-9 9'], fit: ['M3 7V3h4', 'M13 3h4v4', 'M17 13v4h-4', 'M7 17H3v-4'],
   zoom: ['M9 3.500a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z', 'M13 13l4 4', 'M9 6.500v5', 'M6.500 9h5'], dup: ['M7 7h10v10H7z', 'M13 7V3H3v10h4'],
   check: ['M4.500 10.500l3.500 3.500 7.500-8'],
+  // the circle's own mark: a toolbox, the same whatever tool is picked
+  box: ['M2.500 7.500h15v9h-15z', 'M7 7.500V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.500', 'M2.500 11.500h5.500', 'M12 11.500h5.500', 'M8 10.500h4v2.500H8z'],
 }
 const ACTIONS = [
   ...Object.entries(TOOLS).map(([id, t]) => ({ id, name: t.name, key: t.key, d: t.d, tool: true, kind: 'Tool' })),
@@ -586,7 +588,7 @@ function ClearSet({ auto, offset = 0 }) {
   const handle = (
     <button type="button" className={`tb-btn cl-btn fx-handle ${open ? 'is-open' : ''}`} aria-expanded={open} aria-controls={`fx-body-${offset}`}
       aria-label={open ? 'Close tools' : `Open tools, ${TOOLS[tool].name} selected`} title={open ? 'Close (Esc)' : 'Open tools'} onClick={toggle}>
-      <span className="tb-ic fx-a">{li(TOOLS[tool].d, 1.5)}</span>
+      <span className="tb-ic fx-a">{li(FX_IC.box, 1.5)}</span>
       <span className="tb-ic fx-b">{li(FX_IC.close, 1.5)}</span>
     </button>
   )
@@ -691,10 +693,10 @@ function CouchStatic({ groups, align = 0, hug }) {
   )
 }
 
-function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'move', list, toast }) {
+function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, list, toast }) {
   const handle = !noHandle && (
     <span className={`tb-btn cl-btn fx-handle ${collapsed ? '' : 'is-open'}`}>
-      <span className="tb-ic fx-a">{li(TOOLS[tool].d, 1.5)}</span>
+      <span className="tb-ic fx-a">{li(FX_IC.box, 1.5)}</span>
       <span className="tb-ic fx-b">{li(FX_IC.close, 1.5)}</span>
     </span>
   )
@@ -784,7 +786,7 @@ const SETS = [
   },
   {
     id: 'clear', tone: 'Elegant, Clear', Body: ClearSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=15-2',
-    about: 'A floating tool bar for a design canvas in soft, frosted warm glass with thin line icons. One circle holds the current tool and opens out of itself into the full set.',
+    about: 'A floating tool bar for a design canvas in soft, frosted warm glass with thin line icons. One circle holds the tools and opens out of itself into the full set.',
     keys: [
       { d: 'Open', or: 'click the circle' },
       { d: 'Pick a tool', k: [['V', 'F', 'R', 'O', 'P', 'T', 'C']] },
@@ -794,7 +796,7 @@ const SETS = [
     ],
     configs: [
       { title: 'Expand', items: [
-        ['Collapsed: one circle holding the current tool', <ClearStatic collapsed anchor={0} />],
+        ['Collapsed: one circle holding the tools, always the toolbox mark', <ClearStatic collapsed anchor={0} />],
         ['Expanded: the circle becomes close', <ClearStatic groups={FIGMA_TOOLS} anchor={0} />],
         ['Feedback: Share copies the link, and a note rises above it for 1.6 s', <ClearStatic groups={FIGMA_TOOLS} anchor={0} toast="Link copied" />],
         ['Search: the field fills the bar, results list above · Enter runs the highlighted row', <ClearStatic anchor={2} groups={[[{ d: IC.back }], [{ field: true, w: 544 }]]} list={{ label: 'Suggested', items: SUGGEST }} />],
@@ -818,7 +820,7 @@ const SETS = [
       ['Primary', <ClearStatic noHandle groups={[[{ t: 'Share', prim: true }]]} />],
     ],
     spec: [
-      ['Layout', [['Collapsed', '64 × 64 circle'], ['Expanded', 'hugs its content, up to 720 × 64'], ['Padding', '0 × 8'], ['Group spacing', '12'], ['Button spacing', '4']]],
+      ['Layout', [['Collapsed', '64 × 64 circle · toolbox mark 20'], ['Expanded', 'hugs its content, up to 720 × 64'], ['Padding', '0 × 8'], ['Group spacing', '12'], ['Button spacing', '4']]],
       ['Button', [['Size', '48 high · icon only 48 × 48'], ['Padding', '0 × 16 with a label'], ['Icon to label', '10'], ['Icon', '20 × 20 · line 1.5'], ['Zoom', '76 wide whatever it reads, so the bar keeps its length'], ['Search field', '40 high, fills the bar']]],
       ['Results list', [['Position', '10 above the bar, as wide as the bar'], ['Padding', '6 · rows 2 apart'], ['Row', '40 high · radius 14 · padding 0 × 12 · icon 20'], ['Label', 'Inter 500 11 / 16, caps, +6%, white 72%'], ['Highlight', 'the selected fill, grown in place']]],
       ['Feedback note', [['Size', '36 high · radius 12 · padding 0 14 0 12'], ['Content', 'check 18, line 1.5 · Inter 14 / 20'], ['Position', '10 above the bar, over the button that acted, kept inside the bar'], ['Timing', 'rises 240 ms from 6 below · holds 1.6 s · fades 150 ms ease-in']]],
