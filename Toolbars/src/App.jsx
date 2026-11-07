@@ -340,6 +340,7 @@ const TOOLS = {
 const FX_IC = {
   close: ['M5.500 5.500l9 9', 'M14.500 5.500l-9 9'], fit: ['M3 7V3h4', 'M13 3h4v4', 'M17 13v4h-4', 'M7 17H3v-4'],
   zoom: ['M9 3.500a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z', 'M13 13l4 4', 'M9 6.500v5', 'M6.500 9h5'], dup: ['M7 7h10v10H7z', 'M13 7V3H3v10h4'],
+  check: ['M4.500 10.500l3.500 3.500 7.500-8'],
 }
 const ACTIONS = [
   ...Object.entries(TOOLS).map(([id, t]) => ({ id, name: t.name, key: t.key, d: t.d, tool: true, kind: 'Tool' })),
@@ -360,6 +361,15 @@ function usePresence(on, ms) {
     return () => clearTimeout(t)
   }, [on, ms])
   return { mounted: on || mounted, leaving: !on && mounted }
+}
+
+// what a button just did, said right above it: a small frosted note that rises, holds, and fades
+function Toast({ text, style, className = '' }) {
+  return (
+    <div className={`fx-toast ${className}`} style={style} aria-hidden="true">
+      <span className="tb-ic">{li(FX_IC.check, 1.5)}</span>{text}
+    </div>
+  )
 }
 
 // one row of the results list; the highlighted row takes the selected fill, like a selected tool
@@ -393,6 +403,10 @@ function ClearSet({ auto, offset = 0 }) {
   const [z, setZ] = useState(1)
   const [hot, setHot] = useState(null)
   const [note, say] = useNote()
+  const [toast, setToast] = useState(null)
+  const toastTimer = useRef()
+  const flash = (text, at) => { say(text); clearTimeout(toastTimer.current); setToast({ text, at, key: Date.now() }); toastTimer.current = setTimeout(() => setToast(null), 1600) }
+  useEffect(() => () => clearTimeout(toastTimer.current), [])
   const [bodyW, setBodyW] = useState(0)
   const [rowW, setRowW] = useState(720)
 
@@ -404,8 +418,8 @@ function ClearSet({ auto, offset = 0 }) {
     if (a.tool) { if (a.id === 'rect' || a.id === 'ellipse') setShape(a.id); setTool(a.id) }
     else if (a.id === 'fit') setZ(3)
     else if (a.id === 'z100') setZ(1)
-    else if (a.id === 'export') say('Exported 2 frames')
-    else if (a.id === 'dup') say('Duplicated selection')
+    else if (a.id === 'export') flash('Exported 2 frames', 'search')
+    else if (a.id === 'dup') flash('Duplicated selection', 'search')
     endSearch()
   }
   const pickTool = (id) => { if (id === 'rect' || id === 'ellipse') setShape(id); setTool(id) }
@@ -420,7 +434,7 @@ function ClearSet({ auto, offset = 0 }) {
     if (TOOLS[id]) pickTool(id)
     else if (id === 'zoom') setZ((v) => (v + 1) % ZOOMS.length)
     else if (id === 'search') startSearch()
-    else if (id === 'share') say('Share link copied')
+    else if (id === 'share') flash('Link copied', 'share')
     else if (id === 'exit') endSearch()
   }
 
@@ -598,6 +612,13 @@ function ClearSet({ auto, offset = 0 }) {
       </div>
     )
   }
+  const anchorRef = useRef(null)
+  const toastOn = usePresence(!!toast && open, 150)
+  const lastToast = useRef(null)
+  if (toast) lastToast.current = toast
+  const shownToast = toast || lastToast.current
+  const spot = useMarker(anchorRef, toastOn.mounted && shownToast ? `.fx-mode.in [data-id="${shownToast.at}"]` : null, [shownToast?.key, topKey, anchor, width])
+  const toastStyle = spot && (spot.x + spot.w / 2 > width / 2 ? { right: width - spot.x - spot.w } : { left: spot.x })
   const listId = `fx-list-${offset}`
   const list = usePresence(open && searching, 150)
   const shown = useRef({ label: '', items: [], hi: 0 })
@@ -610,7 +631,10 @@ function ClearSet({ auto, offset = 0 }) {
     <div className="ex">
       <div className="ex-stage fx-stage" ref={stage}>
         <div className={`fx-row at-${anchor}`} ref={rowRef}>
-          <div className="fx-anchor">
+          <div className="fx-anchor" ref={anchorRef}>
+            {toastOn.mounted && shownToast && toastStyle && (
+              <Toast key={shownToast.key} text={shownToast.text} style={toastStyle} className={`${toastOn.leaving ? 'out' : ''} ${shownToast.at === 'search' ? 'after-list' : ''}`} />
+            )}
             {list.mounted && (
               <div className={`fx-list ${list.leaving ? 'out' : ''}`} id={listId} role="listbox" aria-label="Results">
                 <p className="fx-list-k">{shown.current.label}</p>
@@ -667,7 +691,7 @@ function CouchStatic({ groups, align = 0, hug }) {
   )
 }
 
-function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'move', list }) {
+function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'move', list, toast }) {
   const handle = !noHandle && (
     <span className={`tb-btn cl-btn fx-handle ${collapsed ? '' : 'is-open'}`}>
       <span className="tb-ic fx-a">{li(TOOLS[tool].d, 1.5)}</span>
@@ -676,7 +700,8 @@ function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'mov
   )
   return (
     <div className={`fx-row at-${anchor}`}>
-      <div className={`fx-anchor ${list ? 'has-list' : ''}`}>
+      <div className={`fx-anchor ${list || toast ? 'has-list' : ''}`}>
+      {toast && <Toast text={toast} className="static" />}
       {list && (
         <div className="fx-list static">
           <p className="fx-list-k">{list.label}</p>
@@ -771,6 +796,7 @@ const SETS = [
       { title: 'Expand', items: [
         ['Collapsed: one circle holding the current tool', <ClearStatic collapsed anchor={0} />],
         ['Expanded: the circle becomes close', <ClearStatic groups={FIGMA_TOOLS} anchor={0} />],
+        ['Feedback: Share copies the link, and a note rises above it for 1.6 s', <ClearStatic groups={FIGMA_TOOLS} anchor={0} toast="Link copied" />],
         ['Search: the field fills the bar, results list above · Enter runs the highlighted row', <ClearStatic anchor={2} groups={[[{ d: IC.back }], [{ field: true, w: 544 }]]} list={{ label: 'Suggested', items: SUGGEST }} />],
       ] },
       { title: 'Alignment', items: [
@@ -795,6 +821,7 @@ const SETS = [
       ['Layout', [['Collapsed', '64 × 64 circle'], ['Expanded', 'hugs its content, up to 720 × 64'], ['Padding', '0 × 8'], ['Group spacing', '12'], ['Button spacing', '4']]],
       ['Button', [['Size', '48 high · icon only 48 × 48'], ['Padding', '0 × 16 with a label'], ['Icon to label', '10'], ['Icon', '20 × 20 · line 1.5'], ['Zoom', '76 wide whatever it reads, so the bar keeps its length'], ['Search field', '40 high, fills the bar']]],
       ['Results list', [['Position', '10 above the bar, as wide as the bar'], ['Padding', '6 · rows 2 apart'], ['Row', '40 high · radius 14 · padding 0 × 12 · icon 20'], ['Label', 'Inter 500 11 / 16, caps, +6%, white 72%'], ['Highlight', 'the selected fill, grown in place']]],
+      ['Feedback note', [['Size', '36 high · radius 12 · padding 0 14 0 12'], ['Content', 'check 18, line 1.5 · Inter 14 / 20'], ['Position', '10 above the bar, over the button that acted, kept inside the bar'], ['Timing', 'rises 240 ms from 6 below · holds 1.6 s · fades 150 ms ease-in']]],
       ['Type', [['Font', 'Inter Regular'], ['Size / line height', '15 / 20'], ['Shortcut hints', 'Geist Mono 12 / 16, white 50%']]],
       ['Shape', [['Corner radius', 'toolbar 20 · collapsed 32 · buttons and field 12 · list 20, rows 14'], ['Stroke width', 'edge 1 · icons 1.5']]],
       ['Material', [['Frosted glass', 'warm gray #76726F to #686562 at 86%'], ['Backdrop', 'blur 32 · saturate 1.2'], ['Edge', 'white 10%, no rim light, no sheen'], ['Shadow', '0 18 40, black 40%']]],

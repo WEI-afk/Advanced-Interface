@@ -218,6 +218,17 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .fx-opt .tb-ic { flex: none; width: 20px; height: 20px; }
 .fx-opt-c { font-size: 13px; color: rgba(255,255,255,.5); }
 .fx-opt .fx-key { margin-left: auto; }
+/* feedback note: 10 above the bar over the button that acted, 36 high, radius 12 · in 240 ms standard from 6 below, out 150 ms ease-in */
+.fx-toast { position: absolute; bottom: calc(100% + 10px); z-index: 3; display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px 0 12px; border-radius: 12px; white-space: nowrap;
+  color: rgba(255,255,255,.9); font: 400 14px/20px Inter, sans-serif; isolation: isolate;
+  background: linear-gradient(180deg, rgba(118,114,111,.86), rgba(104,101,98,.86)); -webkit-backdrop-filter: blur(32px) saturate(1.2); backdrop-filter: blur(32px) saturate(1.2);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), 0 12px 28px rgba(0,0,0,.35); animation: fx-toast-in 240ms var(--e-std) backwards; }
+.fx-toast .tb-ic { width: 18px; height: 18px; }
+.fx-toast.after-list { animation-delay: 120ms; } /* coming from search: wait for the list to clear */
+.fx-toast.out { animation: fx-toast-out 150ms ease-in forwards; }
+.fx-toast.static { position: relative; bottom: auto; align-self: flex-end; margin-right: 8px; animation: none; }
+@keyframes fx-toast-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes fx-toast-out { to { opacity: 0; transform: translateY(3px); } }
 .fx-key { margin-left: 2px; font: 400 12px/16px "Geist Mono", ui-monospace, monospace; color: rgba(255,255,255,.5); }
 
 @container set (max-width: 640px) {
