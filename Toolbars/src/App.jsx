@@ -94,16 +94,63 @@ function useNote() {
 }
 
 /* example switchers: outside the toolbar, plain text */
-/* example switchers: below the toolbar, a smaller segmented control made of the same parts as the set it belongs to */
-function Switch({ label, items, value, onChange, theme }) {
-  const track = useRef(null)
-  const mark = useMarker(track, `[data-i="${value}"]`, [value, items.join()])
+/* example switchers: below the toolbar, built from the toolbar's own parts, so the controls that change the example are the component too */
+function useSegmentKeys(items, value, onChange) {
+  return (e) => {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+    if (!d) return
+    e.preventDefault()
+    const next = mod(value + d, items.length)
+    onChange(next)
+    e.currentTarget.querySelector(`[data-i="${next}"]`)?.focus()
+  }
+}
+
+function CouchSegment({ label, items, value, onChange }) {
+  const bar = useRef(null)
+  const [hot, setHot] = useState(null)
+  const [down, setDown] = useState(null)
+  const sel = useMarker(bar, `[data-i="${value}"] .cm-target`, [value, items.join()])
+  const ring = useMarker(bar, hot != null ? `[data-i="${hot}"] .cm-target` : null, [hot])
+  const keys = useSegmentKeys(items, value, onChange)
   return (
-    <div className={`sw sw-${theme}`}>
+    <div className="sw">
       <span className="sw-k">{label}</span>
-      <div className="sw-track" ref={track} role="radiogroup" aria-label={label}>
-        {mark && <i className="sw-mark" aria-hidden="true" style={{ translate: `${mark.x}px ${mark.y}px`, width: mark.w, height: mark.h }} />}
-        {items.map((it, i) => <button key={it} type="button" role="radio" data-i={i} aria-checked={i === value} className={i === value ? 'on' : ''} onClick={() => onChange(i)}>{it}</button>)}
+      <div className="tb cm-bar hug sw-bar" ref={bar} role="radiogroup" aria-label={label} onKeyDown={keys} onPointerLeave={() => { setHot(null); setDown(null) }}>
+        {sel && <i className="cm-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
+        {ring && <i className={`cm-ring sw-ring ${down === hot ? 'is-press' : ''}`} aria-hidden="true" style={{ translate: `${ring.x}px ${ring.y}px`, width: ring.w, height: ring.h }} />}
+        <div className="tb-group">
+          {items.map((it, i) => (
+            <button key={it} type="button" role="radio" aria-checked={i === value} tabIndex={i === value ? 0 : -1} data-i={i}
+              className={`tb-btn cm-btn ${hot === i ? 'is-focus' : ''} ${i === value ? 'is-sel is-excl' : ''} ${down === i ? 'is-press' : ''}`}
+              onPointerEnter={() => setHot(i)} onPointerDown={() => { setHot(i); setDown(i) }} onPointerUp={() => setDown(null)}
+              onFocus={(e) => { if (e.target.matches(':focus-visible')) setHot(i) }} onBlur={() => setHot(null)} onClick={() => onChange(i)}>
+              <span className="cm-target cm-textframe">{it}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ClearSegment({ label, items, value, onChange }) {
+  const bar = useRef(null)
+  const pill = useMarker(bar, `[data-i="${value}"]`, [value, items.join()])
+  const keys = useSegmentKeys(items, value, onChange)
+  return (
+    <div className="sw">
+      <span className="sw-k">{label}</span>
+      <div className="tb cl-bar hug sw-bar" ref={bar} role="radiogroup" aria-label={label} onKeyDown={keys}>
+        {pill && <i className="cl-pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
+        <div className="tb-group">
+          {items.map((it, i) => (
+            <button key={it} type="button" role="radio" aria-checked={i === value} tabIndex={i === value ? 0 : -1} data-i={i}
+              className={`tb-btn cl-btn has-label ${i === value ? 'is-excl' : ''}`} onClick={() => onChange(i)}>
+              <span className="tb-label">{it}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -271,8 +318,8 @@ function CouchSet({ auto, offset = 0 }) {
       </div>
       {!auto && (
         <div className="ex-controls">
-          <Switch theme="couch" label="Example" items={COUCH} value={si} onChange={(i) => { setSi(i); setFocus(narrow ? 0 : 1); setDown(null) }} />
-          <Switch theme="couch" label="Alignment" items={ALIGN} value={al} onChange={(i) => { slide(); setAl(i) }} />
+          <CouchSegment label="Example" items={COUCH} value={si} onChange={(i) => { setSi(i); setFocus(narrow ? 0 : 1); setDown(null) }} />
+          <CouchSegment label="Alignment" items={ALIGN} value={al} onChange={(i) => { slide(); setAl(i) }} />
         </div>
       )}
     </div>
@@ -479,7 +526,7 @@ function ClearSet({ auto, offset = 0 }) {
       </div>
       {!auto && (
         <div className="ex-controls">
-          <Switch theme="clear" label="Alignment" items={ANCHOR} value={anchor} onChange={setAnchor} />
+          <ClearSegment label="Alignment" items={ANCHOR} value={anchor} onChange={setAnchor} />
         </div>
       )}
     </div>
