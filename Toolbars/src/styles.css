@@ -82,6 +82,31 @@ h1 { margin: 0 0 32px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.
 .cl-dd { display: grid; width: 14px; height: 14px; color: rgba(255,255,255,.75); }
 .cl-pill { position: absolute; z-index: 0; left: 0; top: 0; border-radius: 24px; pointer-events: none; transition: transform var(--t-ind) var(--e-std), width var(--t-ind) var(--e-std), height var(--t-ind) var(--e-std); }
 
+/* the expanding bar: one circle that opens out of itself into the tool set (reference: agentation toolbar expand)
+   collapsed 64 × 64 · expanded hugs its content · expand 280 ms standard, collapse 180 ms ease-in · contents unblur 200 ms · circle icon to close 120 ms */
+.fx-row { display: flex; width: min(720px, 100%); }
+.fx-row.at-0 { justify-content: flex-start; }
+.fx-row.at-1 { justify-content: center; }
+.fx-row.at-2 { justify-content: flex-end; }
+.cl-bar.fx { flex: none; overflow: hidden; justify-content: flex-end; transition: width 180ms ease-in; }
+.cl-bar.fx.open { transition: width 280ms var(--e-std); }
+.fx-row.at-0 .cl-bar.fx { justify-content: flex-start; }
+.fx-body { position: relative; flex: none; display: flex; opacity: 0; filter: blur(6px); pointer-events: none; transition: opacity 150ms ease-in, filter 150ms ease-in; }
+.fx.open .fx-body { opacity: 1; filter: none; pointer-events: auto; transition: opacity 200ms var(--e-std), filter 200ms var(--e-std); }
+.fx-mode { display: flex; align-items: center; gap: 12px; animation: fx-in 200ms var(--e-std) both; }
+@keyframes fx-in { from { opacity: 0; filter: blur(4px); } }
+.fx-handle { flex: none; display: grid; place-items: center; }
+.fx-handle .tb-ic { grid-area: 1 / 1; transition: opacity var(--t-fb) ease-out, transform var(--t-fb) ease-out; }
+.fx-b { opacity: 0; transform: scale(.8); }
+.fx-handle.is-open .fx-a { opacity: 0; transform: scale(.8); }
+.fx-handle.is-open .fx-b { opacity: 1; transform: none; }
+.fx-field { display: flex; align-items: center; gap: 8px; width: 200px; height: 40px; padding: 0 14px; border-radius: 20px; color: #fff; background: rgba(0,0,0,.12); box-shadow: inset 0 1px 2px rgba(0,0,0,.12); transition: box-shadow var(--t-fb) ease-out; }
+.fx-field .tb-ic { flex: none; width: 18px; height: 18px; opacity: .8; }
+.fx-field input { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: #fff; font: 500 15px/20px Geist, Inter, sans-serif; letter-spacing: -0.005em; outline: none; }
+.fx-field input::placeholder { color: rgba(255,255,255,.6); }
+.fx-field:focus-within { box-shadow: inset 0 1px 2px rgba(0,0,0,.12), 0 0 0 2px rgba(255,255,255,.7); }
+.fx-key { margin-left: 2px; font: 400 12px/16px "Geist Mono", ui-monospace, monospace; color: rgba(255,255,255,.62); }
+
 /* ================= specifications ================= */
 .spec { margin-top: 8px; padding-top: 28px; border-top: 1px solid #deded9; }
 .spec-scroll { overflow-x: auto; }
@@ -105,6 +130,9 @@ h1 { margin: 0 0 32px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.
   .cl-btn.has-label { padding: 0 12px; }
   .cl-pill { border-radius: 22px; }
   .cl-dd { display: none; }
+  .cl-bar.fx { gap: 4px; }
+  .fx-mode { gap: 4px; }
+  .fx-field { width: 130px; padding: 0 12px; }
 }
 
 /* ================= WALL ================= */

@@ -273,112 +273,206 @@ function CouchSet({ auto, offset = 0 }) {
   )
 }
 
-/* ----- ELEGANT · Clear: one bar of smoky frosted glass. Bold white glyphs; the chosen item sinks into a light recess that slides
-   between choices; the main action is a light solid pill ----- */
-const CLEAR = ['Write', 'Checkout', 'Gallery']
-const STYLES = ['Body', 'Heading', 'Quote']
-const STEPS = ['Bag', 'Shipping', 'Payment']
-const PLAIN = { style: 0, b: false, i: false, link: false }
+/* ----- ELEGANT · Clear: a floating glass tool bar for a design canvas. At rest it is one circle holding the current tool.
+   Pressing it opens the bar out of that point into the full tool set; the circle's icon turns into close. Search finds any tool or action ----- */
+const TOOLS = {
+  move: { name: 'Move', key: 'V', d: ['M5.500 3.500l9.500 5.800-4.300 1.200-2 4.500z'] },
+  frame: { name: 'Frame', key: 'F', d: ['M7 3v14', 'M13 3v14', 'M3 7h14', 'M3 13h14'] },
+  rect: { name: 'Rectangle', key: 'R', d: ['M4 5h12v10H4z'] },
+  ellipse: { name: 'Ellipse', key: 'O', d: ['M10 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12z'] },
+  pen: { name: 'Pen', key: 'P', d: ['M10 3l4.500 6.500L10 17l-4.500-7.500z', 'M10 10v.010'] },
+  text: { name: 'Text', key: 'T', d: ['M4.500 5.500V4h11v1.500', 'M10 4v12', 'M7.500 16h5'] },
+  comment: { name: 'Comment', key: 'C', d: ['M4 16V5.500A2.500 2.500 0 0 1 6.500 3h7A2.500 2.500 0 0 1 16 5.500v5a2.500 2.500 0 0 1-2.500 2.500H7z'] },
+}
+const FX_IC = {
+  close: ['M5.500 5.500l9 9', 'M14.500 5.500l-9 9'], fit: ['M3 7V3h4', 'M13 3h4v4', 'M17 13v4h-4', 'M7 17H3v-4'],
+  zoom: ['M9 3.500a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z', 'M13 13l4 4', 'M9 6.500v5', 'M6.500 9h5'], dup: ['M7 7h10v10H7z', 'M13 7V3H3v10h4'],
+}
+const ACTIONS = [
+  ...Object.entries(TOOLS).map(([id, t]) => ({ id, name: t.name, key: t.key, d: t.d, tool: true })),
+  { id: 'fit', name: 'Zoom to fit', key: '⇧1', d: FX_IC.fit },
+  { id: 'z100', name: 'Zoom to 100%', key: '⇧0', d: FX_IC.zoom },
+  { id: 'export', name: 'Export', key: '⇧⌘E', d: IC.share },
+  { id: 'dup', name: 'Duplicate', key: '⌘D', d: FX_IC.dup },
+]
+const SUGGEST = ['ellipse', 'fit']
+const ZOOMS = ['50%', '100%', '200%', 'Fit']
+const ANCHOR = ['Left', 'Center', 'Right']
 
 function ClearSet({ auto, offset = 0 }) {
   const stage = useRef(null)
-  const barRef = useRef(null)
+  const rowRef = useRef(null)
+  const bodyRef = useRef(null)
+  const inputRef = useRef(null)
   const narrow = useNarrow(stage)
-  const [si, setSi] = useState(offset % 3)
-  const [al, setAl] = useState(0)
-  const [note, say] = useNote()
-  const [hist, setHist] = useState({ list: [{ ...PLAIN, b: true }], at: 0 })
-  const [pub, setPub] = useState(false)
-  const [step, setStep] = useState(1)
-  const [g, setG] = useState({ rows: false, few: false, sel: false, n: 12 })
+  const [anchor, setAnchor] = useState(2)
+  const [open, setOpen] = useState(!!auto && offset % 2 === 0)
+  const [searching, setSearching] = useState(false)
+  const [query, setQuery] = useState('')
+  const [tool, setTool] = useState('move')
+  const [shape, setShape] = useState('rect')
+  const [z, setZ] = useState(1)
   const [hot, setHot] = useState(null)
-  const slide = useGroupSlide(barRef, al)
-  const w = hist.list[hist.at]
-  const commit = (next) => setHist((h) => ({ list: [...h.list.slice(0, h.at + 1), next], at: h.at + 1 }))
+  const [note, say] = useNote()
+  const [bodyW, setBodyW] = useState(0)
+  const [rowW, setRowW] = useState(720)
 
-  const groups = [
-    [[{ id: 'undo', i: 'undo' }, { id: 'redo', i: 'redo', opt: true }],
-      [{ id: 'style', t: STYLES[w.style], dd: true }, { id: 'b', i: 'bold', sel: w.b }, { id: 'i', i: 'italic', sel: w.i }, { id: 'link', i: 'link', sel: w.link }],
-      [{ id: 'share', t: 'Share', opt: true }, { id: 'pub', t: pub ? 'Published' : 'Publish', prim: true }]],
-    [[{ id: 'back', i: 'back', t: 'Back', lab: true }],
-      STEPS.map((s, i) => ({ id: 's' + i, t: s, excl: true, sel: step === i, dim: step !== i, opt: step !== i })),
-      [{ id: 'go', t: step === 2 ? 'Pay $148' : 'Continue', i: 'arrow', prim: true }]],
-    [[{ id: 'select', t: g.sel ? 'Cancel' : 'Select' }],
-      [{ id: 'grid', i: 'grid', excl: true, sel: !g.rows }, { id: 'rows', i: 'rows', excl: true, sel: g.rows }],
-      [{ id: 'filter', i: 'filter', t: g.few ? 'Liked' : 'Filter', lab: true, sel: g.few }, { id: 'add', i: 'plus', prim: true }]],
-  ][si].map((grp) => grp.filter((b) => !(narrow && b.opt)))
+  const q = query.trim().toLowerCase()
+  const results = (q ? ACTIONS.filter((a) => a.name.toLowerCase().includes(q)) : SUGGEST.map((id) => ACTIONS.find((a) => a.id === id))).slice(0, narrow ? 1 : 2)
 
-  const press = (id) => {
-    if (si === 0) {
-      if (id === 'style') commit({ ...w, style: (w.style + 1) % 3 })
-      else if (['b', 'i', 'link'].includes(id)) commit({ ...w, [id]: !w[id] })
-      else if (id === 'undo') setHist((h) => ({ ...h, at: Math.max(0, h.at - 1) }))
-      else if (id === 'redo') setHist((h) => ({ ...h, at: Math.min(h.list.length - 1, h.at + 1) }))
-      else if (id === 'share') say('Link copied')
-      else if (id === 'pub') { setPub(true); setTimeout(() => setPub(false), 1400) }
-    }
-    if (si === 1) {
-      if (id === 'go') { if (step === 2) { say('Paid $148 · order placed'); setStep(0) } else setStep(step + 1) }
-      else if (id === 'back') setStep((s) => Math.max(0, s - 1))
-      else if (id[0] === 's') setStep(+id.slice(1))
-    }
-    if (si === 2) {
-      if (id === 'grid') setG((v) => ({ ...v, rows: false }))
-      else if (id === 'rows') setG((v) => ({ ...v, rows: true }))
-      else if (id === 'filter') setG((v) => ({ ...v, few: !v.few }))
-      else if (id === 'select') setG((v) => ({ ...v, sel: !v.sel }))
-      else if (id === 'add') setG((v) => ({ ...v, n: v.n + 1 }))
-    }
+  const run = (a) => {
+    if (!a) return
+    if (a.tool) { if (a.id === 'rect' || a.id === 'ellipse') setShape(a.id); setTool(a.id) }
+    else if (a.id === 'fit') setZ(3)
+    else if (a.id === 'z100') setZ(1)
+    else if (a.id === 'export') say('Exported 2 frames')
+    else if (a.id === 'dup') say('Duplicated selection')
+    setSearching(false); setQuery('')
   }
+  const pickTool = (id) => { if (id === 'rect' || id === 'ellipse') setShape(id); setTool(id) }
+  const toggle = () => { setOpen((v) => !v); setSearching(false); setQuery('') }
+  const startSearch = () => { setOpen(true); setSearching(true) }
+  const press = (id) => {
+    if (TOOLS[id]) pickTool(id)
+    else if (id === 'zoom') setZ((v) => (v + 1) % ZOOMS.length)
+    else if (id === 'search') startSearch()
+    else if (id === 'share') say('Share link copied')
+    else if (id === 'exit') { setSearching(false); setQuery('') }
+  }
+
+  // the search field takes the keyboard as soon as it appears; stepping back hands focus to the control that opened it
+  const was = useRef({ searching, open })
+  useEffect(() => {
+    const prev = was.current
+    was.current = { searching, open }
+    if (auto) return
+    const lost = !stage.current?.contains(document.activeElement)
+    if (searching) inputRef.current?.focus({ preventScroll: true })
+    else if (prev.searching && open && lost) stage.current?.querySelector('[data-id="search"]')?.focus({ preventScroll: true })
+    else if (prev.open && !open && (lost || bodyRef.current?.contains(document.activeElement))) stage.current?.querySelector('.fx-handle')?.focus({ preventScroll: true })
+  }, [searching, open, auto])
+
+  /* keys while the pointer or focus is on the example: tool letters, / or ⌘K to search, Esc to step back */
+  const latest = useRef()
+  latest.current = { open, searching, results, run, pickTool, startSearch }
+  useEffect(() => {
+    if (auto) return
+    const onKey = (e) => {
+      const el = stage.current
+      if (!el || !(el.matches(':hover') || el.contains(document.activeElement))) return
+      const L = latest.current
+      const inField = e.target === inputRef.current
+      if (e.key === 'Escape') {
+        if (L.searching) { e.preventDefault(); setSearching(false); setQuery('') }
+        else if (L.open) { e.preventDefault(); setOpen(false) }
+        return
+      }
+      if (inField) { if (e.key === 'Enter') { e.preventDefault(); L.run(L.results[0]) } return }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); L.startSearch(); return }
+      if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('.sw')) return
+      if (e.key === '/') { e.preventDefault(); L.startSearch(); return }
+      const t = Object.entries(TOOLS).find(([, v]) => v.key.toLowerCase() === e.key.toLowerCase())
+      if (t) { e.preventDefault(); L.pickTool(t[0]) }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [auto])
 
   /* wall: it runs itself */
   useEffect(() => {
     if (!auto) return
-    let k = 0
+    let k = offset
+    const script = ['open', 'frame', 'text', 'pen', 'search', 'el', 'run', 'close']
     const t = setInterval(() => {
-      k++
-      if (k % 5 === 0) { setSi((v) => (v + 1) % 3); setHot(null); return }
-      const ids = [...(barRef.current?.querySelectorAll('.tb-btn') || [])].map((b) => b.dataset.id)
-      const id = ids[k % ids.length]
-      setHot(id)
-      if (k % 2) press(id)
-    }, 900)
+      const L = latest.current
+      const step = script[k++ % script.length]
+      if (step === 'open') setOpen(true)
+      else if (step === 'close') { setOpen(false); setSearching(false); setQuery('') }
+      else if (step === 'search') L.startSearch()
+      else if (step === 'el') setQuery('el')
+      else if (step === 'run') L.run(L.results[0])
+      else { setHot(step); L.pickTool(step) }
+    }, 1000)
     return () => clearInterval(t)
-  }) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [auto, offset])
 
-  const selId = groups.flat().find((b) => b.excl && b.sel)?.id
-  const pill = useMarker(barRef, selId ? `[data-id="${selId}"]` : null, [selId, si, al, narrow])
-  const marks = [w.b && 'bold', w.i && 'italic', w.link && 'link'].filter(Boolean)
-  const status = note || [
-    `${STYLES[w.style]} · ${marks.length ? marks.join(', ') : 'plain'} · step ${hist.at + 1} of ${hist.list.length}${pub ? ' · published' : ''}`,
-    `Step ${step + 1} of 3 · ${STEPS[step]}`,
-    `${g.few ? 5 : g.n} photos · ${g.rows ? 'list' : 'grid'}${g.few ? ' · liked only' : ''}${g.sel ? ' · selecting' : ''}`,
-  ][si]
+  // the bar is exactly as wide as what it holds, so it can grow out of the circle and back
+  const PAD = narrow ? 6 : 8, H = narrow ? 58 : 64, GAP = narrow ? 4 : 12, HANDLE = narrow ? 44 : 48
+  useLayoutEffect(() => {
+    if (bodyRef.current) setBodyW(bodyRef.current.offsetWidth)
+    if (rowRef.current) setRowW(rowRef.current.offsetWidth)
+  }, [open, searching, query, tool, shape, z, narrow, results.length])
+  useEffect(() => {
+    const ro = new ResizeObserver(() => { if (bodyRef.current) setBodyW(bodyRef.current.offsetWidth); if (rowRef.current) setRowW(rowRef.current.offsetWidth) })
+    if (bodyRef.current) ro.observe(bodyRef.current)
+    if (rowRef.current) ro.observe(rowRef.current)
+    return () => ro.disconnect()
+  }, [])
+  const width = open ? Math.min(rowW, PAD * 2 + bodyW + GAP + HANDLE) : H
+
+  const shapeSlot = shape
+  const groups = searching ? null : [
+    ['move', 'frame', shapeSlot, 'pen', 'text', 'comment'].map((id) => ({ id, d: TOOLS[id].d, excl: true, sel: tool === id, opt: id === 'pen' || id === 'comment' || id === shapeSlot, title: `${TOOLS[id].name} (${TOOLS[id].key})` })),
+    [{ id: 'zoom', t: ZOOMS[z], opt: true }],
+    [{ id: 'search', d: IC.search, t: 'Search', lab: true }, { id: 'share', t: 'Share', prim: true }],
+  ].map((g) => g.filter((b) => !(narrow && b.opt)))
+  const pill = useMarker(bodyRef, !searching && open ? `[data-id="${tool}"]` : null, [tool, shape, searching, open, narrow])
+
+  const btn = (b) => (
+    <button key={b.id} type="button" data-id={b.id} title={b.title} aria-label={b.t ? undefined : (b.title || b.id)} aria-current={b.excl && b.sel ? 'true' : undefined}
+      className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.excl && b.sel ? 'is-excl' : ''} ${hot === b.id ? 'is-hot' : ''}`}
+      onClick={() => press(b.id)}>
+      {b.d && <span className="tb-ic">{li(b.d, 2)}</span>}
+      {b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{b.t}</span>}
+    </button>
+  )
+  const handle = (
+    <button type="button" className={`tb-btn cl-btn fx-handle ${open ? 'is-open' : ''}`} aria-expanded={open} aria-controls={`fx-body-${offset}`}
+      aria-label={open ? 'Close tools' : `Open tools, ${TOOLS[tool].name} selected`} title={open ? 'Close (Esc)' : 'Open tools'} onClick={toggle}>
+      <span className="tb-ic fx-a">{li(TOOLS[tool].d, 2)}</span>
+      <span className="tb-ic fx-b">{li(FX_IC.close, 2)}</span>
+    </button>
+  )
+  const status = note || (searching
+    ? (results.length ? `Search · Enter runs “${results[0].name}”` : 'Search · no match')
+    : open ? `${TOOLS[tool].name} tool · zoom ${ZOOMS[z]}` : `Collapsed · ${TOOLS[tool].name} tool`)
 
   return (
     <div className="ex">
       {!auto && (
         <div className="ex-controls">
-          <Switch label="Example" items={CLEAR} value={si} onChange={setSi} />
-          <Switch label="Alignment" items={ALIGN} value={al} onChange={(i) => { slide(); setAl(i) }} />
+          <Switch label="Alignment" items={ANCHOR} value={anchor} onChange={setAnchor} />
         </div>
       )}
-      <div className="ex-stage" ref={stage}>
-        <div className={`tb cl-bar al-${al}`} ref={barRef} role="toolbar" aria-label={`${CLEAR[si]} toolbar`}>
-          {pill && <i key={`pill${si}`} className="cl-pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
-          {groups.map((grp, gi) => (
-            <div key={`${si}-${gi}`} className="tb-group">
-              {grp.map((b) => (
-                <button key={b.id} type="button" data-id={b.id} aria-label={b.t ? undefined : b.id} aria-pressed={b.sel != null && !b.excl ? !!b.sel : undefined} aria-current={b.excl && b.sel ? 'true' : undefined}
-                  className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.sel && !b.excl ? 'is-sel' : ''} ${b.excl && b.sel ? 'is-excl' : ''} ${b.dim ? 'is-dim' : ''} ${hot === b.id ? 'is-hot' : ''}`}
-                  onClick={() => press(b.id)}>
-                  {b.i && <span className="tb-ic">{b.i === 'grid' ? GRID_FILLED : li(IC[b.i], 2)}</span>}
-                  {b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{b.t}</span>}
-                  {b.dd && <span className="cl-dd">{li(IC.chev, 2)}</span>}
-                </button>
-              ))}
+      <div className="ex-stage fx-stage" ref={stage}>
+        <div className={`fx-row at-${anchor}`} ref={rowRef}>
+          <div className={`tb cl-bar fx ${open ? 'open' : ''}`} role="toolbar" aria-label="Design tools" style={{ width, height: H }}>
+            {anchor === 0 && handle}
+            <div className="fx-body" id={`fx-body-${offset}`} ref={bodyRef} inert={open ? undefined : ''}>
+              {pill && <i key={`pill${searching}`} className="cl-pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
+              {searching ? (
+                <div className="fx-mode" key="search">
+                  {!narrow && <div className="tb-group">{btn({ id: 'exit', d: IC.back, title: 'Exit search (Esc)' })}</div>}
+                  <label className="fx-field">
+                    <span className="tb-ic">{li(IC.search, 2)}</span>
+                    <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={narrow ? 'Search' : 'Search tools'} aria-label="Search tools and actions" spellCheck={false} />
+                  </label>
+                  <div className="tb-group">
+                    {results.map((a, i) => (
+                      <button key={a.id} type="button" className={`tb-btn cl-btn has-label ${i === 0 ? 'is-hot' : ''}`} onClick={() => run(a)}>
+                        <span className="tb-ic">{li(a.d, 2)}</span><span className="tb-label">{a.name}</span>{!narrow && <span className="fx-key">{a.key}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="fx-mode" key="tools">
+                  {groups.map((g, gi) => <div key={gi} className="tb-group">{g.map(btn)}</div>)}
+                </div>
+              )}
             </div>
-          ))}
+            {anchor !== 0 && handle}
+          </div>
         </div>
         {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
       </div>
@@ -389,30 +483,31 @@ function ClearSet({ auto, offset = 0 }) {
 /* ================= page ================= */
 const SETS = [
   { id: 'couch', tone: 'Futuristic, Couch Mode', Body: CouchSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=14-2' },
-  { id: 'clear', tone: 'Elegant, Clear', Body: ClearSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=14-285' },
+  { id: 'clear', tone: 'Elegant, Clear', Body: ClearSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=15-2' },
 ]
 
 const SPEC = [
-  ['Toolbar size', '800 × 64, narrows with its container', '720 × 64, narrows with its container'],
+  ['Toolbar size', '800 × 64, narrows with its container', 'collapsed 64 × 64 circle · expanded hugs its content, up to 720 × 64'],
   ['Toolbar padding', '0 × 10', '0 × 8'],
   ['Group spacing', '16', '12'],
   ['Button spacing', '4', '4'],
   ['Button size', '64 high hit area · icon frame 40 × 40 · text frame 40 high', '48 high · icon only 48 × 48'],
   ['Button padding', '0 × 6 · text frame 0 × 14', '0 × 18 with a label · 0 icon only'],
   ['Icon to label', '12, label sits outside the frame', '8'],
-  ['Icon', '20 × 20 · stroke 1', '22 × 22 · stroke 2 · grid filled'],
-  ['Font', 'Inter Medium', 'Geist Medium, −0.5% tracking'],
+  ['Icon', '20 × 20 · stroke 1', '22 × 22 · stroke 2'],
+  ['Font', 'Inter Medium', 'Geist Medium, −0.5% tracking · shortcut hints Geist Mono 12'],
   ['Font size / line height', '15 / 20', '15 / 20'],
-  ['Corner radius', 'toolbar 16 · frame 8 · rings 8', 'toolbar 32 · buttons 24 · recess 24'],
+  ['Corner radius', 'toolbar 16 · frame 8 · rings 8', 'toolbar 32 · buttons 24 · search field 20'],
   ['Stroke width', 'toolbar 1 · frame 1 · focus ring 2 · selection 1.5', 'toolbar 1 · top highlight 1'],
+  ['Search field', '—', '40 high · 200 wide (130 on phones) · black 12% recess · placeholder white 60% · two results (one on phones)'],
   ['Color', 'toolbar #0F141B · stroke #1D232B · frame #2A313A · label #98A2AD · focus #1A9FFF', 'glass #8E939A to #74787E at 72% · blur 24 · white glyphs · primary white 88% on #3A3A3A'],
   ['Enabled', 'label #98A2AD, frame stroke #2A313A', 'white glyph on glass'],
   ['Hover', 'the focus ring glides here; label turns white', 'white 16% fill'],
   ['Pressed', 'frame .94, fills accent 35%; the ring snaps here', 'recess #282C32 16% + inner shadow 0 1 3, scale .97'],
-  ['Selected', 'one indicator, white 8% fill + 1.5 edge, moves between choices', 'one recess moves between choices; toggles hold their own recess'],
-  ['Motion', 'feedback 120 ms ease-out · ring and indicator 220 ms cubic-bezier(0.2, 0, 0, 1) · groups 240 ms', 'feedback 120 ms ease-out · recess 220 ms cubic-bezier(0.2, 0, 0, 1) · groups 240 ms'],
-  ['Input', 'arrows or D-pad move · Enter or A press · Esc or B back · Q / E or LB / RB switch example', 'pointer, Tab and Enter'],
-  ['Phone', 'frame 36 · text 14 · secondary buttons and labels hide', 'toolbar 58 high · buttons 44 · secondary buttons and labels hide'],
+  ['Selected', 'one indicator, white 8% fill + 1.5 edge, moves between choices', 'one recess moves between tools'],
+  ['Motion', 'feedback 120 ms ease-out · ring and indicator 220 ms cubic-bezier(0.2, 0, 0, 1) · groups 240 ms', 'expand 280 ms cubic-bezier(0.2, 0, 0, 1), contents unblur 200 ms · collapse 180 ms ease-in · circle icon to close 120 ms · recess 220 ms'],
+  ['Input', 'arrows or D-pad move · Enter or A press · Esc or B back · Q / E or LB / RB switch example', 'circle opens · Esc closes search, then the bar · V F R O P T C pick tools · / or ⌘K search · Enter runs the first result'],
+  ['Phone', 'frame 36 · text 14 · secondary buttons and labels hide', 'toolbar 58 high · buttons 44 · Pen, Comment, shape and zoom hide · one search result'],
 ]
 
 /* wall (home page hover background): the toolbars operating themselves, repeated to fill the screen */
