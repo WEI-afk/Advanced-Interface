@@ -90,7 +90,8 @@ h1 { margin: 0 0 8px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.0
 /* one focus ring */
 .cm-ring { position: absolute; z-index: 2; left: 0; top: 0; border-radius: 8px; pointer-events: none;
   box-shadow: inset 0 0 0 2px #fff, 0 0 12px color-mix(in srgb, var(--acc) 80%, transparent), 0 0 28px color-mix(in srgb, var(--acc) 30%, transparent);
-  transition: transform var(--t-ind) var(--e-std), width var(--t-ind) var(--e-std), height var(--t-ind) var(--e-std), scale var(--t-fb) ease-out; }
+  transition: translate var(--t-ind) var(--e-std), width var(--t-ind) var(--e-std), height var(--t-ind) var(--e-std), scale var(--t-fb) ease-out; }
+/* position lives in `translate`, so the press can shrink the ring in place without moving it */
 .cm-ring.is-press { scale: .94; transition-property: scale; } /* a press lands where you pressed: the ring stops gliding and snaps to the button */
 .cm-btn.is-press .cm-frame, .cm-btn.is-press .cm-textframe { transform: scale(.94); background: color-mix(in srgb, var(--acc) 35%, transparent); color: #fff; }
 .cm-btn.is-press .tb-label { color: var(--acc); }
