@@ -134,19 +134,39 @@ function CouchSegment({ label, items, value, onChange }) {
   )
 }
 
+// liquid glass catches the light where the pointer is
+const glint = (e) => {
+  const r = e.currentTarget.getBoundingClientRect()
+  e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`)
+  e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`)
+}
+
+// a new selection sends one soft ripple through the glass where it lands; it never plays on first render
+function useRipple(ref, selector, value) {
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    const el = ref.current?.querySelector(selector)
+    if (!el?.animate || reduced()) return
+    el.animate([
+      { opacity: 1, boxShadow: '0 0 0 0 rgba(255,255,255,.45)' },
+      { opacity: 1, boxShadow: '0 0 0 8px rgba(255,255,255,0)' },
+    ], { duration: 420, easing: 'cubic-bezier(0.2, 0, 0, 1)', pseudoElement: '::after' })
+  }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 function ClearSegment({ label, items, value, onChange }) {
   const bar = useRef(null)
-  const pill = useMarker(bar, `[data-i="${value}"]`, [value, items.join()])
   const keys = useSegmentKeys(items, value, onChange)
+  useRipple(bar, `[data-i="${value}"]`, value)
   return (
     <div className="sw">
       <span className="sw-k">{label}</span>
-      <div className="tb cl-bar hug sw-bar" ref={bar} role="radiogroup" aria-label={label} onKeyDown={keys}>
-        {pill && <i className="cl-pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
+      <div className="tb cl-bar hug sw-bar" ref={bar} role="radiogroup" aria-label={label} onKeyDown={keys} onPointerMove={glint}>
         <div className="tb-group">
           {items.map((it, i) => (
             <button key={it} type="button" role="radio" aria-checked={i === value} tabIndex={i === value ? 0 : -1} data-i={i}
-              className={`tb-btn cl-btn has-label ${i === value ? 'is-excl' : ''}`} onClick={() => onChange(i)}>
+              className={`tb-btn cl-btn has-label ${i === value ? 'is-sel' : ''}`} onClick={() => onChange(i)}>
               <span className="tb-label">{it}</span>
             </button>
           ))}
@@ -501,7 +521,7 @@ function ClearSet({ auto, offset = 0 }) {
       const r = field.getBoundingClientRect()
       field.animate([
         { transform: `translateX(${m.rect.left - r.left}px)`, clipPath: `inset(0 ${Math.max(0, r.width - m.rect.width)}px 0 0 round 24px)`, backgroundColor: 'rgba(255,255,255,0)' },
-        { transform: 'none', clipPath: 'inset(0 0 0 0 round 20px)', backgroundColor: 'rgba(0,0,0,.12)' },
+        { transform: 'none', clipPath: 'inset(0 0 0 0 round 20px)', backgroundColor: getComputedStyle(field).backgroundColor },
       ], { duration: 300, easing: ease })
       field.querySelector('input')?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, delay: 120, easing: 'ease-out', fill: 'backwards' })
     } else {
@@ -518,18 +538,18 @@ function ClearSet({ auto, offset = 0 }) {
     }
   }, [topKey])
 
+  useRipple(bodyRef, `.fx-mode.in [data-id="${tool}"]`, tool)
   const shapeSlot = shape
   const groups = [
     ['move', 'frame', shapeSlot, 'pen', 'text', 'comment'].map((id) => ({ id, d: TOOLS[id].d, excl: true, sel: tool === id, opt: id === 'pen' || id === 'comment' || id === shapeSlot, title: `${TOOLS[id].name} (${TOOLS[id].key})` })),
     [{ id: 'zoom', t: ZOOMS[z], opt: true }],
     [{ id: 'search', d: IC.search, t: 'Search', lab: true }, { id: 'share', t: 'Share', prim: true }],
   ].map((g) => g.filter((b) => !(narrow && b.opt)))
-  const pill = useMarker(bodyRef, !searching && open ? `.fx-mode.in [data-id="${tool}"]` : null, [tool, shape, searching, open, narrow, topKey])
 
   // each item arrives in order, starting next to the circle it came out of
   const btn = (b, k = 0, dir = 1) => (
     <button key={b.id} type="button" data-id={b.id} title={b.title} aria-label={b.t ? undefined : (b.title || b.id)} aria-current={b.excl && b.sel ? 'true' : undefined}
-      className={`tb-btn cl-btn fx-item ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.excl && b.sel ? 'is-excl' : ''} ${hot === b.id ? 'is-hot' : ''}`}
+      className={`tb-btn cl-btn fx-item ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.excl && b.sel ? 'is-sel' : ''} ${hot === b.id ? 'is-hot' : ''}`}
       style={{ '--k': k, '--dir': dir }} onClick={() => press(b.id)}>
       {b.d && <span className="tb-ic">{li(b.d, 2)}</span>}
       {b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{b.t}</span>}
@@ -577,10 +597,9 @@ function ClearSet({ auto, offset = 0 }) {
     <div className="ex">
       <div className="ex-stage fx-stage" ref={stage}>
         <div className={`fx-row at-${anchor}`} ref={rowRef}>
-          <div className={`tb cl-bar fx ${open ? 'open' : ''}`} role="toolbar" aria-label="Design tools" style={{ width, height: H }}>
+          <div className={`tb cl-bar fx ${open ? 'open' : ''}`} role="toolbar" aria-label="Design tools" style={{ width, height: H }} onPointerMove={glint}>
             {anchor === 0 && handle}
             <div className="fx-body" id={`fx-body-${offset}`} ref={bodyRef} inert={open ? undefined : ''}>
-              {pill && <i key={`pill${searching}`} className="cl-pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
               {layers.map(renderLayer)}
             </div>
             {anchor !== 0 && handle}
@@ -702,7 +721,7 @@ const SETS = [
   },
   {
     id: 'clear', tone: 'Elegant, Clear', Body: ClearSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=15-2',
-    about: 'A floating glass tool bar for a design canvas. One circle holds the current tool and opens out of itself into the full set.',
+    about: 'A floating liquid-glass tool bar for a design canvas. One circle holds the current tool and opens out of itself into the full set.',
     try: 'Press the circle to open it. Pick tools, press Search or /, and Esc to step back.',
     configs: [
       { title: 'Expand', items: [
@@ -732,10 +751,11 @@ const SETS = [
       ['Layout', [['Collapsed', '64 × 64 circle'], ['Expanded', 'hugs its content, up to 720 × 64'], ['Padding', '0 × 8'], ['Group spacing', '12'], ['Button spacing', '4']]],
       ['Button', [['Size', '48 high · icon only 48 × 48'], ['Padding', '0 × 18 with a label'], ['Icon to label', '8'], ['Icon', '22 × 22 · stroke 2'], ['Search field', '200 × 40 · two results']]],
       ['Type', [['Font', 'Geist Medium, −0.5%'], ['Size / line height', '15 / 20'], ['Shortcut hints', 'Geist Mono 12 / 16']]],
-      ['Shape', [['Corner radius', 'toolbar 32 · buttons 24 · field 20'], ['Stroke width', 'toolbar 1 · top highlight 1']]],
-      ['Color', [['Glass', '#8E939A to #74787E at 72% · blur 24'], ['Glyphs', 'white'], ['Selected', '#282C32 16% recess'], ['Primary', 'white 88% · ink #3A3A3A']]],
-      ['States', [['Hover', 'white 16% fill'], ['Pressed', 'light recess, .97'], ['Selected', 'one recess slides between tools']]],
-      ['Motion', [['Expand', '280 ms cubic-bezier(0.2, 0, 0, 1) · items arrive from the circle, 22 ms apart'], ['Search', 'the button stretches into the field, 300 ms · results follow 22 ms apart'], ['Leaving content', 'fades where it stood, 110 ms ease-in'], ['Collapse', '180 ms ease-in'], ['Icon to close', '120 ms'], ['Recess', '220 ms']]],
+      ['Shape', [['Corner radius', 'toolbar 32 · buttons 24 · field 20'], ['Stroke width', 'rim 1 · droplet edge 1']]],
+      ['Material', [['Glass', 'white 12% to 5%'], ['Backdrop', 'blur 14 · saturate 1.8'], ['Rim', 'white 55% to 4%, lit top left'], ['Glint', '120 circle at the pointer']]],
+      ['Color', [['Droplet', 'white 24% to 10%'], ['Field', 'black 28%, a dip'], ['Primary', 'white 88% · ink #1D1D1F'], ['Glyphs', 'white']]],
+      ['States', [['Hover', 'white 8% fill'], ['Pressed', 'the glass swells to 1.04 and brightens'], ['Selected', 'a raised glass droplet']]],
+      ['Motion', [['Expand', '280 ms cubic-bezier(0.2, 0, 0, 1) · items arrive from the circle, 22 ms apart'], ['Search', 'the button stretches into the field, 300 ms · results follow 22 ms apart'], ['Leaving content', 'fades where it stood, 110 ms ease-in'], ['Collapse', '180 ms ease-in'], ['Icon to close', '120 ms'], ['Selection', 'nothing slides: the new droplet grows in place from 0.7, 260 ms · the old one sinks, 150 ms ease-in'], ['Ripple', 'one ring 8 px out from the new droplet, 420 ms']]],
       ['Input', [['Open', 'press the circle'], ['Step back', 'Esc: search first, then the bar'], ['Tools', 'V F R O P T C'], ['Search', '/ or ⌘K · Enter runs the first result']]],
       ['Phone', [['Size', 'toolbar 58 high · buttons 44'], ['Hidden', 'Pen, Comment, shape, zoom · one search result']]],
     ],
