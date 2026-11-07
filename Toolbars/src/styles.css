@@ -63,9 +63,9 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; overflow-x: c
 .cm .tb-group { gap: 4px; animation: cm-fade var(--t-in) var(--e-std) both; } /* fade only: the ring measures these buttons, so they must not slide */
 @keyframes cm-fade { from { opacity: 0; } }
 .cm-btn { z-index: 1; height: 64px; padding: 0 6px; gap: 12px; font: 500 15px/20px Inter, sans-serif; color: #98a2ad; transition: color var(--t-fb) ease-out; }
-.cm-frame { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 8px; box-shadow: inset 0 0 0 1px #2a313a; color: #aab3bd; transition: color var(--t-fb) ease-out, transform var(--t-fb) ease-out; }
+.cm-frame { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 8px; box-shadow: inset 0 0 0 1px #2a313a; color: #aab3bd; transition: color var(--t-fb) ease-out, transform var(--t-fb) ease-out, background-color var(--t-fb) ease-out; }
 .cm-frame svg { width: 20px; height: 20px; }
-.cm-textframe { display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 8px; box-shadow: inset 0 0 0 1px #2a313a; transition: transform var(--t-fb) ease-out, box-shadow var(--t-fb) ease-out, color var(--t-fb) ease-out; }
+.cm-textframe { display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 8px; box-shadow: inset 0 0 0 1px #2a313a; transition: transform var(--t-fb) ease-out, box-shadow var(--t-fb) ease-out, color var(--t-fb) ease-out, background-color var(--t-fb) ease-out; }
 .cm-btn.is-focus, .cm-btn.is-focus .cm-frame { color: #fff; }
 .cm-btn.is-sel .cm-textframe { color: #fff; } /* the sliding selection indicator draws its edge */
 .cm-btn.is-sel.is-excl .cm-textframe { box-shadow: none; }
@@ -77,8 +77,8 @@ main { max-width: 1040px; margin: 0 auto; padding: 48px 16px 80px; overflow-x: c
 .cm-ring { position: absolute; z-index: 2; left: 0; top: 0; border-radius: 8px; pointer-events: none;
   box-shadow: inset 0 0 0 2px #fff, 0 0 12px color-mix(in srgb, var(--acc) 80%, transparent), 0 0 28px color-mix(in srgb, var(--acc) 30%, transparent);
   transition: transform var(--t-ind) var(--e-std), width var(--t-ind) var(--e-std), height var(--t-ind) var(--e-std), scale var(--t-fb) ease-out, background-color var(--t-fb) ease-out; }
-.cm-ring.is-press { scale: .94; background: color-mix(in srgb, var(--acc) 45%, transparent); }
-.cm-btn.is-press .cm-frame, .cm-btn.is-press .cm-textframe { transform: scale(.94); }
+.cm-ring.is-press { scale: .94; transition-property: scale; } /* a press lands where you pressed: the ring stops gliding and snaps to the button */
+.cm-btn.is-press .cm-frame, .cm-btn.is-press .cm-textframe { transform: scale(.94); background: color-mix(in srgb, var(--acc) 35%, transparent); color: #fff; }
 .cm-btn.is-press .tb-label { color: var(--acc); }
 .cm-legend { display: flex; justify-content: flex-end; gap: 18px; font: 500 13px/20px Inter, sans-serif; }
 .cm-legend span { display: inline-flex; align-items: center; gap: 8px; }

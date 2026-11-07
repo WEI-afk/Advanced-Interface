@@ -41,8 +41,11 @@ function useMarker(barRef, selector, deps) {
     const bar = barRef.current
     const el = bar && selector && bar.querySelector(selector)
     if (!el) { setBox(null); return }
-    const a = el.getBoundingClientRect(), b = bar.getBoundingClientRect()
-    setBox({ x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height })
+    // layout geometry, not the painted box: a pressed button is scaled down, and the marker must not shrink with it
+    let x = 0, y = 0, n = el
+    while (n && n !== bar) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent }
+    if (n !== bar) { const a = el.getBoundingClientRect(), b = bar.getBoundingClientRect(); x = a.left - b.left; y = a.top - b.top }
+    setBox({ x, y, w: el.offsetWidth, h: el.offsetHeight })
   }
   useLayoutEffect(measure, deps) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -226,7 +229,7 @@ function CouchSet({ auto, offset = 0 }) {
                 return (
                   <button key={b.id} type="button" tabIndex={-1} data-id={b.id} aria-label={b.t ? undefined : b.id} aria-pressed={b.sel != null ? !!b.sel : undefined}
                     className={`tb-btn cm-btn ${b.i ? '' : 'cm-text'} ${idx === f ? 'is-focus' : ''} ${b.sel ? 'is-sel' : ''} ${b.excl ? 'is-excl' : ''} ${down === b.id ? 'is-press' : ''}`}
-                    onPointerEnter={() => !auto && setFocus(idx)} onPointerDown={() => !auto && setDown(b.id)} onPointerUp={() => setDown(null)} onPointerLeave={() => setDown(null)}
+                    onPointerEnter={() => !auto && setFocus(idx)} onPointerDown={() => { if (!auto) { setFocus(idx); setDown(b.id) } }} onPointerUp={() => setDown(null)} onPointerLeave={() => setDown(null)}
                     onClick={() => { if (!auto) { setFocus(idx); press(b) } }}>
                     {b.i ? <span className="cm-frame cm-target">{li(IC[b.i])}</span> : <span className="cm-target cm-textframe">{label}</span>}
                     {b.i && b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{label}</span>}
