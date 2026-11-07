@@ -482,32 +482,8 @@ function ClearSet({ auto, offset = 0 }) {
 
 /* ================= page ================= */
 const SETS = [
-  { id: 'couch', tone: 'Futuristic, Couch Mode', Body: CouchSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=14-2' },
-  { id: 'clear', tone: 'Elegant, Clear', Body: ClearSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=15-2' },
-]
-
-const SPEC = [
-  ['Toolbar size', '800 × 64, narrows with its container', 'collapsed 64 × 64 circle · expanded hugs its content, up to 720 × 64'],
-  ['Toolbar padding', '0 × 10', '0 × 8'],
-  ['Group spacing', '16', '12'],
-  ['Button spacing', '4', '4'],
-  ['Button size', '64 high hit area · icon frame 40 × 40 · text frame 40 high', '48 high · icon only 48 × 48'],
-  ['Button padding', '0 × 6 · text frame 0 × 14', '0 × 18 with a label · 0 icon only'],
-  ['Icon to label', '12, label sits outside the frame', '8'],
-  ['Icon', '20 × 20 · stroke 1', '22 × 22 · stroke 2'],
-  ['Font', 'Inter Medium', 'Geist Medium, −0.5% tracking · shortcut hints Geist Mono 12'],
-  ['Font size / line height', '15 / 20', '15 / 20'],
-  ['Corner radius', 'toolbar 16 · frame 8 · rings 8', 'toolbar 32 · buttons 24 · search field 20'],
-  ['Stroke width', 'toolbar 1 · frame 1 · focus ring 2 · selection 1.5', 'toolbar 1 · top highlight 1'],
-  ['Search field', '—', '40 high · 200 wide (130 on phones) · black 12% recess · placeholder white 60% · two results (one on phones)'],
-  ['Color', 'toolbar #0F141B · stroke #1D232B · frame #2A313A · label #98A2AD · focus #1A9FFF', 'glass #8E939A to #74787E at 72% · blur 24 · white glyphs · primary white 88% on #3A3A3A'],
-  ['Enabled', 'label #98A2AD, frame stroke #2A313A', 'white glyph on glass'],
-  ['Hover', 'the focus ring glides here; label turns white', 'white 16% fill'],
-  ['Pressed', 'frame .94, fills accent 35%; the ring snaps here', 'recess #282C32 16% + inner shadow 0 1 3, scale .97'],
-  ['Selected', 'one indicator, white 8% fill + 1.5 edge, moves between choices', 'one recess moves between tools'],
-  ['Motion', 'feedback 120 ms ease-out · ring and indicator 220 ms cubic-bezier(0.2, 0, 0, 1) · groups 240 ms', 'expand 280 ms cubic-bezier(0.2, 0, 0, 1), contents unblur 200 ms · collapse 180 ms ease-in · circle icon to close 120 ms · recess 220 ms'],
-  ['Input', 'arrows or D-pad move · Enter or A press · Esc or B back · Q / E or LB / RB switch example', 'circle opens · Esc closes search, then the bar · V F R O P T C pick tools · / or ⌘K search · Enter runs the first result'],
-  ['Phone', 'frame 36 · text 14 · secondary buttons and labels hide', 'toolbar 58 high · buttons 44 · Pen, Comment, shape and zoom hide · one search result'],
+  { id: 'couch', tone: 'Futuristic, Couch Mode', Body: CouchSet },
+  { id: 'clear', tone: 'Elegant, Clear', Body: ClearSet },
 ]
 
 /* wall (home page hover background): the toolbars operating themselves, repeated to fill the screen */
@@ -552,16 +528,6 @@ export default function App() {
             <set.Body />
           </article>
         ))}
-      </section>
-      <section className="spec" aria-labelledby="spec-h">
-        <h2 id="spec-h">Specifications</h2>
-        <div className="spec-scroll">
-          <table>
-            <thead><tr><th scope="col" />{SETS.map((s) => <th key={s.id} scope="col">{s.tone}</th>)}</tr></thead>
-            <tbody>{SPEC.map(([k, a, b]) => <tr key={k}><th scope="row">{k}</th><td>{a}</td><td>{b}</td></tr>)}</tbody>
-          </table>
-        </div>
-        <p className="spec-note">All values in px. Figma drawings: {SETS.map((s, i) => <span key={s.id}>{i ? ' · ' : ''}<a href={s.figma} target="_blank" rel="noreferrer">{s.tone}</a></span>)}</p>
       </section>
     </main>
   )

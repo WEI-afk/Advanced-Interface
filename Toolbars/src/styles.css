@@ -3,7 +3,7 @@ body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #f4f4f2
 main { max-width: 1040px; margin: 0 auto; padding: 40px 16px 64px; overflow-x: clip; }
 h1 { margin: 0 0 32px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.02em; }
 .set { margin-bottom: 48px; container: set / inline-size; }
-.set h2, .spec h2 { margin: 0 0 14px; font: 600 17px/24px Inter, sans-serif; letter-spacing: -0.01em; }
+.set h2 { margin: 0 0 14px; font: 600 17px/24px Inter, sans-serif; letter-spacing: -0.01em; }
 
 /* motion tokens (Desktop/Documents/motion.md): feedback 120 ms ease-out · indicators 220 ms standard · entrances 240 ms standard · exits 150 ms ease-in
    no overshoot or bounce on routine controls; transitions name only the properties that change */
@@ -106,17 +106,6 @@ h1 { margin: 0 0 32px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.
 .fx-field input::placeholder { color: rgba(255,255,255,.6); }
 .fx-field:focus-within { box-shadow: inset 0 1px 2px rgba(0,0,0,.12), 0 0 0 2px rgba(255,255,255,.7); }
 .fx-key { margin-left: 2px; font: 400 12px/16px "Geist Mono", ui-monospace, monospace; color: rgba(255,255,255,.62); }
-
-/* ================= specifications ================= */
-.spec { margin-top: 8px; padding-top: 28px; border-top: 1px solid #deded9; }
-.spec-scroll { overflow-x: auto; }
-.spec table { width: 100%; min-width: 620px; border-collapse: collapse; font: 400 13px/20px Inter, sans-serif; }
-.spec th, .spec td { padding: 8px 16px 8px 0; text-align: left; vertical-align: top; border-bottom: 1px solid #e6e6e1; }
-.spec thead th { font-weight: 600; color: #1b1b1b; }
-.spec tbody th { width: 170px; font-weight: 500; color: #6b6b68; }
-.spec td { color: #1b1b1b; font-variant-numeric: tabular-nums; }
-.spec-note { margin: 14px 0 0; font: 400 13px/20px Inter, sans-serif; color: #6b6b68; }
-.spec-note a { color: #1b1b1b; text-underline-offset: 3px; }
 
 @container set (max-width: 640px) {
   .tb-label.opt { display: none; }
