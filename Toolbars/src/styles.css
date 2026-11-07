@@ -128,18 +128,19 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
    rim 1: a lens edge, bright at the top left and bottom right · top specular 1 white 35% · inner glow 16 · shadow 0 12 32 black 50%
    button 48 high (icon only 48 × 48), radius 24, padding 0 18, gap 8 · icon 22 bold (stroke 2 or filled) · Geist 500 15/20 white
    selected: a raised droplet, white 24% to 10% + top specular 1 white 55% · primary: white 88%, ink #1D1D1F */
-.cl-bar { isolation: isolate; width: min(720px, 100%); height: 64px; padding: 0 8px; gap: 12px; border-radius: 32px; color: #fff;
+.cl-bar { width: min(720px, 100%); height: 64px; padding: 0 8px; gap: 12px; border-radius: 32px; }
+.cl-bar, .fx-list { isolation: isolate; color: #fff;
   background: linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,0) 45%), linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
   -webkit-backdrop-filter: blur(14px) saturate(1.8); backdrop-filter: blur(14px) saturate(1.8);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 1px rgba(255,255,255,.08), inset 0 0 16px rgba(255,255,255,.05), 0 12px 32px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.35); }
 /* the rim: light bends at the glass edge, brightest where it faces the light */
-.cl-bar::before { content: ''; position: absolute; inset: 0; z-index: 0; padding: 1px; border-radius: inherit; pointer-events: none;
+.cl-bar::before, .fx-list::before { content: ''; position: absolute; inset: 0; z-index: 0; padding: 1px; border-radius: inherit; pointer-events: none;
   background: linear-gradient(140deg, rgba(255,255,255,.55), rgba(255,255,255,.1) 28%, rgba(255,255,255,.04) 62%, rgba(255,255,255,.3));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
 /* the glint: the glass catches light where the pointer is */
-.cl-bar::after { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+.cl-bar::after, .fx-list::after { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; opacity: 0;
   background: radial-gradient(120px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,.12), transparent 70%); transition: opacity var(--t-fb) ease-out; }
-.cl-bar:hover::after { opacity: 1; }
+.cl-bar:hover::after, .fx-list:hover::after { opacity: 1; }
 .cl-bar .tb-group { gap: 4px; }
 .cl-btn { z-index: 1; height: 48px; min-width: 48px; padding: 0; gap: 8px; border-radius: 24px; color: #fff; font: 500 15px/20px Geist, Inter, sans-serif; letter-spacing: -0.005em;
   transition: background-color var(--t-fb) ease-out, transform var(--t-fb) ease-out, color var(--t-fb) ease-out; }
@@ -150,11 +151,11 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .cl-btn:active { background: rgba(255,255,255,.18); transform: scale(1.04); }
 .cl-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 /* every choice owns its droplet. Nothing travels: the new one grows where it is (260 ms standard), the old one sinks where it was (150 ms ease-in) */
-.cl-btn::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: 0; transform: scale(.7);
+.cl-btn::before, .fx-opt::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: 0; transform: scale(.7);
   background: linear-gradient(180deg, rgba(255,255,255,.24), rgba(255,255,255,.1));
   box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(255,255,255,.12), inset 0 0 0 1px rgba(255,255,255,.08), 0 4px 12px rgba(0,0,0,.28);
   transition: opacity 150ms ease-in, transform 150ms ease-in; }
-.cl-btn.is-sel::before { opacity: 1; transform: none; transition: opacity 200ms var(--e-std), transform 260ms var(--e-std); }
+.cl-btn.is-sel::before, .fx-opt.is-sel::before { opacity: 1; transform: none; transition: opacity 200ms var(--e-std), transform 260ms var(--e-std); }
 /* the ripple the new droplet sends through the glass (played once from script, never on first render) */
 .cl-btn::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; }
 .cl-btn.is-dim { color: rgba(255,255,255,.62); }
@@ -195,6 +196,24 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .fx-field input { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: #fff; font: 500 15px/20px Geist, Inter, sans-serif; letter-spacing: -0.005em; outline: none; }
 .fx-field input::placeholder { color: rgba(255,255,255,.6); }
 .fx-field:focus-within { box-shadow: inset 0 1px 3px rgba(0,0,0,.4), inset 0 -1px 0 rgba(255,255,255,.1), 0 0 0 1.5px rgba(255,255,255,.6); }
+/* the live bar sits at the foot of its stage, leaving room above for the results list (label 28 + 4 rows of 40 + gaps + padding, 10 above the bar) */
+.fx-stage { padding-top: 230px; }
+.fx-anchor { position: relative; flex: none; display: flex; }
+.fx-anchor.has-list { flex-direction: column; gap: 10px; }
+/* searching: the field fills the bar (the bar keeps the width of the tool set), the results list rises above it */
+.fx-mode.is-search .fx-field { flex: 1 1 auto; width: auto; min-width: 0; }
+.fx-list { position: absolute; left: 0; right: 0; bottom: calc(100% + 10px); z-index: 2; display: flex; flex-direction: column; gap: 2px; padding: 6px; border-radius: 24px; transform-origin: 50% 100%;
+  animation: fx-list-in 260ms var(--e-std) 140ms backwards; }
+.fx-list.out { pointer-events: none; animation: fx-list-out 150ms ease-in forwards; }
+.fx-list.static { position: relative; left: auto; right: auto; bottom: auto; animation: none; }
+@keyframes fx-list-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+@keyframes fx-list-out { to { opacity: 0; transform: translateY(4px) scale(.99); } }
+.fx-list-k { margin: 0; padding: 8px 12px 4px; font: 500 12px/16px Geist, Inter, sans-serif; color: rgba(255,255,255,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-opt { position: relative; z-index: 0; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 18px; cursor: pointer; white-space: nowrap;
+  font: 500 15px/20px Geist, Inter, sans-serif; letter-spacing: -0.005em; }
+.fx-opt .tb-ic { flex: none; width: 18px; height: 18px; }
+.fx-opt-c { font-size: 13px; color: rgba(255,255,255,.5); }
+.fx-opt .fx-key { margin-left: auto; }
 .fx-key { margin-left: 2px; font: 400 12px/16px "Geist Mono", ui-monospace, monospace; color: rgba(255,255,255,.62); }
 
 @container set (max-width: 640px) {

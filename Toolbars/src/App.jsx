@@ -362,13 +362,38 @@ const FX_IC = {
   zoom: ['M9 3.500a5.500 5.500 0 1 0 0 11 5.500 5.500 0 0 0 0-11z', 'M13 13l4 4', 'M9 6.500v5', 'M6.500 9h5'], dup: ['M7 7h10v10H7z', 'M13 7V3H3v10h4'],
 }
 const ACTIONS = [
-  ...Object.entries(TOOLS).map(([id, t]) => ({ id, name: t.name, key: t.key, d: t.d, tool: true })),
-  { id: 'fit', name: 'Zoom to fit', key: '⇧1', d: FX_IC.fit },
-  { id: 'z100', name: 'Zoom to 100%', key: '⇧0', d: FX_IC.zoom },
-  { id: 'export', name: 'Export', key: '⇧⌘E', d: IC.share },
-  { id: 'dup', name: 'Duplicate', key: '⌘D', d: FX_IC.dup },
+  ...Object.entries(TOOLS).map(([id, t]) => ({ id, name: t.name, key: t.key, d: t.d, tool: true, kind: 'Tool' })),
+  { id: 'fit', name: 'Zoom to fit', key: '⇧1', d: FX_IC.fit, kind: 'View' },
+  { id: 'z100', name: 'Zoom to 100%', key: '⇧0', d: FX_IC.zoom, kind: 'View' },
+  { id: 'export', name: 'Export', key: '⇧⌘E', d: IC.share, kind: 'Action' },
+  { id: 'dup', name: 'Duplicate', key: '⌘D', d: FX_IC.dup, kind: 'Action' },
 ]
-const SUGGEST = ['ellipse', 'fit']
+const SUGGEST = ['ellipse', 'fit', 'export', 'dup']
+const LIST_MAX = 4
+
+// keeps something mounted long enough to play its exit
+function usePresence(on, ms) {
+  const [mounted, setMounted] = useState(on)
+  useEffect(() => {
+    if (on) { setMounted(true); return }
+    const t = setTimeout(() => setMounted(false), ms)
+    return () => clearTimeout(t)
+  }, [on, ms])
+  return { mounted: on || mounted, leaving: !on && mounted }
+}
+
+// one row of the results list; the highlighted row holds a droplet, like a selected tool
+function ResultRow({ a, id, on, onHover, onRun }) {
+  return (
+    <div id={id} role="option" aria-selected={on} className={`fx-opt ${on ? 'is-sel' : ''}`}
+      onPointerMove={onHover} onPointerDown={(e) => e.preventDefault()} onClick={onRun}>
+      <span className="tb-ic">{li(a.d, 2)}</span>
+      <span className="fx-opt-n">{a.name}</span>
+      <span className="fx-opt-c">{a.kind}</span>
+      <span className="fx-key">{a.key}</span>
+    </div>
+  )
+}
 const ZOOMS = ['50%', '100%', '200%', 'Fit']
 const ANCHOR = ['Left', 'Center', 'Right']
 
@@ -382,6 +407,7 @@ function ClearSet({ auto, offset = 0 }) {
   const [open, setOpen] = useState(!!auto && offset % 2 === 0)
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState('')
+  const [hi, setHi] = useState(0)
   const [tool, setTool] = useState('move')
   const [shape, setShape] = useState('rect')
   const [z, setZ] = useState(1)
@@ -391,7 +417,7 @@ function ClearSet({ auto, offset = 0 }) {
   const [rowW, setRowW] = useState(720)
 
   const q = query.trim().toLowerCase()
-  const results = (q ? ACTIONS.filter((a) => a.name.toLowerCase().includes(q)) : SUGGEST.map((id) => ACTIONS.find((a) => a.id === id))).slice(0, narrow ? 1 : 2)
+  const results = (q ? ACTIONS.filter((a) => a.name.toLowerCase().includes(q)) : SUGGEST.map((id) => ACTIONS.find((a) => a.id === id))).slice(0, LIST_MAX)
 
   const run = (a) => {
     if (!a) return
@@ -408,7 +434,8 @@ function ClearSet({ auto, offset = 0 }) {
   const morph = useRef(null)
   const rectIn = (sel) => bodyRef.current?.querySelector(`.fx-mode.in ${sel}`)?.getBoundingClientRect()
   const startSearch = () => { if (open && !searching) morph.current = { to: 'search', rect: rectIn('[data-id="search"]') }; setOpen(true); setSearching(true) }
-  const endSearch = () => { morph.current = { to: 'tools', rect: rectIn('.fx-field') }; setSearching(false); setQuery('') }
+  const endSearch = () => { morph.current = { to: 'tools', rect: rectIn('.fx-field') }; setSearching(false); setQuery(''); setHi(0) }
+  const type = (v) => { setQuery(v); setHi(0) }
   const press = (id) => {
     if (TOOLS[id]) pickTool(id)
     else if (id === 'zoom') setZ((v) => (v + 1) % ZOOMS.length)
@@ -429,7 +456,7 @@ function ClearSet({ auto, offset = 0 }) {
 
   /* keys while the pointer or focus is on the example: tool letters, / or ⌘K to search, Esc to step back */
   const latest = useRef()
-  latest.current = { open, searching, results, run, pickTool, startSearch, endSearch }
+  latest.current = { type, open, searching, results, hi, run, pickTool, startSearch, endSearch }
   useEffect(() => {
     if (auto) return
     const onKey = (e) => {
@@ -442,7 +469,12 @@ function ClearSet({ auto, offset = 0 }) {
         else if (L.open) { e.preventDefault(); setOpen(false) }
         return
       }
-      if (inField) { if (e.key === 'Enter') { e.preventDefault(); L.run(L.results[0]) } return }
+      if (inField) {
+        const n = L.results.length
+        if (e.key === 'Enter') { e.preventDefault(); L.run(L.results[L.hi]) }
+        else if (n && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); setHi((h) => (h + (e.key === 'ArrowDown' ? 1 : n - 1)) % n) }
+        return
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); L.startSearch(); return }
       if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('.sw')) return
       if (e.key === '/') { e.preventDefault(); L.startSearch(); return }
@@ -464,7 +496,7 @@ function ClearSet({ auto, offset = 0 }) {
       if (step === 'open') setOpen(true)
       else if (step === 'close') { setOpen(false); setSearching(false); setQuery('') }
       else if (step === 'search') L.startSearch()
-      else if (step === 'el') setQuery('el')
+      else if (step === 'el') L.type('el')
       else if (step === 'run') L.run(L.results[0])
       else { setHot(step); L.pickTool(step) }
     }, 1000)
@@ -473,7 +505,10 @@ function ClearSet({ auto, offset = 0 }) {
 
   // the bar is exactly as wide as what it holds, so it can grow out of the circle and back
   const PAD = narrow ? 6 : 8, H = narrow ? 58 : 64, GAP = narrow ? 4 : 12, HANDLE = narrow ? 44 : 48
+  const [toolsW, setToolsW] = useState(0)
   useLayoutEffect(() => {
+    const tools = bodyRef.current?.querySelector('.fx-mode.in.is-tools')
+    if (tools) setToolsW(tools.offsetWidth)
     if (bodyRef.current) setBodyW(bodyRef.current.offsetWidth)
     if (rowRef.current) setRowW(rowRef.current.offsetWidth)
   }, [open, searching, query, tool, shape, z, narrow, results.length])
@@ -568,41 +603,50 @@ function ClearSet({ auto, offset = 0 }) {
     const isIn = !l.out
     const cls = `fx-mode ${isIn ? 'in' : 'out'}`
     if (l.mode === 'search') return (
-      <div className={cls} key={l.key} inert={isIn ? undefined : ''} aria-hidden={isIn ? undefined : true}>
+      <div className={`${cls} is-search`} key={l.key} style={{ width: toolsW || undefined }} inert={isIn ? undefined : ''} aria-hidden={isIn ? undefined : true}>
         {!narrow && <div className="tb-group">{btn({ id: 'exit', d: IC.back, title: 'Exit search (Esc)' }, 3, 1)}</div>}
         <label className="fx-field">
           <span className="tb-ic">{li(IC.search, 2)}</span>
-          <input ref={isIn ? inputRef : undefined} readOnly={!isIn} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={narrow ? 'Search' : 'Search tools'} aria-label="Search tools and actions" spellCheck={false} />
+          <input ref={isIn ? inputRef : undefined} readOnly={!isIn} value={query} onChange={(e) => type(e.target.value)} placeholder={narrow ? 'Search' : 'Search tools and actions'}
+            role="combobox" aria-expanded={isIn} aria-controls={listId} aria-autocomplete="list" aria-activedescendant={isIn && results[hi] ? `${listId}-${results[hi].id}` : undefined}
+            aria-label="Search tools and actions" spellCheck={false} />
         </label>
-        <div className="tb-group">
-          {results.map((a, i) => (
-            <button key={a.id} type="button" className={`tb-btn cl-btn has-label fx-item ${i === 0 ? 'is-hot' : ''}`} style={{ '--k': i + 4, '--dir': -1 }} onClick={() => run(a)}>
-              <span className="tb-ic">{li(a.d, 2)}</span><span className="tb-label">{a.name}</span>{!narrow && <span className="fx-key">{a.key}</span>}
-            </button>
-          ))}
-        </div>
       </div>
     )
     return (
-      <div className={cls} key={l.key} inert={isIn ? undefined : ''} aria-hidden={isIn ? undefined : true}>
+      <div className={`${cls} is-tools`} key={l.key} inert={isIn ? undefined : ''} aria-hidden={isIn ? undefined : true}>
         {groups.map((g, gi) => <div key={gi} className="tb-group">{g.map((b) => btn(b, dirOut === 1 ? flatTools.length - 1 - flatTools.indexOf(b) : flatTools.indexOf(b), dirOut))}</div>)}
       </div>
     )
   }
+  const listId = `fx-list-${offset}`
+  const list = usePresence(open && searching, 150)
+  const shown = useRef({ label: '', items: [], hi: 0 })
+  if (open && searching) shown.current = { label: q ? (results.length ? 'Results' : `No match for “${query.trim()}”`) : 'Suggested', items: results, hi }
   const status = note || (searching
-    ? (results.length ? `Search · Enter runs “${results[0].name}”` : 'Search · no match')
+    ? (results.length ? `Search · ↑ ↓ to choose · Enter runs “${results[hi]?.name}”` : 'Search · no match')
     : open ? `${TOOLS[tool].name} tool · zoom ${ZOOMS[z]}` : `Collapsed · ${TOOLS[tool].name} tool`)
 
   return (
     <div className="ex">
       <div className="ex-stage fx-stage" ref={stage}>
         <div className={`fx-row at-${anchor}`} ref={rowRef}>
-          <div className={`tb cl-bar fx ${open ? 'open' : ''}`} role="toolbar" aria-label="Design tools" style={{ width, height: H }} onPointerMove={glint}>
-            {anchor === 0 && handle}
-            <div className="fx-body" id={`fx-body-${offset}`} ref={bodyRef} inert={open ? undefined : ''}>
-              {layers.map(renderLayer)}
+          <div className="fx-anchor">
+            {list.mounted && (
+              <div className={`fx-list ${list.leaving ? 'out' : ''}`} id={listId} role="listbox" aria-label="Results" onPointerMove={glint}>
+                <p className="fx-list-k">{shown.current.label}</p>
+                {shown.current.items.map((a, i) => (
+                  <ResultRow key={a.id} a={a} id={`${listId}-${a.id}`} on={i === shown.current.hi} onHover={() => setHi(i)} onRun={() => run(a)} />
+                ))}
+              </div>
+            )}
+            <div className={`tb cl-bar fx ${open ? 'open' : ''}`} role="toolbar" aria-label="Design tools" style={{ width, height: H }} onPointerMove={glint}>
+              {anchor === 0 && handle}
+              <div className="fx-body" id={`fx-body-${offset}`} ref={bodyRef} inert={open ? undefined : ''}>
+                {layers.map(renderLayer)}
+              </div>
+              {anchor !== 0 && handle}
             </div>
-            {anchor !== 0 && handle}
           </div>
         </div>
         {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
@@ -643,7 +687,7 @@ function CouchStatic({ groups, align = 0, hug }) {
   )
 }
 
-function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'move' }) {
+function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'move', list }) {
   const handle = !noHandle && (
     <span className={`tb-btn cl-btn fx-handle ${collapsed ? '' : 'is-open'}`}>
       <span className="tb-ic fx-a">{li(TOOLS[tool].d, 2)}</span>
@@ -652,6 +696,13 @@ function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'mov
   )
   return (
     <div className={`fx-row at-${anchor}`}>
+      <div className={`fx-anchor ${list ? 'has-list' : ''}`}>
+      {list && (
+        <div className="fx-list static">
+          <p className="fx-list-k">{list.label}</p>
+          {list.items.map((id, i) => <ResultRow key={id} a={ACTIONS.find((a) => a.id === id)} on={i === 0} />)}
+        </div>
+      )}
       <div className={`tb cl-bar fx static ${collapsed ? '' : 'open'}`}>
         {anchor === 0 && handle}
         {!collapsed && (
@@ -660,7 +711,7 @@ function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'mov
               {groups.map((g, gi) => (
                 <div key={gi} className="tb-group">
                   {g.map((b, bi) => b.field ? (
-                    <span key={bi} className="fx-field"><span className="tb-ic">{li(IC.search, 2)}</span><span className="fx-ph">Search tools</span></span>
+                    <span key={bi} className="fx-field" style={{ width: b.w }}><span className="tb-ic">{li(IC.search, 2)}</span><span className="fx-ph">Search tools and actions</span></span>
                   ) : (
                     <span key={bi} className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.sel ? 'is-sel' : ''} ${b.st === 'hover' ? 'is-hot' : ''} ${b.st === 'press' ? 'is-down' : ''}`}>
                       {b.d && <span className="tb-ic">{li(b.d, 2)}</span>}
@@ -674,6 +725,7 @@ function ClearStatic({ groups = [], anchor = 0, collapsed, noHandle, tool = 'mov
           </div>
         )}
         {anchor !== 0 && handle}
+      </div>
       </div>
     </div>
   )
@@ -727,7 +779,7 @@ const SETS = [
       { title: 'Expand', items: [
         ['Collapsed: one circle holding the current tool', <ClearStatic collapsed anchor={0} />],
         ['Expanded: the circle becomes close', <ClearStatic groups={FIGMA_TOOLS} anchor={0} />],
-        ['Search: Enter runs the first result', <ClearStatic anchor={0} groups={[[{ d: IC.back }], [{ field: true }], [{ d: TOOLS.ellipse.d, t: 'Ellipse', k: 'O', st: 'hover' }, { d: FX_IC.fit, t: 'Zoom to fit', k: '⇧1' }]]} />],
+        ['Search: the field fills the bar, results list above · Enter runs the highlighted row', <ClearStatic anchor={2} groups={[[{ d: IC.back }], [{ field: true, w: 544 }]]} list={{ label: 'Suggested', items: SUGGEST }} />],
       ] },
       { title: 'Alignment', items: [
         ['Left: opens to the right', <ClearStatic groups={FIGMA_TOOLS} anchor={0} />],
@@ -749,15 +801,16 @@ const SETS = [
     ],
     spec: [
       ['Layout', [['Collapsed', '64 × 64 circle'], ['Expanded', 'hugs its content, up to 720 × 64'], ['Padding', '0 × 8'], ['Group spacing', '12'], ['Button spacing', '4']]],
-      ['Button', [['Size', '48 high · icon only 48 × 48'], ['Padding', '0 × 18 with a label'], ['Icon to label', '8'], ['Icon', '22 × 22 · stroke 2'], ['Search field', '200 × 40 · two results']]],
+      ['Button', [['Size', '48 high · icon only 48 × 48'], ['Padding', '0 × 18 with a label'], ['Icon to label', '8'], ['Icon', '22 × 22 · stroke 2'], ['Search field', '40 high, fills the bar']]],
+      ['Results list', [['Position', '10 above the bar, as wide as the bar'], ['Padding', '6 · rows 2 apart'], ['Row', '40 high · radius 18 · padding 0 × 12 · icon 18'], ['Label', 'Geist 500 12 / 16, white 50%'], ['Highlight', 'the droplet, grown in place']]],
       ['Type', [['Font', 'Geist Medium, −0.5%'], ['Size / line height', '15 / 20'], ['Shortcut hints', 'Geist Mono 12 / 16']]],
       ['Shape', [['Corner radius', 'toolbar 32 · buttons 24 · field 20'], ['Stroke width', 'rim 1 · droplet edge 1']]],
       ['Material', [['Glass', 'white 12% to 5%'], ['Backdrop', 'blur 14 · saturate 1.8'], ['Rim', 'white 55% to 4%, lit top left'], ['Glint', '120 circle at the pointer']]],
       ['Color', [['Droplet', 'white 24% to 10%'], ['Field', 'black 28%, a dip'], ['Primary', 'white 88% · ink #1D1D1F'], ['Glyphs', 'white']]],
       ['States', [['Hover', 'white 8% fill'], ['Pressed', 'the glass swells to 1.04 and brightens'], ['Selected', 'a raised glass droplet']]],
-      ['Motion', [['Expand', '280 ms cubic-bezier(0.2, 0, 0, 1) · items arrive from the circle, 22 ms apart'], ['Search', 'the button stretches into the field, 300 ms · results follow 22 ms apart'], ['Leaving content', 'fades where it stood, 110 ms ease-in'], ['Collapse', '180 ms ease-in'], ['Icon to close', '120 ms'], ['Selection', 'nothing slides: the new droplet grows in place from 0.7, 260 ms · the old one sinks, 150 ms ease-in'], ['Ripple', 'one ring 8 px out from the new droplet, 420 ms']]],
-      ['Input', [['Open', 'press the circle'], ['Step back', 'Esc: search first, then the bar'], ['Tools', 'V F R O P T C'], ['Search', '/ or ⌘K · Enter runs the first result']]],
-      ['Phone', [['Size', 'toolbar 58 high · buttons 44'], ['Hidden', 'Pen, Comment, shape, zoom · one search result']]],
+      ['Motion', [['Expand', '280 ms cubic-bezier(0.2, 0, 0, 1) · items arrive from the circle, 22 ms apart'], ['Search', 'the bar holds its width, the button stretches into the field, 300 ms · the list rises above once the field is nearly open, 260 ms after 140 ms'], ['Leaving content', 'fades where it stood, 110 ms ease-in'], ['Collapse', '180 ms ease-in'], ['Icon to close', '120 ms'], ['Selection', 'nothing slides: the new droplet grows in place from 0.7, 260 ms · the old one sinks, 150 ms ease-in'], ['Ripple', 'one ring 8 px out from the new droplet, 420 ms']]],
+      ['Input', [['Open', 'press the circle'], ['Step back', 'Esc: search first, then the bar'], ['Tools', 'V F R O P T C'], ['Search', '/ or ⌘K · ↑ ↓ choose · Enter runs']]],
+      ['Phone', [['Size', 'toolbar 58 high · buttons 44'], ['Hidden', 'Pen, Comment, shape, zoom · the back button in search']]],
     ],
   },
 ]
