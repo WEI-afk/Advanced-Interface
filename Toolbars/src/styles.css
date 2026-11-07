@@ -48,13 +48,27 @@ h1 { margin: 0 0 8px; font: 600 28px/1.2 Inter, sans-serif; letter-spacing: -0.0
 
 /* ================= example controls: outside the toolbar, plain ================= */
 .ex { display: flex; flex-direction: column; gap: 16px; }
-.ex-controls { display: flex; flex-wrap: wrap; gap: 8px 28px; }
-.sw { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; font: 400 13px/20px Inter, sans-serif; }
-.sw-k { color: #8a8a86; }
-.sw button { padding: 0; border: 0; background: none; color: #6b6b68; font: inherit; cursor: pointer; text-underline-offset: 4px; transition: color var(--t-fb) ease-out; }
-.sw button:hover { color: #1b1b1b; }
-.sw button.on { color: #1b1b1b; text-decoration: underline; text-decoration-thickness: 1px; }
-.sw button:focus-visible { outline: 1px solid #1b1b1b; outline-offset: 2px; }
+.ex-controls { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-top: 8px; }
+.sw { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.sw-k { font: 400 13px/20px Inter, sans-serif; color: #8a8a86; }
+.sw-track { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 4px; }
+.sw-track button { position: relative; z-index: 1; border: 0; background: none; cursor: pointer; white-space: nowrap; transition: color var(--t-fb) ease-out; }
+.sw-mark { position: absolute; z-index: 0; left: 0; top: 0; pointer-events: none; transition: translate var(--t-ind) var(--e-std), width var(--t-ind) var(--e-std), height var(--t-ind) var(--e-std); }
+/* Couch Mode switcher: the same dark bar, frame edge and selection indicator, at a smaller size
+   track 36 high, radius 12, padding 4, stroke 1 #1D232B · item 28 high, padding 0 12, Inter 500 13/20 · indicator radius 8, white 8% + 1.5 edge */
+.sw-couch .sw-track { border-radius: 12px; background: #0f141b; box-shadow: inset 0 0 0 1px #1d232b; }
+.sw-couch .sw-track button { height: 28px; padding: 0 12px; border-radius: 8px; color: #98a2ad; font: 500 13px/20px Inter, sans-serif; }
+.sw-couch .sw-track button:hover, .sw-couch .sw-track button.on { color: #fff; }
+.sw-couch .sw-track button:focus-visible { outline: 2px solid #1a9fff; outline-offset: 1px; }
+.sw-couch .sw-mark { border-radius: 8px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.9); }
+/* Clear switcher: the same smoky glass and light recess, at a smaller size
+   track 38 high, radius 19, padding 4, glass + blur 24, stroke 1 white 28% · item 30 high, padding 0 14, Geist 500 13/20 white · recess radius 15 */
+.sw-clear .sw-track { border-radius: 19px; background: linear-gradient(180deg, rgba(142,147,154,.72), rgba(116,120,126,.72)); -webkit-backdrop-filter: blur(24px) saturate(1.3); backdrop-filter: blur(24px) saturate(1.3);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), inset 0 1px 0 rgba(255,255,255,.45), 0 4px 14px rgba(0,0,0,.12); }
+.sw-clear .sw-track button { height: 30px; padding: 0 14px; border-radius: 15px; color: rgba(255,255,255,.78); font: 500 13px/20px Geist, Inter, sans-serif; letter-spacing: -0.005em; }
+.sw-clear .sw-track button:hover, .sw-clear .sw-track button.on { color: #fff; }
+.sw-clear .sw-track button:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+.sw-clear .sw-mark { border-radius: 15px; background: rgba(40,44,50,.16); box-shadow: inset 0 1px 3px rgba(0,0,0,.14), inset 0 -1px 0 rgba(255,255,255,.18); }
 .ex-stage { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; outline: none; border-radius: 18px; }
 .ex-stage:focus-visible { outline: 1px solid #1b1b1b; outline-offset: 6px; }
 .tb-status { margin: 0; min-height: 20px; font: 400 13px/20px Inter, sans-serif; color: #6b6b68; font-variant-numeric: tabular-nums; }

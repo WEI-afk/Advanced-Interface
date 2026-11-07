@@ -94,11 +94,17 @@ function useNote() {
 }
 
 /* example switchers: outside the toolbar, plain text */
-function Switch({ label, items, value, onChange }) {
+/* example switchers: below the toolbar, a smaller segmented control made of the same parts as the set it belongs to */
+function Switch({ label, items, value, onChange, theme }) {
+  const track = useRef(null)
+  const mark = useMarker(track, `[data-i="${value}"]`, [value, items.join()])
   return (
-    <div className="sw" role="radiogroup" aria-label={label}>
+    <div className={`sw sw-${theme}`}>
       <span className="sw-k">{label}</span>
-      {items.map((it, i) => <button key={it} type="button" role="radio" aria-checked={i === value} className={i === value ? 'on' : ''} onClick={() => onChange(i)}>{it}</button>)}
+      <div className="sw-track" ref={track} role="radiogroup" aria-label={label}>
+        {mark && <i className="sw-mark" aria-hidden="true" style={{ translate: `${mark.x}px ${mark.y}px`, width: mark.w, height: mark.h }} />}
+        {items.map((it, i) => <button key={it} type="button" role="radio" data-i={i} aria-checked={i === value} className={i === value ? 'on' : ''} onClick={() => onChange(i)}>{it}</button>)}
+      </div>
     </div>
   )
 }
@@ -238,12 +244,6 @@ function CouchSet({ auto, offset = 0 }) {
 
   return (
     <div className="ex">
-      {!auto && (
-        <div className="ex-controls">
-          <Switch label="Example" items={COUCH} value={si} onChange={(i) => { setSi(i); setFocus(narrow ? 0 : 1); setDown(null) }} />
-          <Switch label="Alignment" items={ALIGN} value={al} onChange={(i) => { slide(); setAl(i) }} />
-        </div>
-      )}
       <div className="ex-stage" ref={stage} tabIndex={auto ? -1 : 0} aria-label="Couch Mode toolbar. Arrow keys move, Enter presses, Escape goes back, Q and E switch example.">
         <div className={`tb cm-bar al-${al}`} ref={barRef} role="toolbar" aria-label={`${COUCH[si]} toolbar`}>
           {sel && <i key={`sel${si}`} className="cm-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
@@ -269,6 +269,12 @@ function CouchSet({ auto, offset = 0 }) {
         </div>
         {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
       </div>
+      {!auto && (
+        <div className="ex-controls">
+          <Switch theme="couch" label="Example" items={COUCH} value={si} onChange={(i) => { setSi(i); setFocus(narrow ? 0 : 1); setDown(null) }} />
+          <Switch theme="couch" label="Alignment" items={ALIGN} value={al} onChange={(i) => { slide(); setAl(i) }} />
+        </div>
+      )}
     </div>
   )
 }
@@ -439,11 +445,6 @@ function ClearSet({ auto, offset = 0 }) {
 
   return (
     <div className="ex">
-      {!auto && (
-        <div className="ex-controls">
-          <Switch label="Alignment" items={ANCHOR} value={anchor} onChange={setAnchor} />
-        </div>
-      )}
       <div className="ex-stage fx-stage" ref={stage}>
         <div className={`fx-row at-${anchor}`} ref={rowRef}>
           <div className={`tb cl-bar fx ${open ? 'open' : ''}`} role="toolbar" aria-label="Design tools" style={{ width, height: H }}>
@@ -476,6 +477,11 @@ function ClearSet({ auto, offset = 0 }) {
         </div>
         {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
       </div>
+      {!auto && (
+        <div className="ex-controls">
+          <Switch theme="clear" label="Alignment" items={ANCHOR} value={anchor} onChange={setAnchor} />
+        </div>
+      )}
     </div>
   )
 }
