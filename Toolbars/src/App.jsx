@@ -1,25 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 
 const mod = (a, n) => ((a % n) + n) % n
-
-const ic = (d, w) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    {d.map((p, i) => <path key={i} d={p} />)}
-  </svg>
-)
-const P = {
-  undo: ['M9 14L4 9l5-5', 'M4 9h11a5 5 0 0 1 0 10h-3'], redo: ['M15 14l5-5-5-5', 'M20 9H9a5 5 0 0 0 0 10h3'],
-  pen: ['M4 20l4-1 11-11-3-3L5 16z', 'M14 7l3 3'], sticker: ['M12 3a9 9 0 1 0 9 9h-5a4 4 0 0 1-4-4z', 'M12 3v5a4 4 0 0 0 4 4h5'],
-  text: ['M5 6V4h14v2', 'M12 4v16', 'M9 20h6'], share: ['M12 3v12', 'M7 8l5-5 5 5', 'M5 13v6h14v-6'], check: ['M5 12.500l4.500 4.500L19 7'],
-  back: ['M15 5l-7 7 7 7'], list: ['M8 6h12', 'M8 12h12', 'M8 18h12', 'M4 6h.01', 'M4 12h.01', 'M4 18h.01'],
-  prev: ['M14 6l-6 6 6 6'], next: ['M10 6l6 6-6 6'], mark: ['M6 3h12v18l-6-4-6 4z'], search: ['M10.500 4a6.500 6.500 0 1 0 0 13 6.500 6.500 0 0 0 0-13z', 'M15.500 15.500L21 21'],
-}
+const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 /* ================= the toolbar system =================
-   One bar, three groups: start, center, end. Each group can stand alone (left, center or right aligned) or all three spread.
-   Every button is the same structure: [icon] [label], either one optional. The system is shown in several scenarios,
-   because a toolbar is defined by where it lives, not by one task. */
+   One bar, three groups: start, center, end. The groups spread across the bar, or all pack to the left, the center or the right.
+   Every button is the same structure: [icon] [label], either one optional. */
 const li = (d, w = 1) => (
   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d.map((p, i) => <path key={i} d={p} />)}</svg>
 )
@@ -31,10 +17,14 @@ const IC = {
   edit: ['M4 16l3-.500 9-9-2.500-2.500-9 9z', 'M12 5l2.500 2.500'], share: ['M10 3v10', 'M6.500 6.500L10 3l3.500 3.500', 'M4.500 11v5.500h11V11'], trash: ['M4 6h12', 'M8 6V4h4v2', 'M5.500 6l1 10h7l1-10'],
   heart: ['M10 16s-6-3.500-6-8a3.200 3.200 0 0 1 6-1.500A3.200 3.200 0 0 1 16 8c0 4.500-6 8-6 8z'], undo: ['M7.500 11.500L4 8l3.500-3.500', 'M4 8h8.500a4 4 0 0 1 0 8H10'], redo: ['M12.500 11.500L16 8l-3.500-3.500', 'M16 8H7.500a4 4 0 0 0 0 8H10'],
   bold: ['M6 4h5a3 3 0 0 1 0 6H6z', 'M6 10h6a3 3 0 0 1 0 6H6z'], italic: ['M9 4h6', 'M5 16h6', 'M12 4l-4 12'], link: ['M8.500 11.500a3 3 0 0 0 4.200 0l2.500-2.500a3 3 0 0 0-4.200-4.200l-.800.800', 'M11.500 8.500a3 3 0 0 0-4.200 0L4.800 11a3 3 0 0 0 4.200 4.200l.800-.800'],
-  arrow: ['M4 10h12', 'M11 5l5 5-5 5'], plus: ['M10 4v12', 'M4 10h12'], grid: ['M4 4h5v5H4z', 'M11 4h5v5h-5z', 'M4 11h5v5H4z', 'M11 11h5v5h-5z'], rows: ['M4 5h12', 'M4 10h12', 'M4 15h12'], chev: ['M6 8l4 4 4-4'], check: ['M4.500 10.500l3.500 3.500L16 6'],
+  arrow: ['M4 10h12', 'M11 5l5 5-5 5'], plus: ['M10 4v12', 'M4 10h12'], rows: ['M4 5h12', 'M4 10h12', 'M4 15h12'], chev: ['M6 8l4 4 4-4'],
 }
+const GRID_FILLED = (
+  <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3 4.500A1.500 1.500 0 0 1 4.500 3h3A1.500 1.500 0 0 1 9 4.500v3A1.500 1.500 0 0 1 7.500 9h-3A1.500 1.500 0 0 1 3 7.500zM11 4.500A1.500 1.500 0 0 1 12.500 3h3A1.500 1.500 0 0 1 17 4.500v3A1.500 1.500 0 0 1 15.500 9h-3A1.500 1.500 0 0 1 11 7.500zM3 12.500A1.500 1.500 0 0 1 4.500 11h3A1.500 1.500 0 0 1 9 12.500v3A1.500 1.500 0 0 1 7.500 17h-3A1.500 1.500 0 0 1 3 15.500zM11 12.500a1.500 1.500 0 0 1 1.500-1.500h3a1.500 1.500 0 0 1 1.500 1.500v3a1.500 1.500 0 0 1-1.500 1.500h-3a1.500 1.500 0 0 1-1.500-1.500z" /></svg>
+)
+const ALIGN = ['Spread', 'Left', 'Center', 'Right']
 
-// measure where an element sits inside its bar, so one marker (ring or pill) can glide to it
+// measure where an element sits inside its bar, so one marker (ring or recess) can glide to it
 function useMarker(barRef, selector, deps) {
   const [box, setBox] = useState(null)
   const measure = () => {
@@ -51,7 +41,7 @@ function useMarker(barRef, selector, deps) {
   useEffect(() => {
     // groups can change width (labels hide, text changes) without the bar changing size, so watch them too
     const ro = new ResizeObserver(measure)
-    if (barRef.current) { ro.observe(barRef.current); barRef.current.querySelectorAll(".tb-group, [data-i]").forEach((c) => ro.observe(c)) }
+    if (barRef.current) { ro.observe(barRef.current); barRef.current.querySelectorAll('.tb-group').forEach((c) => ro.observe(c)) }
     window.addEventListener('resize', measure)
     return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
   }, deps) // eslint-disable-line react-hooks/exhaustive-deps
@@ -69,72 +59,125 @@ function useNarrow(ref, at = 640) {
   return narrow
 }
 
-/* ----- FUTURISTIC · Couch Mode: the toolbar of a living-room screen. It is read from three meters away and driven by a controller:
-   one ring holds the focus, the D-pad walks it along the bar, A presses, B backs out, LB / RB carry the same bar into the next app ----- */
-const GLYPHS = { lb: 'LB', rb: 'RB', a: 'A', b: 'B' }
-const Glyph = ({ k, on }) => <i className={`glyph ${k.length > 1 ? 'wide' : ''} ${on ? 'on' : ''}`}>{GLYPHS[k] || k}</i>
+// changing the alignment moves whole groups: slide them from where they visibly were, so the bar never jumps
+function useGroupSlide(barRef, key) {
+  const from = useRef(null)
+  const capture = () => {
+    const bar = barRef.current
+    if (!bar) return
+    const b = bar.getBoundingClientRect().left
+    from.current = [...bar.querySelectorAll('.tb-group')].map((g) => g.getBoundingClientRect().left - b)
+  }
+  useLayoutEffect(() => {
+    const bar = barRef.current, prev = from.current
+    from.current = null
+    if (!bar || !prev || reduced()) return
+    const b = bar.getBoundingClientRect().left
+    const groups = [...bar.querySelectorAll('.tb-group')]
+    if (groups.length !== prev.length) return
+    groups.forEach((g) => g.getAnimations().forEach((a) => a.cancel()))
+    groups.forEach((g, i) => {
+      const dx = prev[i] - (g.getBoundingClientRect().left - b)
+      if (Math.abs(dx) > 0.5) g.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], { duration: 240, easing: 'cubic-bezier(0.2, 0, 0, 1)' })
+    })
+  }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  return capture
+}
+
+// a short message that replaces the status line for a moment, then lets it return
+function useNote() {
+  const [note, setNote] = useState(null)
+  const timer = useRef()
+  const say = (text) => { clearTimeout(timer.current); setNote(text); timer.current = setTimeout(() => setNote(null), 1400) }
+  useEffect(() => () => clearTimeout(timer.current), [])
+  return [note, say]
+}
+
+/* example switchers: outside the toolbar, plain text */
+function Switch({ label, items, value, onChange }) {
+  return (
+    <div className="sw" role="radiogroup" aria-label={label}>
+      <span className="sw-k">{label}</span>
+      {items.map((it, i) => <button key={it} type="button" role="radio" aria-checked={i === value} className={i === value ? 'on' : ''} onClick={() => onChange(i)}>{it}</button>)}
+    </div>
+  )
+}
+
+/* ----- FUTURISTIC · Couch Mode: the toolbar of a living-room screen, read from three meters away and driven by a controller.
+   One ring holds the focus; the D-pad walks it along the bar, A presses, B goes back, LB / RB switch to the next example ----- */
 const COUCH = ['Library', 'Player', 'Capture']
-const TILES = [['Driftline', 'inst'], ['Low Orbit', 'fav'], ['Saltmarsh', 'inst'], ['Ember Basin', 'fav'], ['Night Ferry', ''], ['Glass Hours', 'inst'], ['Tidewater', ''], ['Northbound', 'fav'], ['Paper Moon', 'inst'], ['Static', '']]
-const TILE_C = ['#1b2a44', '#2a1f45', '#123a3a', '#3a2a1a', '#24304a']
+const SHELF = { all: ['All', 10], inst: ['Installed', 4], fav: ['Favorites', 3] }
+const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 
 function CouchSet({ auto, offset = 0 }) {
   const stage = useRef(null)
   const barRef = useRef(null)
   const narrow = useNarrow(stage)
   const [si, setSi] = useState(offset % 3)
+  const [al, setAl] = useState(0)
   const [focus, setFocus] = useState(1)
   const [down, setDown] = useState(null)
-  const [held, setHeld] = useState('')
-  const [flash, setFlash] = useState(null)
+  const [note, say] = useNote()
   const [shelf, setShelf] = useState('all')
+  const [sort, setSort] = useState(false)
   const [play, setPlay] = useState({ on: false, t: 0.42, ep: 4, cc: false, mute: false })
-  const [cap, setCap] = useState({ n: 3, total: 24, fav: false, edit: false })
+  const [cap, setCap] = useState({ n: 3, total: 24, fav: false, edit: false, shared: false })
+  const slide = useGroupSlide(barRef, al)
 
   const groups = [
-    [[{ id: 'back', i: 'back', opt: true }], [{ id: 'all', t: 'All', excl: true, sel: shelf === 'all' }, { id: 'inst', t: 'Installed', excl: true, sel: shelf === 'inst' }, { id: 'fav', t: 'Favorites', excl: true, sel: shelf === 'fav' }], [{ id: 'filter', i: 'filter', t: 'Filter', lab: true }, { id: 'search', i: 'search', opt: true }]],
-    [[{ id: 'eps', i: 'list', t: 'Episodes', lab: true }], [{ id: 'prev', i: 'prev' }, { id: 'play', i: play.on ? 'pause' : 'play' }, { id: 'next', i: 'next' }], [{ id: 'cc', i: 'cc', t: 'Subtitles', lab: true, sel: play.cc }, { id: 'vol', i: play.mute ? 'mute' : 'vol', opt: true }]],
-    [[{ id: 'back', i: 'back' }], [{ id: 'edit', i: 'edit', t: cap.edit ? 'Done' : 'Edit', lab: true, sel: cap.edit }, { id: 'share', i: 'share', t: 'Share', lab: true }, { id: 'trash', i: 'trash', t: 'Delete', lab: true }], [{ id: 'fav', i: 'heart', sel: cap.fav }]],
+    [[{ id: 'back', i: 'back', opt: true }],
+      [{ id: 'all', t: 'All', excl: true, sel: shelf === 'all' }, { id: 'inst', t: 'Installed', excl: true, sel: shelf === 'inst' }, { id: 'fav', t: 'Favorites', excl: true, sel: shelf === 'fav' }],
+      [{ id: 'sort', i: 'filter', t: 'Sort', lab: true, sel: sort }, { id: 'search', i: 'search', opt: true }]],
+    [[{ id: 'eps', i: 'list', t: 'Episodes', lab: true }],
+      [{ id: 'prev', i: 'prev' }, { id: 'play', i: play.on ? 'pause' : 'play' }, { id: 'next', i: 'next' }],
+      [{ id: 'cc', i: 'cc', t: 'Subtitles', lab: true, sel: play.cc }, { id: 'vol', i: play.mute ? 'mute' : 'vol', opt: true }]],
+    [[{ id: 'back', i: 'back' }],
+      [{ id: 'edit', i: 'edit', t: cap.edit ? 'Done' : 'Edit', lab: true, sel: cap.edit }, { id: 'share', i: 'share', t: cap.shared ? 'Shared' : 'Share', lab: true }, { id: 'trash', i: 'trash', t: 'Delete', lab: true }],
+      [{ id: 'fav', i: 'heart', sel: cap.fav }]],
   ][si].map((g) => g.filter((b) => !(narrow && b.opt)))
   const flat = groups.flat()
   const f = Math.min(focus, flat.length - 1)
-  const say = (id, label) => { setFlash({ id, label }); setTimeout(() => setFlash((v) => (v?.id === id ? null : v)), 1100) }
 
   const go = (d) => { setSi((v) => mod(v + d, 3)); setFocus(narrow ? 0 : 1); setDown(null) }
   const press = (b) => {
     if (!b) return
     const id = b.id
-    if (si === 0) { if (['all', 'inst', 'fav'].includes(id)) setShelf(id); else if (id === 'back') go(-1); else say(id, id === 'filter' ? 'Sorted' : null) }
+    if (si === 0) {
+      if (SHELF[id]) setShelf(id)
+      else if (id === 'sort') setSort((v) => !v)
+      else if (id === 'back') say('Back to Home')
+      else if (id === 'search') say('Search opened')
+    }
     if (si === 1) {
       if (id === 'play') setPlay((p) => ({ ...p, on: !p.on }))
       else if (id === 'prev') setPlay((p) => ({ ...p, ep: Math.max(1, p.ep - 1), t: 0 }))
       else if (id === 'next') setPlay((p) => ({ ...p, ep: p.ep + 1, t: 0 }))
       else if (id === 'cc') setPlay((p) => ({ ...p, cc: !p.cc }))
       else if (id === 'vol') setPlay((p) => ({ ...p, mute: !p.mute }))
-      else say(id, null)
+      else if (id === 'eps') say('Episode list opened')
     }
     if (si === 2) {
-      if (id === 'back') go(-1)
+      if (id === 'back') say('Back to Album')
       else if (id === 'edit') setCap((c) => ({ ...c, edit: !c.edit }))
-      else if (id === 'share') say(id, 'Shared')
+      else if (id === 'share') { setCap((c) => ({ ...c, shared: true })); setTimeout(() => setCap((c) => ({ ...c, shared: false })), 1400) }
       else if (id === 'trash') setCap((c) => ({ ...c, total: Math.max(1, c.total - 1), n: Math.min(c.n, c.total - 1) }))
       else if (id === 'fav') setCap((c) => ({ ...c, fav: !c.fav }))
     }
   }
 
-  // playing moves the progress line
+  // playing moves the time on
   useEffect(() => {
     if (!play.on) return
-    const t = setInterval(() => setPlay((p) => ({ ...p, t: p.t >= 1 ? 0 : p.t + 0.004 })), 50)
+    const t = setInterval(() => setPlay((p) => ({ ...p, t: p.t >= 1 ? 0 : p.t + 0.002 })), 100)
     return () => clearInterval(t)
   }, [play.on])
 
-  /* input: keys while the pointer or focus is on the stage, and a real controller any time */
+  /* input: keys while the pointer or focus is on the example, and a real controller any time */
   const latest = useRef()
   latest.current = { flat, f, press, go }
   const input = (k, isDown) => {
     const L = latest.current
-    if (isDown) setHeld(k)
-    else { setHeld((v) => (v === k ? '' : v)); if (k === 'a') { setDown(null); L.press(L.flat[L.f]) } return }
+    if (!isDown) { if (k === 'a') { setDown(null); L.press(L.flat[L.f]) } return }
     if (k === 'left') setFocus(mod(L.f - 1, L.flat.length))
     else if (k === 'right') setFocus(mod(L.f + 1, L.flat.length))
     else if (k === 'a') setDown(L.flat[L.f]?.id)
@@ -147,7 +190,7 @@ function CouchSet({ auto, offset = 0 }) {
     if (auto) return
     const map = { ArrowLeft: 'left', ArrowRight: 'right', Enter: 'a', ' ': 'a', Escape: 'b', Backspace: 'b', q: 'lb', e: 'rb' }
     const hot = () => stage.current?.matches(':hover') || stage.current?.contains(document.activeElement)
-    const kd = (e) => { const k = map[e.key]; if (!k || !hot() || e.metaKey || e.ctrlKey) return; e.preventDefault(); if (!e.repeat || k === 'left' || k === 'right') inputRef.current(k, true) }
+    const kd = (e) => { const k = map[e.key]; if (!k || !hot() || e.metaKey || e.ctrlKey || e.target.closest?.('.sw')) return; e.preventDefault(); if (!e.repeat || k === 'left' || k === 'right') inputRef.current(k, true) }
     const ku = (e) => { const k = map[e.key]; if (k) inputRef.current(k, false) }
     window.addEventListener('keydown', kd, true)
     window.addEventListener('keyup', ku, true)
@@ -184,107 +227,98 @@ function CouchSet({ auto, offset = 0 }) {
   }, [auto])
 
   const fid = flat[f]?.id
-  const ring = useMarker(barRef, fid ? `[data-id="${fid}"] .cm-target` : null, [fid, si, narrow, play.on, play.mute, cap.edit, flash])
-  const shown = TILES.filter((t) => shelf === 'all' || t[1] === shelf)
-  const sel = useMarker(barRef, si === 0 ? `[data-id="${shelf}"] .cm-target` : null, [shelf, si, narrow])
-  const tabsRef = useRef(null)
-  const tabLine = useMarker(tabsRef, `[data-i="${si}"]`, [si, narrow])
+  const ring = useMarker(barRef, fid ? `[data-id="${fid}"] .cm-target` : null, [fid, si, al, narrow, play.on, play.mute, cap.edit, cap.shared, sort])
+  const sel = useMarker(barRef, si === 0 ? `[data-id="${shelf}"] .cm-target` : null, [shelf, si, al, narrow, sort])
+
+  const status = note || [
+    `${SHELF[shelf][0]} · ${SHELF[shelf][1]} games${sort ? ' · sorted A–Z' : ''}`,
+    `Episode ${play.ep} · ${play.on ? 'playing' : 'paused'} ${clock(play.t * 2650)} / 44:10${play.cc ? ' · subtitles on' : ''}${play.mute ? ' · muted' : ''}`,
+    `Photo ${cap.n} of ${cap.total}${cap.fav ? ' · favorite' : ''}${cap.edit ? ' · editing' : ''}${cap.shared ? ' · shared' : ''}`,
+  ][si]
 
   return (
-    <div className="cm" ref={stage} tabIndex={auto ? -1 : 0} aria-label="Couch Mode toolbar, three scenarios">
-      <div className="cm-tabs" ref={tabsRef} role="tablist" aria-label="Scenario">
-        {tabLine && <i className="cm-tab-line" aria-hidden="true" style={{ transform: `translateX(${tabLine.x}px)`, width: tabLine.w }} />}
-        <button type="button" tabIndex={-1} className="cm-shoulder" onClick={() => go(-1)} aria-label="Previous scenario"><Glyph k="lb" on={held === 'lb'} /></button>
-        {COUCH.map((n, i) => <button key={n} type="button" tabIndex={-1} role="tab" data-i={i} aria-selected={i === si} className={i === si ? 'on' : ''} onClick={() => { setSi(i); setFocus(1) }}>{n}</button>)}
-        <button type="button" tabIndex={-1} className="cm-shoulder" onClick={() => go(1)} aria-label="Next scenario"><Glyph k="rb" on={held === 'rb'} /></button>
-      </div>
-
-      <div className="cm-view" key={si}>
-        {si === 0 && <div className="cm-tiles">{shown.map(([n], i) => <div key={n} className="cm-tile" style={{ background: TILE_C[TILES.findIndex((t) => t[0] === n) % 5], '--i': i }}><span>{n}</span></div>)}</div>}
-        {si === 1 && (
-          <div className="cm-poster">
-            <span className="cm-ep">Episode {play.ep}</span>
-            {play.cc && <span className="cm-cc">“The tide comes in whether you watch it or not.”</span>}
-            <div className="cm-progress"><i style={{ width: `${play.t * 100}%` }} /></div>
-          </div>
-        )}
-        {si === 2 && (
-          <div className={`cm-photo ${cap.edit ? 'is-edit' : ''}`}>
-            <i className="cm-crop" />
-            {cap.fav && <span className="cm-heart">{li(IC.heart, 1.4)}</span>}
-            <span className="cm-count">{cap.n} / {cap.total}</span>
-          </div>
-        )}
-      </div>
-
-      <div className="tb cm-bar" ref={barRef} role="toolbar" aria-label={`${COUCH[si]} toolbar`}>
-        {sel && <i key={`sel${si}`} className="cm-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
-        {ring && <i className={`cm-ring ${down === fid ? 'is-press' : ''}`} aria-hidden="true" style={{ transform: `translate(${ring.x}px, ${ring.y}px)`, width: ring.w, height: ring.h }} />}
-        <div className="cm-groups" key={si}>
-          {groups.map((g, gi) => (
-            <div key={gi} className={`tb-group g${gi}`}>
-              {g.map((b) => {
-                const idx = flat.indexOf(b)
-                const label = flash?.id === b.id && flash.label ? flash.label : b.t
-                return (
-                  <button key={b.id} type="button" tabIndex={-1} data-id={b.id} aria-label={b.t ? undefined : b.id} aria-pressed={b.sel != null ? !!b.sel : undefined}
-                    className={`tb-btn cm-btn ${b.i ? '' : 'cm-text'} ${idx === f ? 'is-focus' : ''} ${b.sel ? 'is-sel' : ''} ${b.excl ? 'is-excl' : ''} ${down === b.id ? 'is-press' : ''}`}
-                    onPointerEnter={() => !auto && setFocus(idx)} onPointerDown={() => { if (!auto) { setFocus(idx); setDown(b.id) } }} onPointerUp={() => setDown(null)} onPointerLeave={() => setDown(null)}
-                    onClick={() => { if (!auto) { setFocus(idx); press(b) } }}>
-                    {b.i ? <span className="cm-frame cm-target">{li(IC[b.i])}</span> : <span className="cm-target cm-textframe">{label}</span>}
-                    {b.i && b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{label}</span>}
-                  </button>
-                )
-              })}
-            </div>
-          ))}
+    <div className="ex">
+      {!auto && (
+        <div className="ex-controls">
+          <Switch label="Example" items={COUCH} value={si} onChange={(i) => { setSi(i); setFocus(narrow ? 0 : 1); setDown(null) }} />
+          <Switch label="Alignment" items={ALIGN} value={al} onChange={(i) => { slide(); setAl(i) }} />
         </div>
-      </div>
-
-      <div className="cm-legend" aria-hidden="true">
-        <span><Glyph k="a" on={held === 'a'} />Select</span>
-        <span><Glyph k="b" on={held === 'b'} />Back</span>
-        <span className="cm-dpad"><Glyph k="◀" on={held === 'left'} /><Glyph k="▶" on={held === 'right'} />Move</span>
+      )}
+      <div className="ex-stage" ref={stage} tabIndex={auto ? -1 : 0} aria-label="Couch Mode toolbar. Arrow keys move, Enter presses, Escape goes back, Q and E switch example.">
+        <div className={`tb cm-bar al-${al}`} ref={barRef} role="toolbar" aria-label={`${COUCH[si]} toolbar`}>
+          {sel && <i key={`sel${si}`} className="cm-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
+          {ring && <i className={`cm-ring ${down === fid ? 'is-press' : ''}`} aria-hidden="true" style={{ transform: `translate(${ring.x}px, ${ring.y}px)`, width: ring.w, height: ring.h }} />}
+          <div className="cm-groups" key={si}>
+            {groups.map((g, gi) => (
+              <div key={gi} className="tb-group">
+                {g.map((b) => {
+                  const idx = flat.indexOf(b)
+                  return (
+                    <button key={b.id} type="button" tabIndex={-1} data-id={b.id} aria-label={b.t ? undefined : b.id} aria-pressed={b.sel != null ? !!b.sel : undefined}
+                      className={`tb-btn cm-btn ${idx === f ? 'is-focus' : ''} ${b.sel ? 'is-sel' : ''} ${b.excl ? 'is-excl' : ''} ${down === b.id ? 'is-press' : ''}`}
+                      onPointerEnter={() => !auto && setFocus(idx)} onPointerDown={() => { if (!auto) { setFocus(idx); setDown(b.id) } }} onPointerUp={() => setDown(null)} onPointerLeave={() => setDown(null)}
+                      onClick={() => { if (!auto) { setFocus(idx); press(b) } }}>
+                      {b.i ? <span className="cm-frame cm-target">{li(IC[b.i])}</span> : <span className="cm-target cm-textframe">{b.t}</span>}
+                      {b.i && b.t && <span className={`tb-label ${b.lab ? 'opt' : ''}`}>{b.t}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+        {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
       </div>
     </div>
   )
 }
 
-/* ----- ELEGANT · Clear: one bar of frosted glass for an editor, a checkout and a gallery, floating over a softly blurred photo.
-   Bold white glyphs; the chosen item sinks into a dark recess that slides between choices; the main action is a light solid pill ----- */
-const GRID_FILLED = (
-  <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3 4.500A1.500 1.500 0 0 1 4.500 3h3A1.500 1.500 0 0 1 9 4.500v3A1.500 1.500 0 0 1 7.500 9h-3A1.500 1.500 0 0 1 3 7.500zM11 4.500A1.500 1.500 0 0 1 12.500 3h3A1.500 1.500 0 0 1 17 4.500v3A1.500 1.500 0 0 1 15.500 9h-3A1.500 1.500 0 0 1 11 7.500zM3 12.500A1.500 1.500 0 0 1 4.500 11h3A1.500 1.500 0 0 1 9 12.500v3A1.500 1.500 0 0 1 7.500 17h-3A1.500 1.500 0 0 1 3 15.500zM11 12.500a1.500 1.500 0 0 1 1.500-1.500h3a1.500 1.500 0 0 1 1.500 1.500v3a1.500 1.500 0 0 1-1.500 1.500h-3a1.500 1.500 0 0 1-1.500-1.500z" /></svg>
-)
+/* ----- ELEGANT · Clear: one bar of smoky frosted glass. Bold white glyphs; the chosen item sinks into a light recess that slides
+   between choices; the main action is a light solid pill ----- */
 const CLEAR = ['Write', 'Checkout', 'Gallery']
 const STYLES = ['Body', 'Heading', 'Quote']
 const STEPS = ['Bag', 'Shipping', 'Payment']
+const PLAIN = { style: 0, b: false, i: false, link: false }
 
 function ClearSet({ auto, offset = 0 }) {
   const stage = useRef(null)
   const barRef = useRef(null)
-  const tabsRef = useRef(null)
   const narrow = useNarrow(stage)
   const [si, setSi] = useState(offset % 3)
-  const [w, setW] = useState({ style: 0, b: true, i: false, link: false, pub: false })
+  const [al, setAl] = useState(0)
+  const [note, say] = useNote()
+  const [hist, setHist] = useState({ list: [{ ...PLAIN, b: true }], at: 0 })
+  const [pub, setPub] = useState(false)
   const [step, setStep] = useState(1)
-  const [g, setG] = useState({ rows: false, few: false, sel: false, extra: 0 })
+  const [g, setG] = useState({ rows: false, few: false, sel: false, n: 12 })
   const [hot, setHot] = useState(null)
+  const slide = useGroupSlide(barRef, al)
+  const w = hist.list[hist.at]
+  const commit = (next) => setHist((h) => ({ list: [...h.list.slice(0, h.at + 1), next], at: h.at + 1 }))
 
   const groups = [
-    [[{ id: 'undo', i: 'undo' }, { id: 'redo', i: 'redo', opt: true }], [{ id: 'style', t: STYLES[w.style], dd: true }, { id: 'b', i: 'bold', sel: w.b }, { id: 'i', i: 'italic', sel: w.i }, { id: 'link', i: 'link', sel: w.link }], [{ id: 'share', t: 'Share', opt: true }, { id: 'pub', t: w.pub ? 'Published' : 'Publish', i: w.pub ? 'check' : null, prim: true }]],
-    [[{ id: 'back', i: 'back', t: 'Bag', lab: true }], STEPS.map((s, i) => ({ id: 's' + i, t: s, excl: true, sel: step === i, dim: step !== i, opt: step !== i })), [{ id: 'go', t: step === 2 ? 'Pay $148' : 'Continue', i: 'arrow', prim: true }]],
-    [[{ id: 'select', t: g.sel ? 'Cancel' : 'Select' }], [{ id: 'grid', i: 'grid', excl: true, sel: !g.rows }, { id: 'rows', i: 'rows', excl: true, sel: g.rows }], [{ id: 'filter', i: 'filter', t: g.few ? 'Liked' : 'Filter', lab: true, sel: g.few }, { id: 'add', i: 'plus', prim: true }]],
+    [[{ id: 'undo', i: 'undo' }, { id: 'redo', i: 'redo', opt: true }],
+      [{ id: 'style', t: STYLES[w.style], dd: true }, { id: 'b', i: 'bold', sel: w.b }, { id: 'i', i: 'italic', sel: w.i }, { id: 'link', i: 'link', sel: w.link }],
+      [{ id: 'share', t: 'Share', opt: true }, { id: 'pub', t: pub ? 'Published' : 'Publish', prim: true }]],
+    [[{ id: 'back', i: 'back', t: 'Back', lab: true }],
+      STEPS.map((s, i) => ({ id: 's' + i, t: s, excl: true, sel: step === i, dim: step !== i, opt: step !== i })),
+      [{ id: 'go', t: step === 2 ? 'Pay $148' : 'Continue', i: 'arrow', prim: true }]],
+    [[{ id: 'select', t: g.sel ? 'Cancel' : 'Select' }],
+      [{ id: 'grid', i: 'grid', excl: true, sel: !g.rows }, { id: 'rows', i: 'rows', excl: true, sel: g.rows }],
+      [{ id: 'filter', i: 'filter', t: g.few ? 'Liked' : 'Filter', lab: true, sel: g.few }, { id: 'add', i: 'plus', prim: true }]],
   ][si].map((grp) => grp.filter((b) => !(narrow && b.opt)))
 
   const press = (id) => {
     if (si === 0) {
-      if (id === 'style') setW((v) => ({ ...v, style: (v.style + 1) % 3 }))
-      else if (['b', 'i', 'link'].includes(id)) setW((v) => ({ ...v, [id]: !v[id] }))
-      else if (id === 'pub') { setW((v) => ({ ...v, pub: true })); setTimeout(() => setW((v) => ({ ...v, pub: false })), 1600) }
-      else if (id === 'undo') setW({ style: 0, b: false, i: false, link: false, pub: false })
+      if (id === 'style') commit({ ...w, style: (w.style + 1) % 3 })
+      else if (['b', 'i', 'link'].includes(id)) commit({ ...w, [id]: !w[id] })
+      else if (id === 'undo') setHist((h) => ({ ...h, at: Math.max(0, h.at - 1) }))
+      else if (id === 'redo') setHist((h) => ({ ...h, at: Math.min(h.list.length - 1, h.at + 1) }))
+      else if (id === 'share') say('Link copied')
+      else if (id === 'pub') { setPub(true); setTimeout(() => setPub(false), 1400) }
     }
     if (si === 1) {
-      if (id === 'go') setStep((s) => (s < 2 ? s + 1 : 0))
+      if (id === 'go') { if (step === 2) { say('Paid $148 · order placed'); setStep(0) } else setStep(step + 1) }
       else if (id === 'back') setStep((s) => Math.max(0, s - 1))
       else if (id[0] === 's') setStep(+id.slice(1))
     }
@@ -293,10 +327,11 @@ function ClearSet({ auto, offset = 0 }) {
       else if (id === 'rows') setG((v) => ({ ...v, rows: true }))
       else if (id === 'filter') setG((v) => ({ ...v, few: !v.few }))
       else if (id === 'select') setG((v) => ({ ...v, sel: !v.sel }))
-      else if (id === 'add') setG((v) => ({ ...v, extra: (v.extra + 1) % 4 }))
+      else if (id === 'add') setG((v) => ({ ...v, n: v.n + 1 }))
     }
   }
 
+  /* wall: it runs itself */
   useEffect(() => {
     if (!auto) return
     let k = 0
@@ -312,21 +347,27 @@ function ClearSet({ auto, offset = 0 }) {
   }) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selId = groups.flat().find((b) => b.excl && b.sel)?.id
-  const pill = useMarker(barRef, selId ? `[data-id="${selId}"]` : null, [selId, si, narrow])
-  const tab = useMarker(tabsRef, `[data-i="${si}"]`, [si, narrow])
-  const n = g.few ? 5 : 12 + g.extra
+  const pill = useMarker(barRef, selId ? `[data-id="${selId}"]` : null, [selId, si, al, narrow])
+  const marks = [w.b && 'bold', w.i && 'italic', w.link && 'link'].filter(Boolean)
+  const status = note || [
+    `${STYLES[w.style]} · ${marks.length ? marks.join(', ') : 'plain'} · step ${hist.at + 1} of ${hist.list.length}${pub ? ' · published' : ''}`,
+    `Step ${step + 1} of 3 · ${STEPS[step]}`,
+    `${g.few ? 5 : g.n} photos · ${g.rows ? 'list' : 'grid'}${g.few ? ' · liked only' : ''}${g.sel ? ' · selecting' : ''}`,
+  ][si]
 
   return (
-    <div className="cl" ref={stage}>
-      <div className="cl-tabs" ref={tabsRef} role="tablist" aria-label="Scenario">
-        {tab && <i className="cl-tab-line" style={{ transform: `translateX(${tab.x}px)`, width: tab.w }} />}
-        {CLEAR.map((s, i) => <button key={s} type="button" role="tab" data-i={i} aria-selected={i === si} className={i === si ? 'on' : ''} onClick={() => setSi(i)}>{s}</button>)}
-      </div>
-      <div className="cl-field">
-        <div className="tb cl-bar" ref={barRef} role="toolbar" aria-label={`${CLEAR[si]} toolbar`}>
+    <div className="ex">
+      {!auto && (
+        <div className="ex-controls">
+          <Switch label="Example" items={CLEAR} value={si} onChange={setSi} />
+          <Switch label="Alignment" items={ALIGN} value={al} onChange={(i) => { slide(); setAl(i) }} />
+        </div>
+      )}
+      <div className="ex-stage" ref={stage}>
+        <div className={`tb cl-bar al-${al}`} ref={barRef} role="toolbar" aria-label={`${CLEAR[si]} toolbar`}>
           {pill && <i key={`pill${si}`} className="cl-pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
           {groups.map((grp, gi) => (
-            <div key={gi} className={`tb-group g${gi}`}>
+            <div key={`${si}-${gi}`} className="tb-group">
               {grp.map((b) => (
                 <button key={b.id} type="button" data-id={b.id} aria-label={b.t ? undefined : b.id} aria-pressed={b.sel != null && !b.excl ? !!b.sel : undefined} aria-current={b.excl && b.sel ? 'true' : undefined}
                   className={`tb-btn cl-btn ${b.t ? 'has-label' : ''} ${b.prim ? 'is-prim' : ''} ${b.sel && !b.excl ? 'is-sel' : ''} ${b.excl && b.sel ? 'is-excl' : ''} ${b.dim ? 'is-dim' : ''} ${hot === b.id ? 'is-hot' : ''}`}
@@ -339,24 +380,7 @@ function ClearSet({ auto, offset = 0 }) {
             </div>
           ))}
         </div>
-        <div className="cl-view" key={si}>
-          {si === 0 && (
-            <p className={`cl-doc s-${w.style}`}>
-              The light comes in low across the table, and for a moment <span className={`${w.b ? 'b' : ''} ${w.i ? 'i' : ''} ${w.link ? 'a' : ''}`}>everything is still</span>. Then the kettle, the door, the day.
-            </p>
-          )}
-          {si === 1 && (
-            <div className="cl-order">
-              <div className="cl-item"><i /><div><b>Linen Overshirt</b><span>Size M · Sand</span></div><b>$148</b></div>
-              <p className="cl-step" key={step}>{['Your bag has one piece.', 'Ships to Pasadena, CA · arrives Thursday.', 'Card ending 4242 · billed on shipping.'][step]}</p>
-            </div>
-          )}
-          {si === 2 && (
-            <div className={`cl-photos ${g.rows ? 'rows' : ''} ${g.sel ? 'sel' : ''}`}>
-              {Array.from({ length: n }, (_, i) => <div key={i} className="cl-ph" style={{ '--t': ['#ecebe7', '#e4e3de', '#efeeea'][i % 3] }}><i /><span>IMG_{2040 + i}</span></div>)}
-            </div>
-          )}
-        </div>
+        {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
       </div>
     </div>
   )
@@ -364,44 +388,32 @@ function ClearSet({ auto, offset = 0 }) {
 
 /* ================= page ================= */
 const SETS = [
-  { id: 'couch', tone: 'Futuristic, Couch Mode', Body: CouchSet },
-  { id: 'clear', tone: 'Elegant, Clear', Body: ClearSet },
+  { id: 'couch', tone: 'Futuristic, Couch Mode', Body: CouchSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=14-2' },
+  { id: 'clear', tone: 'Elegant, Clear', Body: ClearSet, figma: 'https://www.figma.com/design/1T1LVdRyfNJDmR3xVa8pDS?node-id=14-285' },
 ]
 
-/* Figma drawing + spec thumbnail: the enlarged copy is drawn above the page, so no section clips it */
-function DraftThumb({ set }) {
-  const ref = useRef(null)
-  const [box, setBox] = useState(null)
-  const [open, setOpen] = useState(false)
-  const src = `${import.meta.env.BASE_URL}final/${set.id}.png`
-  const show = () => {
-    const im = ref.current.querySelector('img')
-    const r = im.getBoundingClientRect()
-    const W = Math.min(900, window.innerWidth - 32), H = W * (im.naturalHeight / im.naturalWidth || .7)
-    const left = Math.min(Math.max(r.right - W, 16), window.innerWidth - W - 16)
-    const top = Math.max(16, Math.min(r.top, window.innerHeight - H - 16))
-    setBox({ left, top, W, s: r.width / W, ox: r.left - left, oy: r.top - top })
-    requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)))
-  }
-  const hide = () => setOpen(false)
-  useEffect(() => {
-    if (!box) return
-    window.addEventListener('scroll', hide, { passive: true })
-    return () => window.removeEventListener('scroll', hide)
-  }, [box])
-  return (
-    <>
-      <div ref={ref} className="draft-ref" tabIndex={0} onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
-        <img src={src} alt={`${set.tone} — Figma drawing and spec`} loading="lazy" onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
-        <span>Figma spec</span>
-      </div>
-      {box && createPortal(
-        <img className="draft-zoom" src={src} alt="" aria-hidden="true" onTransitionEnd={() => { if (!open) setBox(null) }}
-          style={{ left: box.left, top: box.top, width: box.W, transformOrigin: `${box.ox}px ${box.oy}px`, transform: open ? 'none' : `scale(${box.s})`, opacity: open ? 1 : 0 }} />,
-        document.body)}
-    </>
-  )
-}
+const SPEC = [
+  ['Toolbar size', '800 × 64, narrows with its container', '720 × 64, narrows with its container'],
+  ['Toolbar padding', '0 × 10', '0 × 8'],
+  ['Group spacing', '16', '12'],
+  ['Button spacing', '4', '4'],
+  ['Button size', '64 high hit area · icon frame 40 × 40 · text frame 40 high', '48 high · icon only 48 × 48'],
+  ['Button padding', '0 × 6 · text frame 0 × 14', '0 × 18 with a label · 0 icon only'],
+  ['Icon to label', '12, label sits outside the frame', '8'],
+  ['Icon', '20 × 20 · stroke 1', '22 × 22 · stroke 2 · grid filled'],
+  ['Font', 'Inter Medium', 'Geist Medium, −0.5% tracking'],
+  ['Font size / line height', '15 / 20', '15 / 20'],
+  ['Corner radius', 'toolbar 16 · frame 8 · rings 8', 'toolbar 32 · buttons 24 · recess 24'],
+  ['Stroke width', 'toolbar 1 · frame 1 · focus ring 2 · selection 1.5', 'toolbar 1 · top highlight 1'],
+  ['Color', 'toolbar #0F141B · stroke #1D232B · frame #2A313A · label #98A2AD · focus #1A9FFF', 'glass #8E939A to #74787E at 72% · blur 24 · white glyphs · primary white 88% on #3A3A3A'],
+  ['Enabled', 'label #98A2AD, frame stroke #2A313A', 'white glyph on glass'],
+  ['Hover', 'the focus ring glides here; label turns white', 'white 16% fill'],
+  ['Pressed', 'frame .94, fills accent 35%; the ring snaps here', 'recess #282C32 16% + inner shadow 0 1 3, scale .97'],
+  ['Selected', 'one indicator, white 8% fill + 1.5 edge, moves between choices', 'one recess moves between choices; toggles hold their own recess'],
+  ['Motion', 'feedback 120 ms ease-out · ring and indicator 220 ms cubic-bezier(0.2, 0, 0, 1) · groups 240 ms', 'feedback 120 ms ease-out · recess 220 ms cubic-bezier(0.2, 0, 0, 1) · groups 240 ms'],
+  ['Input', 'arrows or D-pad move · Enter or A press · Esc or B back · Q / E or LB / RB switch example', 'pointer, Tab and Enter'],
+  ['Phone', 'frame 36 · text 14 · secondary buttons and labels hide', 'toolbar 58 high · buttons 44 · secondary buttons and labels hide'],
+]
 
 /* wall (home page hover background): the toolbars operating themselves, repeated to fill the screen */
 function Wall() {
@@ -418,7 +430,7 @@ function Wall() {
     window.parent.postMessage('wall:ready', window.location.origin)
     return () => window.removeEventListener('message', onMessage)
   }, [embedded])
-  const [layout] = useState(() => ({ cols: Math.max(1, Math.round(window.innerWidth / 820)), rows: Math.ceil(window.innerHeight / 480) + 1 }))
+  const [layout] = useState(() => ({ cols: Math.max(1, Math.round(window.innerWidth / 820)), rows: Math.ceil(window.innerHeight / 110) + 1 }))
   return (
     <div className="wall" aria-hidden="true">
       {active && Array.from({ length: layout.cols }, (_, c) => (
@@ -437,20 +449,25 @@ export default function App() {
   if (new URLSearchParams(window.location.search).has('wall')) return <Wall />
   return (
     <main>
-      <header className="page-head">
-        <a className="back" href="../">← Advanced Interface</a>
-        <h1>Toolbars</h1>
-        <p>Week 7 · Advanced Interface</p>
-      </header>
-      {SETS.map((set) => (
-        <section key={set.id} className={`set s-${set.id}`}>
-          <div className="set-head">
+      <h1>Toolbars</h1>
+      <section aria-label="Examples">
+        {SETS.map((set) => (
+          <article key={set.id} className={`set s-${set.id}`}>
             <h2>{set.tone}</h2>
-            <DraftThumb set={set} />
-          </div>
-          <set.Body />
-        </section>
-      ))}
+            <set.Body />
+          </article>
+        ))}
+      </section>
+      <section className="spec" aria-labelledby="spec-h">
+        <h2 id="spec-h">Specifications</h2>
+        <div className="spec-scroll">
+          <table>
+            <thead><tr><th scope="col" />{SETS.map((s) => <th key={s.id} scope="col">{s.tone}</th>)}</tr></thead>
+            <tbody>{SPEC.map(([k, a, b]) => <tr key={k}><th scope="row">{k}</th><td>{a}</td><td>{b}</td></tr>)}</tbody>
+          </table>
+        </div>
+        <p className="spec-note">All values in px. Figma drawings: {SETS.map((s, i) => <span key={s.id}>{i ? ' · ' : ''}<a href={s.figma} target="_blank" rel="noreferrer">{s.tone}</a></span>)}</p>
+      </section>
     </main>
   )
 }
