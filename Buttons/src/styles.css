@@ -258,10 +258,68 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .ix-sel { position: absolute; z-index: 0; left: 0; top: 0; background: #e6e1d7; pointer-events: none; transition: transform 260ms var(--e-std), width 260ms var(--e-std), height 260ms var(--e-std); }
 .ix-seg.st-sel .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: #e6e1d7; } /* frozen samples draw the block in place */
 
+/* ================= MATTER-OF-FACT · Heads Up =================
+   after the trycoffee download button: the content rides on a strip seen through the button
+   button 52 high, radius 14, padding 0 20, gap 10 · icon 20 line 1.5 · Inter 600 16/20 · next fact Inter 500, 55% · buttons 12 apart
+   rest [icon][label] → hover [label][next] (slide 280 ms) → after press the strip lifts, the result rises (260 ms)
+   primary #F4F4F2 ink #111 · secondary #1E1E1D · tertiary outline white 20% */
+.page-heads .bt-row { gap: 12px; }
+.hu-b, .hu-seg { --pad: 20px; --gap: 10px; overflow: hidden; font: 600 16px/20px Inter, sans-serif; letter-spacing: -0.006em;
+  transition: background-color var(--t-fb) ease-out, scale var(--t-fb) ease-out, opacity var(--t-out) ease-out; }
+.hu-b { height: 52px; border-radius: 14px; }
+.hu-b.is-icon { width: 52px; }
+.hu-b.is-measuring .hu-strip, .hu-seg.is-measuring .hu-strip, .is-measuring .hu-p { transition: none; }
+.hu-strip, .hu-res { position: absolute; left: 0; top: 0; height: 100%; display: flex; align-items: center; white-space: nowrap; }
+.hu-strip { gap: var(--gap); transform: translateX(var(--o0));
+  transition: transform 280ms var(--e-std), translate 260ms var(--e-std), opacity 200ms ease-out; }
+.hu-res { right: 0; display: grid; place-items: center; translate: 0 100%; opacity: 0; transition: translate 260ms var(--e-std), opacity 200ms ease-out; }
+.hu-p { display: inline-flex; align-items: center; gap: 6px; flex: none; transition: opacity 200ms ease-out; }
+/* pieces outside the current frame fade as they slide, so a wider frame never shows a stray piece in the margin */
+.has-next .hu-strip [data-p="c"] { opacity: 0; }
+.hu-p.is-mono { font: 400 15px/20px "Geist Mono", ui-monospace, monospace; letter-spacing: 0; }
+.hu-ic { display: grid; place-items: center; width: 20px; height: 20px; flex: none; }
+.hu-ic svg { width: 100%; height: 100%; }
+.hu-next { color: var(--next); font-weight: 500; font-variant-numeric: tabular-nums; }
+.hu-stack { display: inline-grid; }
+.hu-stack > * { grid-area: 1 / 1; }
+.hu-stack > .sz { visibility: hidden; }
+.hu-face { grid-area: 1 / 1; gap: 8px; opacity: 0; transition: opacity var(--t-out) ease-out; }
+.hu-face.on { opacity: 1; }
+.hu-spin svg { animation: hu-spin 900ms linear infinite; }
+@keyframes hu-spin { to { transform: rotate(1turn); } }
+/* hover or keyboard focus slides the strip to its next frame */
+.hu-b:not(:disabled):not(.is-done):hover .hu-strip, .hu-b:not(.is-done):focus-visible .hu-strip, .hu-b.st-hover:not(.is-done) .hu-strip,
+.hu-seg:not(:disabled):hover .hu-strip, .hu-seg:focus-visible .hu-strip, .hu-seg.is-sel .hu-strip { transform: translateX(var(--o1)); }
+.hu-b.has-next:not(:disabled):not(.is-done):hover [data-p="c"], .hu-b.has-next:not(.is-done):focus-visible [data-p="c"], .hu-b.has-next.st-hover:not(.is-done) [data-p="c"],
+.hu-seg.has-next:not(:disabled):hover [data-p="c"], .hu-seg.has-next:focus-visible [data-p="c"], .hu-seg.has-next.is-sel [data-p="c"] { opacity: 1; }
+.hu-b.has-next:not(:disabled):not(.is-done):hover [data-p="a"], .hu-b.has-next:not(.is-done):focus-visible [data-p="a"], .hu-b.has-next.st-hover:not(.is-done) [data-p="a"],
+.hu-seg.has-next:not(:disabled):hover [data-p="a"], .hu-seg.has-next:focus-visible [data-p="a"], .hu-seg.has-next.is-sel [data-p="a"] { opacity: 0; }
+/* after the press: the strip lifts away and the result rises in */
+.hu-b.is-done .hu-strip { translate: 0 -100%; opacity: 0; }
+.hu-b.is-done .hu-res { translate: 0 0; opacity: 1; }
+.hu-b.is-pri { --next: #6e6e6a; background: #f4f4f2; color: #111; box-shadow: inset 0 1px 0 #fff, 0 10px 30px rgba(0,0,0,.45); }
+.hu-b.is-sec { --next: #8e8e8a; background: #1e1e1d; color: #f4f4f2; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), inset 0 1px 0 rgba(255,255,255,.08); }
+.hu-b.is-ter { --next: #8e8e8a; color: #f4f4f2; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+.hu-b.is-pri:not(:disabled):hover, .hu-b.is-pri.st-hover { background: #fff; }
+.hu-b.is-sec:not(:disabled):hover, .hu-b.is-sec.st-hover { background: #262625; }
+.hu-b.is-ter:not(:disabled):hover, .hu-b.is-ter.st-hover { background: rgba(255,255,255,.06); }
+.hu-b:not(:disabled):active, .hu-b.st-press, .hu-seg:not(:disabled):active, .hu-seg.st-press { scale: .97; }
+.hu-b:disabled, .hu-seg:disabled { opacity: .4; }
+.hu-b.is-done:disabled { opacity: .7; } /* done and locked: the result stays readable */
+.hu-b:focus-visible, .hu-seg:focus-visible { outline: 2px solid #f4f4f2; outline-offset: 3px; }
+/* group: one light block slides to the choice; the choice keeps its extra fact showing */
+.hu-grp { position: relative; display: inline-flex; align-items: center; gap: 2px; height: 52px; padding: 4px; border-radius: 14px; background: #1a1a19; isolation: isolate; }
+.hu-seg { --pad: 16px; --next: #8e8e8a; z-index: 1; height: 44px; border-radius: 10px; color: #8e8e8a; }
+.hu-seg.is-icon { width: 44px; }
+.hu-seg:not(:disabled):hover, .hu-seg.st-hover { color: #f4f4f2; }
+.hu-seg.is-sel { --next: #6e6e6a; color: #111; }
+.hu-sel.is-still { transition: none; }
+.hu-sel { position: absolute; z-index: 0; left: 0; top: 0; border-radius: 10px; background: #f4f4f2; pointer-events: none; transition: transform var(--t-ind) var(--e-std), width var(--t-ind) var(--e-std), height var(--t-ind) var(--e-std); }
+
 /* phones and narrow sets: buttons wrap, never clip */
 @container set (max-width: 640px) {
   .ex-controls { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .ex-controls .cm-grp, .ex-controls .cl-grp, .ex-controls .bc-grp, .ex-controls .ix-grp { margin-bottom: 10px; }
+  .ex-controls .cm-grp, .ex-controls .cl-grp, .ex-controls .bc-grp, .ex-controls .ix-grp, .ex-controls .hu-grp { margin-bottom: 10px; }
   /* the display type steps down on phones so a whole group fits the width */
   .bc-b, .bc-seg { font-size: 17px; line-height: 22px; }
   .bc-b { height: 44px; padding: 0 16px; }
@@ -287,4 +345,5 @@ body:has(.wall) { overflow: hidden; background: #050505; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
-.sample .bt-v.on, .sg .bt-v.on, .sample .bt, .sg .bt, .sample .cl-seg::before, .sg .cl-seg::before { animation: none; transition: none; } /* frozen samples never animate in */
+.sample .bt-v.on, .sg .bt-v.on, .sample .bt, .sg .bt, .sample .cl-seg::before, .sg .cl-seg::before { animation: none; transition: none; }
+.sample .hu-strip, .sg .hu-strip, .sample .hu-res, .sg .hu-res, .sample .hu-sel, .sample .hu-face, .sample .hu-p, .sg .hu-p { transition: none; } /* frozen samples never animate in */

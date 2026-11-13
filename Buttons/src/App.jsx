@@ -30,6 +30,9 @@ const IC = {
   moon: ['M15.500 12.500A6 6 0 0 1 7.500 4.500a6 6 0 1 0 8 8z'], cal: ['M3.500 5h13v11.500h-13z', 'M3.500 8.500h13', 'M7 3v3.500', 'M13 3v3.500'],
   plan: ['M3.500 3.500h13v13h-13z', 'M3.500 10h7', 'M10.500 3.500v9', 'M13.500 10v6.500'], section: ['M3 16.500h14', 'M5 16.500V9l5-5.500 5 5.500v7.500', 'M8 16.500v-4h4v4'],
   elev: ['M3 16.500h14', 'M4.500 16.500V6h11v10.500', 'M7.500 9h2', 'M10.500 9h2', 'M7.500 12.500h2', 'M10.500 12.500h2'],
+  laptop: ['M4 5h12v8H4z', 'M2 15.500h16'], term: ['M3 4h14v12H3z', 'M6 8l2.500 2L6 12', 'M10 12.500h4'], copy: ['M7 7h9v9H7z', 'M13 7V4H4v9h3'],
+  doc: ['M5 3h7l3 3v11H5z', 'M12 3v3h3', 'M7.500 10h5', 'M7.500 13h5'], clock: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M10 6v4l2.500 2'],
+  invite: ['M8 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M2.500 17a5.500 5.500 0 0 1 11 0', 'M15.500 7v5', 'M13 9.500h5'], arc: ['M10 3a7 7 0 1 1-7 7'],
   print: ['M6 8V3.500h8V8', 'M6.500 14H4V8h12v6h-2.500', 'M6.500 11.500h7v5h-7z'], expand: ['M12 3.500h4.500V8', 'M16.500 3.500l-5 5', 'M8 16.500H3.500V12', 'M3.500 16.500l5-5'],
 }
 const CONTENT = ['Icon and text', 'Text only', 'Icon only']
@@ -611,6 +614,186 @@ function IndexSet({ auto, offset = 0 }) {
   )
 }
 
+/* ================= MATTER-OF-FACT · Heads Up =================
+   After the trycoffee download button (Are.na 25471305): a button that tells you what will happen before you press it, and what
+   happened after. Its content rides on a strip seen through the button: at rest [icon][label]; hover or focus slides the strip so the
+   label stays and the next piece of information comes in ([label][what happens]); after the press the strip lifts away and the result
+   rises in. The button is as wide as its widest frame, so it never changes size. */
+function HuBtn({ kind = 'pri', seg, icon, label, next, result = [], done = null, content = 'both', mono, onMeasured, className = '', style, ...rest }) {
+  const btn = useRef(null), strip = useRef(null), res = useRef(null)
+  const [geo, setGeo] = useState(null)
+  const [ready, setReady] = useState(false)
+  // placed without motion the first time; it only slides once it has been seen in place
+  useEffect(() => { if (!geo) return; onMeasured?.(); if (!ready) { const r = requestAnimationFrame(() => setReady(true)); return () => cancelAnimationFrame(r) } }, [geo]) // eslint-disable-line react-hooks/exhaustive-deps
+  const showIcon = content !== 'text', showText = content !== 'icon'
+  const A = showIcon && icon, B = showText && label
+  const nT = showText && next?.text, nI = next?.icon && (showIcon || !next?.text)
+  const measure = () => {
+    const s = strip.current, b = btn.current
+    if (!s || !b) return
+    const box = (p) => { const el = s.querySelector(`[data-p="${p}"]`); return el && { l: el.offsetLeft, r: el.offsetLeft + el.offsetWidth } }
+    const a = box('a'), t = box('b'), c = box('c')
+    const f0 = [a || t, t || a], f1 = c ? [t || c, c] : f0
+    if (!f0[0]) return
+    const w0 = f0[1].r - f0[0].l, w1 = f1[1].r - f1[0].l
+    const wr = Math.max(0, ...[...res.current.children].map((el) => el.offsetWidth))
+    const pad = parseFloat(getComputedStyle(b).getPropertyValue('--pad')) || 20
+    const W = content === 'icon' ? b.offsetHeight : Math.ceil(Math.max(w0, w1, wr) + 2 * pad)
+    setGeo((g) => (g && g.W === W && Math.abs(g.o0 - ((W - w0) / 2 - f0[0].l)) < .5 && Math.abs(g.o1 - ((W - w1) / 2 - f1[0].l)) < .5 ? g : { W, o0: (W - w0) / 2 - f0[0].l, o1: (W - w1) / 2 - f1[0].l }))
+  }
+  useLayoutEffect(measure, [label, icon, next?.text, next?.size, next?.icon, content, result.map((r) => r.text).join()]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { document.fonts?.ready.then(measure) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <button ref={btn} type="button" className={`bt hu-${seg ? 'seg' : 'b'} ${seg ? '' : `is-${kind}`} ${content === 'icon' ? 'is-icon' : ''} ${done != null ? 'is-done' : ''} ${nT || nI ? 'has-next' : ''} ${ready ? '' : 'is-measuring'} ${className}`}
+      aria-label={content === 'icon' ? label : undefined} title={content === 'icon' ? label : undefined}
+      style={{ width: geo?.W, '--o0': `${geo?.o0 ?? 0}px`, '--o1': `${geo?.o1 ?? 0}px`, ...style }} {...rest}>
+      <span className="hu-strip" ref={strip} aria-hidden={done != null ? true : undefined}>
+        {A && <span data-p="a" className="hu-p hu-ic">{li(icon)}</span>}
+        {B && <span data-p="b" className={`hu-p ${mono ? 'is-mono' : ''}`}>{label}</span>}
+        {(nT || nI) && <span data-p="c" className="hu-p hu-next" aria-hidden="true">{nT && <span className="hu-stack"><span className="sz">{next.size || next.text}</span><span>{next.text}</span></span>}{nI && <span className="hu-ic">{li(next.icon)}</span>}</span>}
+      </span>
+      <span className="hu-res" ref={res} aria-live="polite">
+        {result.map((r, i) => (
+          <span key={i} className={`hu-p hu-face ${i === done ? 'on' : ''}`} aria-hidden={i === done ? undefined : true}>
+            {showIcon && r.icon && <span className={`hu-ic ${r.spin ? 'hu-spin' : ''}`}>{li(r.icon)}</span>}{(showText || !r.icon) && <span>{r.text}</span>}
+          </span>
+        ))}
+      </span>
+    </button>
+  )
+}
+
+// a group: one indicator slides to the choice, and the choice keeps its extra information showing
+function HuGroup({ label, items, value, onChange, content = 'both', className = '' }) {
+  const box = useRef(null)
+  const [sized, setSized] = useState(0)
+  const [live, setLive] = useState(false)
+  const sel = useMarker(box, value != null ? `[data-i="${value}"]` : null, [value, content, sized, items.map((it) => it.info).join()])
+  // the indicator is placed, not flown in: it only starts gliding once the choices have their widths
+  useEffect(() => {
+    if (!sized || live) return
+    let r = requestAnimationFrame(() => { r = requestAnimationFrame(() => setLive(true)) })
+    return () => cancelAnimationFrame(r)
+  }, [sized]) // eslint-disable-line react-hooks/exhaustive-deps
+  const keys = (e) => {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+    if (!d) return
+    e.preventDefault()
+    const n = mod((value ?? -d) + d, items.length)
+    onChange(n)
+    e.currentTarget.querySelector(`[data-i="${n}"]`)?.focus()
+  }
+  return (
+    <div className={`hu-grp ${className}`} ref={box} role="radiogroup" aria-label={label} onKeyDown={keys}>
+      {sel && <i className={`hu-sel ${live ? '' : 'is-still'}`} aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
+      {items.map((it, i) => (
+        <HuBtn key={it.label} seg icon={it.icon} label={it.label} next={it.info ? { text: it.info } : null} content={it.icon ? content : 'text'} data-i={i} role="radio" aria-checked={i === value}
+          tabIndex={i === (value ?? 0) ? 0 : -1} className={`${i === value ? 'is-sel' : ''} ${it.cls || ''}`} onClick={() => onChange(i)} onMeasured={() => setSized((n) => n + 1)} />
+      ))}
+    </div>
+  )
+}
+function HuSwitch({ label, items, value, onChange }) {
+  return (
+    <div className="sw">
+      <span className="sw-k">{label}</span>
+      <HuGroup label={label} items={items.map((t) => ({ label: t }))} value={value} onChange={onChange} />
+    </div>
+  )
+}
+
+const HU_EX = ['Download', 'Plans', 'Team']
+const BILLING = [{ label: 'Monthly', icon: IC.cal, info: '$10' }, { label: 'Yearly', icon: IC.reset, info: '−20%' }]
+
+function HeadsSet({ auto, offset = 0 }) {
+  const [ex, setEx] = useState(offset % 3)
+  const [ci, setCi] = useState(0)
+  const content = CMODE[ci]
+  const [note, say] = useNote()
+  const later = useLater()
+  const [dl, setDl] = useState(null) // null · 0 downloading · 1 downloaded
+  const [copied, setCopied] = useState(null)
+  const [opening, setOpening] = useState(null)
+  const [yearly, setYearly] = useState(0)
+  const [pro, setPro] = useState(false)
+  const [proDone, setProDone] = useState(null)
+  const [cancelDone, setCancelDone] = useState(null)
+  const [seats, setSeats] = useState(3)
+  const [sent, setSent] = useState(null)
+  const [linked, setLinked] = useState(null)
+  const [removed, setRemoved] = useState(null)
+  const flash = (set, ms = 1500, after) => { set(0); later(() => { set(null); after?.() }, ms) }
+
+  const download = () => { setDl(0); later(() => { setDl(1); later(() => setDl(null), 1500) }, 1400) }
+  const getPro = () => { setProDone(0); setPro(true) }
+  const cancel = () => flash(setCancelDone, 1300, () => { setPro(false); setProDone(null) })
+  const invite = () => { setSeats((n) => n - 1); flash(setSent, 1300) }
+  const remove = () => { setSeats((n) => n + 1); flash(setRemoved, 1300) }
+
+  const latest = useRef(); latest.current = { download, invite, remove, seats, pro, getPro, cancel }
+  useEffect(() => {
+    if (!auto) return
+    let k = offset
+    const t = setInterval(() => {
+      const L = latest.current
+      const s = k++ % 6
+      if (s === 0) L.download()
+      else if (s === 2) flash(setCopied, 1300)
+      else if (s === 3) { if (L.pro) L.cancel(); else L.getPro() }
+      else if (s === 4) { if (L.seats > 0) L.invite(); else L.remove() }
+      else setEx((v) => (v + 1) % 3)
+    }, 1500)
+    return () => clearInterval(t)
+  }, [auto, offset]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const b = ({ key, ...p }) => <HuBtn key={key} content={content} {...p} />
+  const price = yearly ? '$96 / yr' : '$10 / mo'
+  const views = [
+    <>
+      {b({ key: 'dl', kind: 'pri', icon: IC.laptop, label: 'Download for Mac', next: { text: '92 MB', icon: IC.download },
+        result: [{ icon: IC.arc, spin: true, text: 'Downloading…' }, { icon: IC.check, text: 'Downloaded' }], done: dl, disabled: dl === 0, onClick: download })}
+      {b({ key: 'brew', kind: 'sec', icon: IC.term, label: 'brew install coffee', mono: true, next: { text: 'Copy', icon: IC.copy },
+        result: [{ icon: IC.check, text: 'Copied' }], done: copied, onClick: () => flash(setCopied) })}
+      {b({ key: 'notes', kind: 'ter', icon: IC.doc, label: 'Release notes', next: { text: 'v2.4', icon: IC.arrow },
+        result: [{ icon: IC.arc, spin: true, text: 'Opening…' }], done: opening, onClick: () => flash(setOpening, 1100, () => say('Release notes 2.4 opened')) })}
+    </>,
+    <>
+      <HuGroup label="Billing" items={BILLING} value={yearly} onChange={setYearly} content={content} />
+      {b({ key: 'pro', kind: 'pri', icon: IC.spark, label: 'Get Pro', next: { text: price, size: '$96 / yr', icon: IC.arrow },
+        result: [{ icon: IC.check, text: 'You\'re on Pro' }], done: proDone, disabled: pro, onClick: getPro })}
+      {b({ key: 'cancel', kind: 'ter', icon: IC.close, label: 'Cancel plan', next: { text: 'ends 31 Dec' },
+        result: [{ icon: IC.check, text: 'Cancelled' }], done: cancelDone, disabled: !pro, onClick: cancel })}
+    </>,
+    <>
+      {b({ key: 'invite', kind: 'pri', icon: IC.invite, label: 'Invite', next: { text: seats === 0 ? 'No seats left' : seats === 1 ? '1 seat left' : `${seats} seats left`, size: 'No seats left' },
+        result: [{ icon: IC.check, text: 'Invite sent' }], done: sent, disabled: seats === 0 && sent == null, onClick: invite })}
+      {b({ key: 'link', kind: 'sec', icon: IC.link, label: 'Copy invite link', next: { text: '7 days', icon: IC.clock },
+        result: [{ icon: IC.check, text: 'Link copied' }], done: linked, onClick: () => flash(setLinked) })}
+      {b({ key: 'remove', kind: 'ter', icon: IC.close, label: 'Remove', next: { text: 'last invite' },
+        result: [{ icon: IC.check, text: 'Removed' }], done: removed, disabled: seats === 3 && removed == null, onClick: remove })}
+    </>,
+  ]
+  const status = note || [
+    dl === 0 ? 'Downloading Coffee 2.4 for Mac…' : dl === 1 ? 'Downloaded · drag Coffee to Applications' : copied != null ? 'Install command copied' : 'Coffee 2.4 · macOS 13 or later',
+    pro ? `On Pro, billed ${yearly ? 'yearly' : 'monthly'}` : `Free plan · Pro is ${price}${yearly ? ', 20% less than monthly' : ''}`,
+    seats === 0 ? 'All 3 seats used · remove someone to invite again' : `${3 - seats} of 3 seats used`,
+  ][ex]
+  return (
+    <div className="ex">
+      <div className="ex-stage">
+        <div className="bt-row hu-row">{views[ex]}</div>
+        {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
+      </div>
+      {!auto && (
+        <div className="ex-controls">
+          <HuSwitch label="Example" items={HU_EX} value={ex} onChange={setEx} />
+          <HuSwitch label="Content" items={CONTENT} value={ci} onChange={setCi} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ================= static samples: the same parts, frozen in one configuration or state ================= */
 function Sample({ label, children }) {
   return (
@@ -657,6 +840,17 @@ const BC_TRIO = [{ kind: 'pri', icon: IC.flag, label: 'Depart' }, { kind: 'sec',
 const BC_STATE = [BC_TRIO[0], { kind: 'sec', icon: IC.shield, label: 'Equip' }, { kind: 'ter', icon: IC.close, label: 'Quit' }]
 const IX_TRIO = [{ kind: 'pri', icon: IC.arrow, label: 'View plans' }, { kind: 'sec', icon: IC.mark, label: 'Save' }, { kind: 'ter', icon: IC.quote, label: 'Cite' }]
 const IX_STATE = [{ kind: 'pri', icon: IC.arrow, label: 'View' }, IX_TRIO[1], IX_TRIO[2]]
+const HU = (p) => <HuBtn {...p} />
+const HU_TRIO = [
+  { kind: 'pri', icon: IC.laptop, label: 'Download for Mac', next: { text: '92 MB', icon: IC.download }, result: [{ icon: IC.check, text: 'Downloaded' }] },
+  { kind: 'sec', icon: IC.term, label: 'brew install coffee', mono: true, next: { text: 'Copy', icon: IC.copy }, result: [{ icon: IC.check, text: 'Copied' }] },
+  { kind: 'ter', icon: IC.doc, label: 'Release notes', next: { text: 'v2.4', icon: IC.arrow }, result: [{ icon: IC.arrow, text: 'Opening' }] },
+]
+const HU_STATE = [
+  { kind: 'pri', icon: IC.spark, label: 'Get Pro', next: { text: '$10 / mo' }, result: [{ icon: IC.check, text: 'On Pro' }] },
+  { kind: 'sec', icon: IC.link, label: 'Copy link', next: { text: '7 days' }, result: [{ icon: IC.check, text: 'Copied' }] },
+  { kind: 'ter', icon: IC.close, label: 'Remove', next: { text: 'Tanya' }, result: [{ icon: IC.check, text: 'Removed' }] },
+]
 const trio = (Make, list, content) => <Row>{list.map((p) => <Make key={p.kind} {...p} content={content} />)}</Row>
 const CM_STATE = [CM_TRIO[0], { kind: 'sec', icon: IC.plus, label: 'Library' }, CM_TRIO[2]]
 const stateCells = (Make, p, hover) => [
@@ -818,6 +1012,46 @@ const SETS = [
       ['Motion', [['Wipe', '320 ms cubic-bezier(.2, .9, .2, 1), from the left edge'], ['Press', '120 ms ease-out'], ['Group block', '260 ms cubic-bezier(0.2, 0, 0, 1)'], ['Label change', 'the new face fades in, 150 ms · width never changes']]],
       ['Focus', [['Keyboard', 'outline 2 bone, offset 4'], ['Group', 'arrow keys move the choice']]],
       ['Phone', [['Button', '48 high · padding 0 × 16 · 20 / 24 · icon 20'], ['Choice', '48 high · padding 0 × 12 · 18 / 22']]],
+    ],
+  },
+  {
+    id: 'heads', tone: 'Matter-of-fact, Heads Up',
+    about: 'Buttons that tell you what happens before you press, and what happened after. Hover keeps the label and slides in the consequence; a press lifts it away and the result rises in. After the trycoffee download button.',
+    Body: HeadsSet,
+    configs: [
+      { title: 'Sequence · rest, hover, after the press', items: HU_TRIO.map((p, i) => [
+        ['Primary: the size comes in, then the download is done', 'Secondary: what gets copied, then confirmed', 'Tertiary: where it leads, then on the way'][i],
+        <Row><HU {...p} /><HU {...p} className="st-hover" /><HU {...p} done={0} /></Row>,
+      ]) },
+      { title: 'Emphasis', row: true, items: HU_TRIO.map((p, i) => [['Primary: light slab', 'Secondary: dark slab', 'Tertiary: outline'][i], <HU {...p} />]) },
+      { title: 'Content', items: [
+        ['Icon and text: hover keeps the label, the icon leaves, the next fact comes in', trio(HU, HU_TRIO, 'both')],
+        ['Text only: the label shifts over for the next fact', trio(HU, HU_TRIO, 'text')],
+        ['Icon only: 52 × 52, the icon swaps for the next one', trio(HU, HU_TRIO, 'icon')],
+      ] },
+      { title: 'Button group · single selection', items: [
+        ['The choice keeps its extra fact showing; hover previews it on the others', <HuGroup label="Billing" items={BILLING} value={1} onChange={() => {}} />],
+        ['Text only', <HuGroup label="Billing" items={BILLING} value={1} onChange={() => {}} content="text" />],
+        ['Icon only: the fact needs words, so it stays out', <HuGroup label="Billing" items={BILLING} value={1} onChange={() => {}} content="icon" />],
+      ] },
+    ],
+    states: <StateGrid cols={['Primary', 'Secondary', 'Tertiary']} rows={[
+      ['Enabled', HU_STATE.map((p) => <HU {...p} />)],
+      ['Hover', HU_STATE.map((p) => <HU {...p} className="st-hover" />)],
+      ['Pressed', HU_STATE.map((p) => <HU {...p} className="st-hover st-press" />)],
+      ['After press', HU_STATE.map((p) => <HU {...p} done={0} />)],
+      ['Disabled', HU_STATE.map((p) => <HU {...p} disabled />)],
+    ]} />,
+    spec: [
+      ['Button', [['Height', '52 · icon only 52 × 52'], ['Padding', '0 × 20'], ['Gaps', 'icon to label 10 · label to next 10'], ['Icon', '20 × 20 · line 1.5'], ['Width', 'its widest frame (rest, hover, result), so it never resizes']]],
+      ['Frames', [['Rest', '[icon] [label]'], ['Hover, focus', 'the strip slides: the label stays, the icon leaves past the edge, the next fact comes in'], ['After press', 'the strip lifts away, the result rises in'], ['Clip', 'the whole button, so content enters and leaves at its rounded edge']]],
+      ['Group', [['Container', '52 high · padding 4 · radius 14 · #1A1A19'], ['Choice', '44 high · padding 0 × 16 · radius 10'], ['Chosen', 'one light block slides to it and its extra fact stays out']]],
+      ['Type', [['Label', 'Inter Semi Bold 16 / 20'], ['Next fact', 'Inter Medium 16 / 20, 55% of the label colour'], ['Command', 'Geist Mono 15 / 20']]],
+      ['Shape', [['Corner radius', 'buttons 14 · group 14 · choices 10'], ['Stroke width', 'tertiary outline 1 · secondary edge 1']]],
+      ['Color', [['Primary', '#F4F4F2 · ink #111111 · next #6E6E6A'], ['Secondary', '#1E1E1D · text #F4F4F2 · next #8E8E8A'], ['Tertiary', 'no fill · outline white 20%'], ['Shadow', 'primary 0 10 30, black 45%']]],
+      ['States', [['Hover', 'next frame · primary turns white, secondary #262625, tertiary white 6% fill'], ['Pressed', '.97'], ['After press', 'the result, held 1.3–1.5 s, then back'], ['Disabled', '40% · no preview']]],
+      ['Motion', [['Slide', '280 ms cubic-bezier(0.2, 0, 0, 1)'], ['Lift, rise', '260 ms, same curve · the strip fades 200 ms'], ['Return', 'the same path back'], ['Press', '120 ms ease-out']]],
+      ['Scenarios', [['Download', 'size before, done after'], ['Price', 'cost before, plan after'], ['Copy', 'what is copied, then confirmed'], ['Seats, links', 'what is left, where it goes']]],
     ],
   },
 ]
