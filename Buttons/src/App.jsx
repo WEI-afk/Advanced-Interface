@@ -18,6 +18,19 @@ const IC = {
   close: ['M5.500 5.500l9 9', 'M14.500 5.500l-9 9'], undo: ['M7.500 11.500L4 8l3.500-3.500', 'M4 8h8.500a4 4 0 0 1 0 8H10'], redo: ['M12.500 11.500L16 8l-3.500-3.500', 'M16 8H7.500a4 4 0 0 0 0 8H10'],
   left: ['M3 4.500h14', 'M3 8.200h9', 'M3 11.800h14', 'M3 15.500h9'], center: ['M3 4.500h14', 'M5.500 8.200h9', 'M3 11.800h14', 'M5.500 15.500h9'], right: ['M3 4.500h14', 'M8 8.200h9', 'M3 11.800h14', 'M8 15.500h9'],
   reply: ['M8 5L3.500 9.500 8 14', 'M3.500 9.500H11a5.500 5.500 0 0 1 5.500 5.500'], reopen: ['M16 10a6 6 0 1 1-1.800-4.300', 'M16 4v3.500h-3.500'],
+  flag: ['M5 17V3.500', 'M5 4h9.500l-2 3.500 2 3.500H5'], shield: ['M10 2.500l6 2.500v4.500c0 4-2.700 6.500-6 8-3.300-1.500-6-4-6-8V5z'],
+  hammer: ['M12 3l5 5-2 2-5-5z', 'M11 7l-7.500 7.500 2 2L13 9'], leaf: ['M4 16c0-7 5-12 12-12 0 7-5 12-12 12z', 'M4 16l7-7'], back: ['M12 4.500L6.500 10l5.500 5.500'],
+  one: ['M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M4.500 17a5.500 5.500 0 0 1 11 0'],
+  two: ['M7.500 9a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5z', 'M2.500 16a5 5 0 0 1 10 0', 'M13 4.200a2.500 2.500 0 0 1 0 4.700', 'M14.500 11.300a5 5 0 0 1 3 4.700'],
+  three: ['M10 8a2.200 2.200 0 1 0 0-4.400 2.200 2.200 0 0 0 0 4.400z', 'M5 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'M15 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'M6 16.500a4 4 0 0 1 8 0', 'M1.500 16a3.500 3.500 0 0 1 3.800-3.500', 'M18.500 16a3.500 3.500 0 0 0-3.800-3.500'],
+  send: ['M3 10l14-6.500-4.500 14L10 11z', 'M10 11l7-7.500'],
+  mark: ['M5.500 3h9v14l-4.500-3.500L5.500 17z'], quote: ['M4 11h4v5H4z', 'M4 11c0-3 1.500-5 4-6', 'M12 11h4v5h-4z', 'M12 11c0-3 1.500-5 4-6'], arrow: ['M4 10h12', 'M11 5l5 5-5 5'],
+  dawn: ['M3 14h14', 'M6 14a4 4 0 0 1 8 0', 'M10 4v3', 'M4.500 8l1.500 1.500', 'M15.500 8L14 9.500'],
+  sun: ['M10 6.500a3.500 3.500 0 1 0 0 7 3.500 3.500 0 0 0 0-7z', 'M10 2v2', 'M10 16v2', 'M2 10h2', 'M16 10h2', 'M4.300 4.300l1.400 1.400', 'M14.300 14.300l1.400 1.400', 'M4.300 15.700l1.400-1.400', 'M14.300 5.700l1.400-1.400'],
+  moon: ['M15.500 12.500A6 6 0 0 1 7.500 4.500a6 6 0 1 0 8 8z'], cal: ['M3.500 5h13v11.500h-13z', 'M3.500 8.500h13', 'M7 3v3.500', 'M13 3v3.500'],
+  plan: ['M3.500 3.500h13v13h-13z', 'M3.500 10h7', 'M10.500 3.500v9', 'M13.500 10v6.500'], section: ['M3 16.500h14', 'M5 16.500V9l5-5.500 5 5.500v7.500', 'M8 16.500v-4h4v4'],
+  elev: ['M3 16.500h14', 'M4.500 16.500V6h11v10.500', 'M7.500 9h2', 'M10.500 9h2', 'M7.500 12.500h2', 'M10.500 12.500h2'],
+  print: ['M6 8V3.500h8V8', 'M6.500 14H4V8h12v6h-2.500', 'M6.500 11.500h7v5h-7z'], expand: ['M12 3.500h4.500V8', 'M16.500 3.500l-5 5', 'M8 16.500H3.500V12', 'M3.500 16.500l5-5'],
 }
 const CONTENT = ['Icon and text', 'Text only', 'Icon only']
 const CMODE = ['both', 'text', 'icon']
@@ -74,6 +87,7 @@ function Btn({ sys, kind = 'pri', seg, icon, label, faces = [], content = 'both'
   return (
     <button type="button" className={`bt ${sys}-${seg ? 'seg' : 'b'} ${seg ? '' : `is-${kind}`} ${iconOnly ? 'is-icon' : ''} ${className}`}
       aria-label={iconOnly ? label : undefined} title={iconOnly ? label : undefined} {...rest}>
+      <span className="bt-bg" aria-hidden="true" />
       <span className="bt-stack">
         {faces.map(([ic, t], i) => <span key={i} className="bt-v sz" aria-hidden="true">{draw(ic, t)}</span>)}
         <span key={face ?? label} className="bt-v on">{draw(icon, label)}</span>
@@ -372,7 +386,7 @@ function ClearSet({ auto, offset = 0 }) {
     return () => clearInterval(t)
   }, [auto, offset])
 
-  const b = (props) => <Btn sys="cl" content={content} {...props} />
+  const b = ({ key, ...props }) => <Btn key={key} sys="cl" content={content} {...props} />
   const exportFaces = [[IC.download, 'Export'], [IC.download, 'Exporting…'], [IC.check, 'Exported']]
   const views = [
     <>
@@ -408,6 +422,189 @@ function ClearSet({ auto, offset = 0 }) {
         <div className="ex-controls">
           <ClearSwitch label="Example" items={CL_EX} value={ex} onChange={setEx} />
           <ClearSwitch label="Content" items={CONTENT} value={ci} onChange={setCi} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* a group with one indicator that moves between the choices; nothing chosen yet is allowed (value null) */
+function SlideGroup({ sys, label, items, value, onChange, content = 'both' }) {
+  const box = useRef(null)
+  const sel = useMarker(box, value != null ? `[data-i="${value}"]` : null, [value, content, items.length])
+  const keys = (e) => {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+    if (!d) return
+    e.preventDefault()
+    const next = mod((value ?? -d) + d, items.length)
+    onChange(next)
+    e.currentTarget.querySelector(`[data-i="${next}"]`)?.focus()
+  }
+  return (
+    <div className={`${sys}-grp`} ref={box} role="radiogroup" aria-label={label} onKeyDown={keys}>
+      {sel && <i className={`${sys}-sel`} aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
+      {items.map((it, i) => (
+        <Btn key={it.label} sys={sys} seg icon={it.icon} label={it.label} content={it.icon ? content : 'text'} data-i={i} role="radio" aria-checked={i === value}
+          tabIndex={i === (value ?? 0) ? 0 : -1} className={i === value ? 'is-sel' : ''} onClick={() => onChange(i)} />
+      ))}
+    </div>
+  )
+}
+function SlideSwitch({ sys, label, items, value, onChange }) {
+  return (
+    <div className="sw">
+      <span className="sw-k">{label}</span>
+      <SlideGroup sys={sys} label={label} items={items.map((t) => ({ label: t }))} value={value} onChange={onChange} />
+    </div>
+  )
+}
+
+/* ================= REBELLIOUS · Base Camp =================
+   Buttons for a hunter's camp, in the Persona-style language of the Base Camp menu: cut slabs that lean, a plate peeking from
+   behind, letters in Anton. A hovered button steps forward with a snap; a pressed one inverts. */
+const BC_EX = ['Quest', 'Forge', 'Party']
+const PARTY = [{ label: 'Solo', icon: IC.one }, { label: 'Duo', icon: IC.two }, { label: 'Squad', icon: IC.three }]
+
+function CampSet({ auto, offset = 0 }) {
+  const [ex, setEx] = useState(offset % 3)
+  const [ci, setCi] = useState(0)
+  const content = CMODE[ci]
+  const [note, say] = useNote()
+  const later = useLater()
+  const [quest, setQuest] = useState('idle') // idle · going · out
+  const [mats, setMats] = useState(0)
+  const [party, setParty] = useState(0)
+  const [posted, setPosted] = useState(false)
+  const depart = () => { setQuest('going'); later(() => setQuest('out'), 1200) }
+  const abandon = () => { setQuest('idle'); say('Quest abandoned · back at camp') }
+  const forge = () => { setMats(0); say('Forged: Rathalos Blade') }
+  const post = () => { setPosted(true); later(() => setPosted(false), 1400) }
+
+  const latest = useRef(); latest.current = { depart, abandon, quest, mats, forge }
+  useEffect(() => {
+    if (!auto) return
+    let k = offset
+    const t = setInterval(() => {
+      const L = latest.current
+      const s = k++ % 6
+      if (s === 0) { if (L.quest === 'out') L.abandon(); else L.depart() }
+      else if (s === 2) { if (L.mats >= 3) L.forge(); else setMats((m) => m + 1) }
+      else if (s === 3) setParty((v) => (v + 1) % 3)
+      else if (s === 4) post()
+      else setEx((v) => (v + 1) % 3)
+    }, 1300)
+    return () => clearInterval(t)
+  }, [auto, offset]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const b = ({ key, ...props }) => <Btn key={key} sys="bc" content={content} {...props} />
+  const views = [
+    <>
+      {b({ key: 'depart', kind: 'pri', icon: IC.flag, label: { idle: 'Depart', going: 'Departing…', out: 'On the Hunt' }[quest], faces: [[IC.flag, 'Depart'], [IC.flag, 'Departing…'], [IC.flag, 'On the Hunt']], disabled: quest !== 'idle', onClick: depart })}
+      {b({ key: 'equip', kind: 'sec', icon: IC.shield, label: 'Equipment', onClick: () => say('Equipment box opened') })}
+      {b({ key: 'abandon', kind: 'ter', icon: IC.close, label: 'Abandon', disabled: quest !== 'out', onClick: abandon })}
+    </>,
+    <>
+      {b({ key: 'forge', kind: 'pri', icon: IC.hammer, label: 'Forge', disabled: mats < 3, onClick: forge })}
+      {b({ key: 'gather', kind: 'sec', icon: IC.leaf, label: `Gather ${mats}/3`, face: 'gather', faces: [[IC.leaf, 'Gather 0/3']], disabled: mats >= 3, onClick: () => setMats((m) => Math.min(3, m + 1)) })}
+      {b({ key: 'back', kind: 'ter', icon: IC.back, label: 'Back', onClick: () => say('Back to camp') })}
+    </>,
+    <>
+      <SlideGroup sys="bc" label="Party size" items={PARTY} value={party} onChange={setParty} content={content} />
+      {b({ key: 'post', kind: 'pri', icon: posted ? IC.check : IC.send, label: posted ? 'Posted' : 'Post Quest', faces: [[IC.send, 'Post Quest'], [IC.check, 'Posted']], onClick: post })}
+      {b({ key: 'reset', kind: 'ter', icon: IC.reset, label: 'Reset', disabled: party === 0, onClick: () => setParty(0) })}
+    </>,
+  ]
+  const status = note || [
+    { idle: 'Hunt: Rathalos · Ancient Forest', going: 'Departing for the Ancient Forest…', out: 'On the hunt · 50:00 left' }[quest],
+    `Materials ${mats} of 3${mats >= 3 ? ' · ready to forge' : ''}`,
+    `Party: ${PARTY[party].label}${posted ? ' · quest posted to the board' : ''}`,
+  ][ex]
+  return (
+    <div className="ex">
+      <div className="ex-stage">
+        <div className="bt-row bc-row">{views[ex]}</div>
+        {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
+      </div>
+      {!auto && (
+        <div className="ex-controls">
+          <SlideSwitch sys="bc" label="Example" items={BC_EX} value={ex} onChange={setEx} />
+          <SlideSwitch sys="bc" label="Content" items={CONTENT} value={ci} onChange={setCi} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ================= MONUMENTAL · The Index =================
+   Buttons for an archive of structures, cut like carved lettering: square, heavy, ruled. A slab wipes in from the left on
+   hover, the way the Index rows fill, and a press turns it rust. */
+const IX_EX = ['Record', 'Visit', 'Drawings']
+const SLOTS = [{ label: 'Morning', icon: IC.dawn }, { label: 'Midday', icon: IC.sun }, { label: 'Evening', icon: IC.moon }]
+const DRAW = [{ label: 'Plan', icon: IC.plan }, { label: 'Section', icon: IC.section }, { label: 'Elevation', icon: IC.elev }]
+
+function IndexSet({ auto, offset = 0 }) {
+  const [ex, setEx] = useState(offset % 3)
+  const [ci, setCi] = useState(0)
+  const content = CMODE[ci]
+  const [note, say] = useNote()
+  const later = useLater()
+  const [saved, setSaved] = useState(false)
+  const [slot, setSlot] = useState(null)
+  const [booked, setBooked] = useState(false)
+  const [d, setD] = useState(0)
+  const [print, setPrint] = useState('idle') // idle · busy · done
+  const printNow = () => { setPrint('busy'); later(() => { setPrint('done'); later(() => setPrint('idle'), 1400) }, 1200) }
+  const pickSlot = (i) => { setSlot(i); setBooked(false) }
+
+  const latest = useRef(); latest.current = { slot, printNow }
+  useEffect(() => {
+    if (!auto) return
+    let k = offset
+    const t = setInterval(() => {
+      const L = latest.current
+      const s = k++ % 6
+      if (s === 0) setSaved((v) => !v)
+      else if (s === 2) { if (L.slot == null) pickSlot(1); else setBooked(true) }
+      else if (s === 3) setD((v) => (v + 1) % 3)
+      else if (s === 4) L.printNow()
+      else setEx((v) => (v + 1) % 3)
+    }, 1300)
+    return () => clearInterval(t)
+  }, [auto, offset])
+
+  const b = ({ key, ...props }) => <Btn key={key} sys="ix" content={content} {...props} />
+  const views = [
+    <>
+      {b({ key: 'view', kind: 'pri', icon: IC.arrow, label: 'View plans', onClick: () => say('Plans of the Pantheon opened') })}
+      {b({ key: 'save', kind: 'sec', icon: saved ? IC.check : IC.mark, label: saved ? 'Saved' : 'Save', faces: [[IC.mark, 'Save'], [IC.check, 'Saved']], onClick: () => setSaved((v) => !v) })}
+      {b({ key: 'cite', kind: 'ter', icon: IC.quote, label: 'Cite', onClick: () => say('Citation copied') })}
+    </>,
+    <>
+      <SlideGroup sys="ix" label="Visiting time" items={SLOTS} value={slot} onChange={pickSlot} content={content} />
+      {b({ key: 'book', kind: 'pri', icon: booked ? IC.check : IC.cal, label: booked ? 'Booked' : 'Book', faces: [[IC.cal, 'Book'], [IC.check, 'Booked']], disabled: slot == null || booked, onClick: () => setBooked(true) })}
+      {b({ key: 'clear', kind: 'ter', icon: IC.close, label: 'Clear', disabled: slot == null, onClick: () => { setSlot(null); setBooked(false) } })}
+    </>,
+    <>
+      <SlideGroup sys="ix" label="Drawing" items={DRAW} value={d} onChange={setD} content={content} />
+      {b({ key: 'print', kind: 'pri', icon: print === 'done' ? IC.check : IC.print, label: { idle: 'Print', busy: 'Printing…', done: 'Printed' }[print], faces: [[IC.print, 'Print'], [IC.print, 'Printing…'], [IC.check, 'Printed']], disabled: print !== 'idle', onClick: printNow })}
+      {b({ key: 'enlarge', kind: 'ter', icon: IC.expand, label: 'Enlarge', onClick: () => say(`${DRAW[d].label} at full size`) })}
+    </>,
+  ]
+  const status = note || [
+    `Pantheon · 126 AD${saved ? ' · saved to your index' : ''}`,
+    slot == null ? 'Pick a time to visit' : booked ? `Booked · Saturday, ${SLOTS[slot].label.toLowerCase()}` : `${SLOTS[slot].label} · not booked yet`,
+    print === 'busy' ? `Printing the ${DRAW[d].label.toLowerCase()}…` : print === 'done' ? 'Printed · A1 at 1:200' : `${DRAW[d].label} · Pantheon, 1:200`,
+  ][ex]
+  return (
+    <div className="ex">
+      <div className="ex-stage">
+        <div className="bt-row ix-row">{views[ex]}</div>
+        {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
+      </div>
+      {!auto && (
+        <div className="ex-controls">
+          <SlideSwitch sys="ix" label="Example" items={IX_EX} value={ex} onChange={setEx} />
+          <SlideSwitch sys="ix" label="Content" items={CONTENT} value={ci} onChange={setCi} />
         </div>
       )}
     </div>
@@ -454,6 +651,12 @@ const CM = (p) => <Btn sys="cm" {...p} />
 const CL = (p) => <Btn sys="cl" {...p} />
 const CM_TRIO = [{ kind: 'pri', icon: IC.play, label: 'Play' }, { kind: 'sec', icon: IC.plus, label: 'Add to Library' }, { kind: 'ter', icon: IC.info, label: 'Details' }]
 const CL_TRIO = [{ kind: 'pri', icon: IC.download, label: 'Export' }, { kind: 'sec', icon: IC.link, label: 'Copy link' }, { kind: 'ter', icon: IC.close, label: 'Cancel' }]
+const BC = (p) => <Btn sys="bc" {...p} />
+const IX = (p) => <Btn sys="ix" {...p} />
+const BC_TRIO = [{ kind: 'pri', icon: IC.flag, label: 'Depart' }, { kind: 'sec', icon: IC.shield, label: 'Equipment' }, { kind: 'ter', icon: IC.close, label: 'Abandon' }]
+const BC_STATE = [BC_TRIO[0], { kind: 'sec', icon: IC.shield, label: 'Equip' }, { kind: 'ter', icon: IC.close, label: 'Quit' }]
+const IX_TRIO = [{ kind: 'pri', icon: IC.arrow, label: 'View plans' }, { kind: 'sec', icon: IC.mark, label: 'Save' }, { kind: 'ter', icon: IC.quote, label: 'Cite' }]
+const IX_STATE = [{ kind: 'pri', icon: IC.arrow, label: 'View' }, IX_TRIO[1], IX_TRIO[2]]
 const trio = (Make, list, content) => <Row>{list.map((p) => <Make key={p.kind} {...p} content={content} />)}</Row>
 const CM_STATE = [CM_TRIO[0], { kind: 'sec', icon: IC.plus, label: 'Library' }, CM_TRIO[2]]
 const stateCells = (Make, p, hover) => [
@@ -539,6 +742,82 @@ const SETS = [
       ['States', [['Hover', 'primary turns white · secondary +8% light · tertiary white 8% fill'], ['Pressed', '.97 · primary white 80% · others +18% light'], ['Disabled', '38% opacity'], ['Group choice', 'white 14% fill, grows in place']]],
       ['Motion', [['Hover, press', '120 ms ease-out'], ['Choice', 'grows from 0.85, 240 ms cubic-bezier(0.2, 0, 0, 1) · the old one fades 150 ms ease-in'], ['Label change', 'the new face fades in, 150 ms · width never changes']]],
       ['Focus', [['Keyboard', 'outline 2 white 85%, offset 2'], ['Group', 'arrow keys move the choice']]],
+    ],
+  },
+  {
+    id: 'camp', tone: 'Rebellious, Base Camp',
+    about: 'Buttons for a hunter\'s camp in the Persona-style language of the Base Camp menu: cut slabs that lean, a plate peeking from behind, and a snap when you reach for one.',
+    Body: CampSet,
+    configs: [
+      { title: 'Emphasis', row: true, items: BC_TRIO.map((p, i) => [['Primary: red slab, paper plate behind', 'Secondary: paper slab', 'Tertiary: a red slash under the word'][i], <BC {...p} />]) },
+      { title: 'Content', items: [
+        ['Icon and text', trio(BC, BC_TRIO, 'both')],
+        ['Text only', trio(BC, BC_TRIO, 'text')],
+        ['Icon only: 52 × 48, the label moves to the accessible name', trio(BC, BC_TRIO, 'icon')],
+      ] },
+      { title: 'Button group · single selection', items: [
+        ['Icon and text: one white shard jumps to the choice, which leans and grows', <StaticGroup sys="bc" items={PARTY} sel={1} />],
+        ['Text only', <StaticGroup sys="bc" items={PARTY} sel={1} content="text" />],
+        ['Icon only', <StaticGroup sys="bc" items={PARTY} sel={1} content="icon" />],
+      ] },
+    ],
+    states: <StateGrid cols={['Enabled', 'Hover', 'Pressed', 'Disabled']} rows={[
+      ...BC_STATE.map((p, i) => [['Primary', 'Secondary', 'Tertiary'][i], stateCells(BC, p, 'st-hover')]),
+      ['Group choice', [
+        <StaticGroup sys="bc" items={PARTY.slice(0, 2)} sel={0} content="icon" />,
+        <StaticGroup sys="bc" items={PARTY.slice(0, 2)} sel={0} content="icon" st={[1, 'st-hover']} />,
+        <StaticGroup sys="bc" items={PARTY.slice(0, 2)} sel={0} content="icon" st={[1, 'st-hover st-press']} />,
+        <StaticGroup sys="bc" items={PARTY.slice(0, 2)} sel={0} content="icon" off={1} />,
+      ]],
+    ]} />,
+    spec: [
+      ['Button', [['Height', '48 · icon only 52 × 48'], ['Padding', '0 × 22'], ['Icon to label', '10'], ['Icon', '20 × 20 · line 2'], ['Buttons apart', '20']]],
+      ['Group', [['Choice', '44 high · padding 0 × 16 · icon only 48'], ['Choices apart', '4'], ['Chosen', 'white shard behind · label ink · leans −3° and grows to 1.08']]],
+      ['Type', [['Font', 'Anton, uppercase, +3%'], ['Size / line height', '20 / 24']]],
+      ['Shape', [['Corners', 'none: cut slabs, polygon 0 8%, 100% 0, 98% 100%, 2% 92%'], ['Lean', 'every button −2°'], ['Plate', 'offset 5, 5 behind the slab']]],
+      ['Color', [['Red', '#D90416'], ['Ink', '#0B0B0B'], ['Paper', '#F3F0EA'], ['Primary', 'red slab, white letters, paper plate'], ['Secondary', 'paper slab, ink letters'], ['Tertiary', 'white letters on a red slash']]],
+      ['States', [['Hover', 'steps 6 forward and leans −3° · secondary shows a red plate · the slash fills to a slab'], ['Pressed', '.95 · the slab inverts: primary paper with red letters, secondary red'], ['Disabled', 'grey, 40%']]],
+      ['Motion', [['Step, lean', '140 ms cubic-bezier(.3, 1.6, .5, 1), the Base Camp snap'], ['Colour', '100 ms ease-out'], ['Group shard', 'jumps 240 ms cubic-bezier(.3, 1.5, .5, 1)'], ['Label change', 'the new face fades in, 150 ms · width never changes']]],
+      ['Focus', [['Keyboard', 'dashed outline 2 white, offset 5'], ['Group', 'arrow keys move the choice']]],
+      ['Phone', [['Button', '44 high · padding 0 × 16 · Anton 17 / 22'], ['Choice', '40 high · padding 0 × 10']]],
+    ],
+  },
+  {
+    id: 'index', tone: 'Monumental, The Index',
+    about: 'Buttons for an archive of structures, cut like carved lettering: square, heavy and ruled. A slab wipes in from the left on hover, the way the Index rows fill.',
+    Body: IndexSet,
+    configs: [
+      { title: 'Emphasis', row: true, items: IX_TRIO.map((p, i) => [['Primary: bone slab', 'Secondary: 3 rule frame', 'Tertiary: 3 rule under the word'][i], <IX {...p} />]) },
+      { title: 'Content', items: [
+        ['Icon and text', trio(IX, IX_TRIO, 'both')],
+        ['Text only', trio(IX, IX_TRIO, 'text')],
+        ['Icon only: 56 × 56, the label moves to the accessible name', trio(IX, IX_TRIO, 'icon')],
+      ] },
+      { title: 'Button group · single selection', items: [
+        ['Icon and text: one bone block slides under the choice', <StaticGroup sys="ix" items={DRAW} sel={1} />],
+        ['Text only', <StaticGroup sys="ix" items={DRAW} sel={1} content="text" />],
+        ['Icon only', <StaticGroup sys="ix" items={DRAW} sel={1} content="icon" />],
+      ] },
+    ],
+    states: <StateGrid cols={['Enabled', 'Hover', 'Pressed', 'Disabled']} rows={[
+      ...IX_STATE.map((p, i) => [['Primary', 'Secondary', 'Tertiary'][i], stateCells(IX, p, 'st-hover')]),
+      ['Group choice', [
+        <StaticGroup sys="ix" items={DRAW.slice(0, 2)} sel={0} content="icon" />,
+        <StaticGroup sys="ix" items={DRAW.slice(0, 2)} sel={0} content="icon" st={[1, 'st-hover']} />,
+        <StaticGroup sys="ix" items={DRAW.slice(0, 2)} sel={0} content="icon" st={[1, 'st-hover st-press']} />,
+        <StaticGroup sys="ix" items={DRAW.slice(0, 2)} sel={0} content="icon" off={1} />,
+      ]],
+    ]} />,
+    spec: [
+      ['Button', [['Height', '56 · icon only 56 × 56'], ['Padding', '0 × 24'], ['Icon to label', '12'], ['Icon', '24 × 24 · line 2'], ['Buttons apart', '16']]],
+      ['Group', [['Container', '56 high · 3 rule along the bottom'], ['Choice', '56 high · padding 0 × 20 · icon only 56'], ['Chosen', 'one bone block slides under it, letters turn ink']]],
+      ['Type', [['Font', 'Big Shoulders Display ExtraBold, uppercase'], ['Size / line height', '26 / 28']]],
+      ['Shape', [['Corners', 'square, radius 0'], ['Rules', '3: secondary frame, tertiary underline, group baseline']]],
+      ['Color', [['Bone', '#E6E1D7'], ['Ink', '#1A1815'], ['Rust', '#6B2C1C, pressed'], ['Dim', '#827B6F, disabled and unchosen']]],
+      ['States', [['Hover', 'a slab wipes in from the left: ink over the primary (it keeps a bone frame), bone under the others'], ['Pressed', '.98 · the slab turns rust, letters bone'], ['Disabled', 'letters and rules dim #827B6F · primary slab #2B2925']]],
+      ['Motion', [['Wipe', '320 ms cubic-bezier(.2, .9, .2, 1), from the left edge'], ['Press', '120 ms ease-out'], ['Group block', '260 ms cubic-bezier(0.2, 0, 0, 1)'], ['Label change', 'the new face fades in, 150 ms · width never changes']]],
+      ['Focus', [['Keyboard', 'outline 2 bone, offset 4'], ['Group', 'arrow keys move the choice']]],
+      ['Phone', [['Button', '48 high · padding 0 × 16 · 20 / 24 · icon 20'], ['Choice', '48 high · padding 0 × 12 · 18 / 22']]],
     ],
   },
 ]

@@ -102,11 +102,15 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .bt-v.sz { visibility: hidden; }
 .bt-v.on { animation: bt-face var(--t-out) ease-out; }
 @keyframes bt-face { from { opacity: 0; } }
+.bt-bg { display: none; } /* the back layer: the louder sets paint it (a cut slab, a wipe) */
+.bt-stack { position: relative; }
 .bt-ic { display: grid; place-items: center; flex: none; }
 .bt-ic svg { width: 100%; height: 100%; }
 .bt-t { font-variant-numeric: tabular-nums; }
 .bt-row { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .page-clear .bt-row { gap: 8px; }
+.page-camp .bt-row { gap: 20px; }
+.page-index .bt-row { gap: 16px; }
 
 /* ================= FUTURISTIC · Couch Mode =================
    button 48 high, radius 8, padding 0 20, gap 10 · icon 20 line 1.5 · Inter 500 15/20 · buttons 12 apart
@@ -178,10 +182,100 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
   transition: opacity var(--t-out) ease-in, transform var(--t-out) ease-in; }
 .cl-seg.is-sel::before { opacity: 1; transform: none; transition: opacity 200ms var(--e-std), transform var(--t-in) var(--e-std); }
 
+/* ================= REBELLIOUS · Base Camp =================
+   the Persona-style language of the Base Camp menu: cut slabs with no corners, leaning −2°, a plate peeking from behind, Anton capitals
+   button 48 high, padding 0 22, gap 10 · icon 20 line 2 · Anton 20/24 +3% · buttons 20 apart
+   primary red #D90416 slab, white letters, paper #F3F0EA plate · secondary paper slab, ink #0B0B0B letters · tertiary white letters on a red slash
+   hover: steps 6 forward, leans −3°, snaps (140 ms cubic-bezier(.3,1.6,.5,1)) · pressed .95, the slab inverts · disabled grey 40% */
+.bc-b, .bc-seg { --gap: 10px; isolation: isolate; font: 400 20px/24px Anton, Impact, sans-serif; text-transform: uppercase; letter-spacing: .03em; }
+.bc-b { --cut: polygon(0 8%, 100% 0, 98% 100%, 2% 92%); height: 48px; padding: 0 22px; color: #fff; rotate: -2deg;
+  transition: translate 140ms cubic-bezier(.3,1.6,.5,1), rotate 140ms cubic-bezier(.3,1.6,.5,1), scale 100ms ease-out, color 100ms ease-out, filter var(--t-out) ease-out, opacity var(--t-out) ease-out; }
+.bc-b.is-icon { width: 52px; padding: 0; }
+.bc-b .bt-ic, .bc-seg .bt-ic { width: 20px; height: 20px; }
+.bc-b svg, .bc-seg svg { stroke-width: 2; }
+.bc-b .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: var(--bg, transparent); clip-path: var(--cut); transition: background-color 100ms ease-out, clip-path 140ms cubic-bezier(.3,1.6,.5,1); }
+.bc-b::before { content: ''; position: absolute; inset: 0; z-index: -2; background: var(--plate, transparent); clip-path: var(--cut); translate: 5px 5px; transition: translate 140ms cubic-bezier(.3,1.6,.5,1), background-color 100ms ease-out; }
+.bc-b.is-pri { --bg: #d90416; --plate: #f3f0ea; }
+.bc-b.is-sec { --bg: #f3f0ea; color: #0b0b0b; }
+.bc-b.is-ter { --bg: #d90416; }
+.bc-b.is-ter .bt-bg { clip-path: polygon(0 74%, 100% 66%, 99% 88%, 1% 96%); } /* a red slash under the word */
+.bc-b:not(:disabled):hover, .bc-b.st-hover { translate: 6px 0; rotate: -3deg; }
+.bc-b.is-pri:not(:disabled):hover::before, .bc-b.is-pri.st-hover::before { translate: 8px 8px; }
+.bc-b.is-sec:not(:disabled):hover, .bc-b.is-sec.st-hover { --plate: #d90416; }
+.bc-b.is-ter:not(:disabled):hover .bt-bg, .bc-b.is-ter.st-hover .bt-bg { clip-path: var(--cut); }
+.bc-b:not(:disabled):active, .bc-b.st-press { scale: .95; }
+.bc-b.is-pri:not(:disabled):active, .bc-b.is-pri.st-press { --bg: #f3f0ea; color: #d90416; }
+.bc-b.is-sec:not(:disabled):active, .bc-b.is-sec.st-press { --bg: #d90416; color: #fff; }
+.bc-b.is-ter:not(:disabled):active, .bc-b.is-ter.st-press { --bg: #f3f0ea; color: #0b0b0b; }
+.bc-b:disabled, .bc-seg:disabled { filter: grayscale(1); opacity: .4; }
+.bc-b:focus-visible, .bc-seg:focus-visible { outline: 2px dashed #fff; outline-offset: 5px; }
+/* group: names in grey, one white shard jumps to the chosen one, which leans and grows */
+.bc-grp { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 48px; isolation: isolate; }
+.bc-seg { z-index: 1; height: 44px; padding: 0 16px; color: #8d8a84; transition: color 100ms ease-out, scale 140ms cubic-bezier(.3,1.6,.5,1), rotate 140ms cubic-bezier(.3,1.6,.5,1); }
+.bc-seg.is-icon { width: 48px; padding: 0; }
+.bc-seg:not(:disabled):hover, .bc-seg.st-hover { color: #fff; }
+.bc-seg.is-sel { color: #0b0b0b; scale: 1.08; rotate: -3deg; }
+.bc-seg:not(:disabled):active, .bc-seg.st-press { color: #d90416; }
+.bc-sel { position: absolute; z-index: 0; left: 0; top: 0; background: #fff; pointer-events: none; rotate: -3deg; scale: 1.1;
+  clip-path: polygon(0 18%, 100% 0, 95% 100%, 3% 88%); transition: transform 240ms cubic-bezier(.3,1.5,.5,1), width 240ms cubic-bezier(.3,1.5,.5,1), height 240ms cubic-bezier(.3,1.5,.5,1); }
+.bc-seg.st-sel .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: #fff; clip-path: polygon(0 18%, 100% 0, 95% 100%, 3% 88%); } /* frozen samples draw the shard in place */
+
+/* ================= MONUMENTAL · The Index =================
+   carved lettering: square, heavy, ruled · Big Shoulders Display 800 26/28 uppercase · button 56 high, padding 0 24, gap 12 · icon 24 line 2 · buttons 16 apart
+   primary bone #E6E1D7 slab, ink #1A1815 letters · secondary 3 bone frame · tertiary 3 rule under the word
+   hover: a slab wipes in from the left (320 ms cubic-bezier(.2,.9,.2,1)) · pressed .98, the slab turns rust #6B2C1C · disabled dim #827B6F */
+.ix-b, .ix-seg { --gap: 12px; isolation: isolate; font: 800 26px/28px "Big Shoulders Display", Impact, sans-serif; text-transform: uppercase; letter-spacing: .01em; }
+.ix-b { height: 56px; padding: 0 24px; color: #e6e1d7; overflow: hidden; transition: color 200ms ease-out, scale var(--t-fb) ease-out, box-shadow 200ms ease-out, background-color 200ms ease-out; }
+.ix-b.is-icon { width: 56px; padding: 0; }
+.ix-b .bt-ic, .ix-seg .bt-ic { width: 24px; height: 24px; }
+.ix-b svg, .ix-seg svg { stroke-width: 2; }
+.ix-b .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: var(--wipe); transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform 320ms cubic-bezier(.2,.9,.2,1), background-color 80ms ease-out; }
+.ix-b.is-pri { background: #e6e1d7; color: #1a1815; --wipe: #1a1815; }
+.ix-b.is-sec { box-shadow: inset 0 0 0 3px #e6e1d7; --wipe: #e6e1d7; }
+.ix-b.is-ter { --wipe: #e6e1d7; }
+.ix-b.is-ter::after { content: ''; position: absolute; left: 24px; right: 24px; bottom: 10px; height: 3px; background: currentColor; }
+.ix-b.is-ter.is-icon::after { left: 14px; right: 14px; }
+.ix-b:not(:disabled):hover .bt-bg, .ix-b.st-hover .bt-bg { transform: none; }
+.ix-b.is-pri:not(:disabled):hover, .ix-b.is-pri.st-hover { color: #e6e1d7; box-shadow: inset 0 0 0 3px #e6e1d7; } /* ink fills it, a bone frame keeps its shape */
+.ix-b.is-sec:not(:disabled):hover, .ix-b.is-sec.st-hover, .ix-b.is-ter:not(:disabled):hover, .ix-b.is-ter.st-hover { color: #1a1815; }
+.ix-b:not(:disabled):active, .ix-b.st-press { scale: .98; }
+.ix-b:is(.is-pri, .is-sec, .is-ter):not(:disabled):active, .ix-b:is(.is-pri, .is-sec, .is-ter).st-press.st-press { color: #e6e1d7; } /* a press outranks the hover underneath it */
+.ix-b:not(:disabled):active .bt-bg, .ix-b.st-press .bt-bg { transform: none; background: #6b2c1c; }
+.ix-b:disabled { color: #827b6f; }
+.ix-b.is-pri:disabled { background: #2b2925; }
+.ix-b.is-sec:disabled { box-shadow: inset 0 0 0 3px #3a3732; }
+.ix-b:focus-visible, .ix-seg:focus-visible { outline: 2px solid #e6e1d7; outline-offset: 4px; }
+/* group: names on a 3 rule; one bone block slides under the chosen one */
+.ix-grp { position: relative; display: inline-flex; align-items: stretch; height: 56px; box-shadow: inset 0 -3px 0 #e6e1d7; isolation: isolate; }
+.ix-seg { z-index: 1; height: 56px; padding: 0 20px; color: #827b6f; transition: color 200ms ease-out, scale var(--t-fb) ease-out; }
+.ix-seg.is-icon { width: 56px; padding: 0; }
+.ix-seg:not(:disabled):hover, .ix-seg.st-hover { color: #e6e1d7; }
+.ix-seg.is-sel { color: #1a1815; }
+.ix-seg:not(:disabled):active, .ix-seg.st-press { scale: .98; color: #e6e1d7; }
+.ix-seg:not(:disabled):active .bt-bg, .ix-seg.st-press .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: #6b2c1c; }
+.ix-seg:disabled { color: #3a3732; }
+.ix-sel { position: absolute; z-index: 0; left: 0; top: 0; background: #e6e1d7; pointer-events: none; transition: transform 260ms var(--e-std), width 260ms var(--e-std), height 260ms var(--e-std); }
+.ix-seg.st-sel .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: #e6e1d7; } /* frozen samples draw the block in place */
+
 /* phones and narrow sets: buttons wrap, never clip */
 @container set (max-width: 640px) {
   .ex-controls { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .ex-controls .cm-grp, .ex-controls .cl-grp { margin-bottom: 10px; }
+  .ex-controls .cm-grp, .ex-controls .cl-grp, .ex-controls .bc-grp, .ex-controls .ix-grp { margin-bottom: 10px; }
+  /* the display type steps down on phones so a whole group fits the width */
+  .bc-b, .bc-seg { font-size: 17px; line-height: 22px; }
+  .bc-b { height: 44px; padding: 0 16px; }
+  .bc-b.is-icon { width: 48px; }
+  .bc-seg { height: 40px; padding: 0 10px; }
+  .bc-seg.is-icon { width: 44px; }
+  .ix-b, .ix-seg { --gap: 8px; }
+  .ix-b { height: 48px; padding: 0 16px; font-size: 20px; line-height: 24px; }
+  .ix-b.is-icon { width: 48px; }
+  .ix-b.is-ter::after { left: 16px; right: 16px; bottom: 8px; }
+  .ix-grp { height: 48px; }
+  .ix-seg { height: 48px; padding: 0 12px; font-size: 18px; line-height: 22px; }
+  .ix-seg.is-icon { width: 48px; }
+  .ix-b .bt-ic, .ix-seg .bt-ic { width: 20px; height: 20px; }
 }
 
 /* ================= WALL ================= */
