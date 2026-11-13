@@ -1,0 +1,680 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+
+const mod = (a, n) => ((a % n) + n) % n
+
+/* ================= the button system =================
+   Every button is the same structure: [icon] [label]. Three levels of emphasis (primary, secondary, tertiary),
+   and the content can drop to text only or icon only. A button group is the same button, several in one container, one chosen. */
+const li = (d, w = 1.5) => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d.map((p, i) => <path key={i} d={p} />)}</svg>
+)
+const IC = {
+  play: ['M6.500 4.500v11l9-5.500z'], pause: ['M7 4.500v11', 'M13 4.500v11'], plus: ['M10 4v12', 'M4 10h12'], check: ['M4.500 10.500l3.500 3.500 7.500-8'],
+  more: ['M4.500 9a1 1 0 1 0 0 2 1 1 0 0 0 0-2z', 'M10 9a1 1 0 1 0 0 2 1 1 0 0 0 0-2z', 'M15.500 9a1 1 0 1 0 0 2 1 1 0 0 0 0-2z'],
+  download: ['M10 3.500v9', 'M6.500 9L10 12.500 13.500 9', 'M4 16h12'], info: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M10 9v4.500', 'M10 6.500v.010'],
+  reset: ['M4 10a6 6 0 1 0 1.800-4.300', 'M4 4v3.500h3.500'], bolt: ['M11 2.500L4.500 11H10l-1 6.500L15.500 9H10z'],
+  half: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M10 3v14'], spark: ['M10 2.500l1.800 5.700 5.700 1.800-5.700 1.800L10 17.500l-1.800-5.700L2.500 10l5.700-1.800z'],
+  link: ['M8.500 11.500a3 3 0 0 0 4.200 0l2.500-2.500a3 3 0 0 0-4.200-4.200l-.800.800', 'M11.500 8.500a3 3 0 0 0-4.200 0L4.800 11a3 3 0 0 0 4.200 4.200l.800-.800'],
+  close: ['M5.500 5.500l9 9', 'M14.500 5.500l-9 9'], undo: ['M7.500 11.500L4 8l3.500-3.500', 'M4 8h8.500a4 4 0 0 1 0 8H10'], redo: ['M12.500 11.500L16 8l-3.500-3.500', 'M16 8H7.500a4 4 0 0 0 0 8H10'],
+  left: ['M3 4.500h14', 'M3 8.200h9', 'M3 11.800h14', 'M3 15.500h9'], center: ['M3 4.500h14', 'M5.500 8.200h9', 'M3 11.800h14', 'M5.500 15.500h9'], right: ['M3 4.500h14', 'M8 8.200h9', 'M3 11.800h14', 'M8 15.500h9'],
+  reply: ['M8 5L3.500 9.500 8 14', 'M3.500 9.500H11a5.500 5.500 0 0 1 5.500 5.500'], reopen: ['M16 10a6 6 0 1 1-1.800-4.300', 'M16 4v3.500h-3.500'],
+}
+const CONTENT = ['Icon and text', 'Text only', 'Icon only']
+const CMODE = ['both', 'text', 'icon']
+
+// measure where an element sits inside its container, so one marker (ring or selection) can glide to it
+function useMarker(boxRef, selector, deps) {
+  const [box, setBox] = useState(null)
+  const measure = () => {
+    const root = boxRef.current
+    const el = root && selector && root.querySelector(selector)
+    if (!el) { setBox(null); return }
+    // layout geometry, not the painted box: a pressed button is scaled down, and the marker must not shrink with it
+    let x = 0, y = 0, n = el
+    while (n && n !== root) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent }
+    if (n !== root) { const a = el.getBoundingClientRect(), b = root.getBoundingClientRect(); x = a.left - b.left; y = a.top - b.top }
+    setBox({ x, y, w: el.offsetWidth, h: el.offsetHeight })
+  }
+  useLayoutEffect(measure, deps) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // fonts and wrapping can move buttons without the container changing size, so watch the buttons too
+    const ro = new ResizeObserver(measure)
+    if (boxRef.current) { ro.observe(boxRef.current); boxRef.current.querySelectorAll('.bt').forEach((c) => ro.observe(c)) }
+    window.addEventListener('resize', measure)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+  }, deps) // eslint-disable-line react-hooks/exhaustive-deps
+  return box
+}
+
+function useNote(ms = 1600) {
+  const [note, setNote] = useState(null)
+  const timer = useRef()
+  const say = (text) => { clearTimeout(timer.current); setNote(text); timer.current = setTimeout(() => setNote(null), ms) }
+  useEffect(() => () => clearTimeout(timer.current), [])
+  return [note, say]
+}
+
+// timers that die with the component
+function useLater() {
+  const ts = useRef([])
+  useEffect(() => () => ts.current.forEach(clearTimeout), [])
+  return (fn, ms) => { const t = setTimeout(fn, ms); ts.current.push(t); return t }
+}
+
+/* one button. Its label can change in place (Copied, Downloading 42%): every face it can show sits invisibly in the
+   same cell, so the button is always as wide as its widest face and never pushes its neighbours */
+function Btn({ sys, kind = 'pri', seg, icon, label, faces = [], content = 'both', face, className = '', ...rest }) {
+  const iconOnly = content === 'icon', textOnly = content === 'text'
+  const draw = (ic, t) => (
+    <>
+      {!textOnly && ic && <span className="bt-ic">{li(ic)}</span>}
+      {!iconOnly && <span className="bt-t">{t}</span>}
+    </>
+  )
+  return (
+    <button type="button" className={`bt ${sys}-${seg ? 'seg' : 'b'} ${seg ? '' : `is-${kind}`} ${iconOnly ? 'is-icon' : ''} ${className}`}
+      aria-label={iconOnly ? label : undefined} title={iconOnly ? label : undefined} {...rest}>
+      <span className="bt-stack">
+        {faces.map(([ic, t], i) => <span key={i} className="bt-v sz" aria-hidden="true">{draw(ic, t)}</span>)}
+        <span key={face ?? label} className="bt-v on">{draw(icon, label)}</span>
+      </span>
+    </button>
+  )
+}
+
+/* ================= FUTURISTIC · Couch Mode =================
+   Buttons for a living-room screen, read from three meters away and driven by a controller. One focus ring glides
+   between them: the D-pad moves it, A presses. Disabled buttons are skipped. */
+const CM_EX = ['Game', 'Download', 'Display']
+const MODES = [{ id: 'perf', label: 'Performance', icon: IC.bolt, fps: '60 fps' }, { id: 'bal', label: 'Balanced', icon: IC.half, fps: '45 fps' }, { id: 'qual', label: 'Quality', icon: IC.spark, fps: '30 fps' }]
+const DL_FACES = [[IC.download, 'Download'], [IC.download, 'Downloading 100%'], [IC.play, 'Play']]
+const FRESH_DL = { p: 0, on: false, paused: false }
+
+// a group: the choices sit in one container, and one selection indicator moves and resizes between them
+function CmGroup({ selId, deps, label, children }) {
+  const box = useRef(null)
+  const sel = useMarker(box, selId ? `[data-id="${selId}"]` : null, deps)
+  return (
+    <div className="cm-grp" ref={box} role="radiogroup" aria-label={label}>
+      {sel && <i className="cm-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
+      {children}
+    </div>
+  )
+}
+
+// the example's switchers are the set's own button group, with a ring that appears where you point
+function CouchSwitch({ label, items, value, onChange }) {
+  const box = useRef(null)
+  const [hot, setHot] = useState(null)
+  const [down, setDown] = useState(null)
+  const ring = useMarker(box, hot != null ? `[data-id="s${hot}"]` : null, [hot, value])
+  const keys = (e) => {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+    if (!d) return
+    e.preventDefault()
+    const next = mod(value + d, items.length)
+    onChange(next)
+    e.currentTarget.querySelector(`[data-id="s${next}"]`)?.focus()
+  }
+  return (
+    <div className="sw">
+      <span className="sw-k">{label}</span>
+      <div className="sw-box" ref={box} onKeyDown={keys} onPointerLeave={() => { setHot(null); setDown(null) }}>
+        {ring && <i className={`cm-ring sw-ring ${down === hot ? 'is-press' : ''}`} aria-hidden="true" style={{ translate: `${ring.x}px ${ring.y}px`, width: ring.w, height: ring.h }} />}
+        <CmGroup selId={`s${value}`} deps={[value]} label={label}>
+          {items.map((it, i) => (
+            <Btn key={it} sys="cm" seg label={it} data-id={`s${i}`} role="radio" aria-checked={i === value} tabIndex={i === value ? 0 : -1}
+              className={`${hot === i ? 'is-focus' : ''} ${i === value ? 'is-sel' : ''} ${down === i ? 'is-press' : ''}`}
+              onPointerEnter={() => setHot(i)} onPointerDown={() => { setHot(i); setDown(i) }} onPointerUp={() => setDown(null)}
+              onFocus={(e) => { if (e.target.matches(':focus-visible')) setHot(i) }} onBlur={() => setHot(null)} onClick={() => onChange(i)} />
+          ))}
+        </CmGroup>
+      </div>
+    </div>
+  )
+}
+
+function CouchSet({ auto, offset = 0 }) {
+  const stage = useRef(null)
+  const row = useRef(null)
+  const [ex, setEx] = useState(offset % 3)
+  const [ci, setCi] = useState(0)
+  const content = CMODE[ci]
+  const [focus, setFocus] = useState(0)
+  const [down, setDown] = useState(null)
+  const [note, say] = useNote()
+  const [inLib, setInLib] = useState(false)
+  const [dl, setDl] = useState(FRESH_DL)
+  const [mode, setMode] = useState(1)
+  const [applied, setApplied] = useState(1)
+  const done = dl.p >= 1
+
+  // the download moves on by itself while it runs
+  useEffect(() => {
+    if (!dl.on || dl.paused || done) return
+    const t = setInterval(() => setDl((d) => ({ ...d, p: Math.min(1, d.p + 0.01) })), 60)
+    return () => clearInterval(t)
+  }, [dl.on, dl.paused, done])
+
+  const items = [
+    [
+      { id: 'play', kind: 'pri', icon: IC.play, label: 'Play' },
+      { id: 'lib', kind: 'sec', icon: inLib ? IC.check : IC.plus, label: inLib ? 'In Library' : 'Add to Library', faces: [[IC.plus, 'Add to Library'], [IC.check, 'In Library']] },
+      { id: 'more', kind: 'ter', icon: IC.more, label: 'More' },
+    ],
+    [
+      done ? { id: 'get', kind: 'pri', icon: IC.play, label: 'Play', face: 'play', faces: DL_FACES }
+        : dl.on ? { id: 'get', kind: 'pri', icon: IC.download, label: `Downloading ${Math.round(dl.p * 100)}%`, face: 'ing', faces: DL_FACES, disabled: true }
+          : { id: 'get', kind: 'pri', icon: IC.download, label: 'Download', face: 'dl', faces: DL_FACES },
+      { id: 'pause', kind: 'sec', icon: dl.paused ? IC.play : IC.pause, label: dl.paused ? 'Resume' : 'Pause', faces: [[IC.pause, 'Pause'], [IC.play, 'Resume']], disabled: !dl.on || done },
+      { id: 'info', kind: 'ter', icon: IC.info, label: 'Details' },
+    ],
+    [
+      ...MODES.map((m, i) => ({ id: m.id, seg: true, i, icon: m.icon, label: m.label })),
+      { id: 'apply', kind: 'pri', icon: IC.check, label: 'Apply', disabled: mode === applied },
+      { id: 'reset', kind: 'ter', icon: IC.reset, label: 'Reset', disabled: mode === 1 && applied === 1 },
+    ],
+  ][ex]
+  const can = (i) => !!items[i] && !items[i].disabled
+  // the next button that can be pressed, in direction d (disabled ones are skipped)
+  const step = (from, d) => { for (let k = 1; k <= items.length; k++) { const i = mod(from + d * k, items.length); if (can(i)) return i } return from }
+  const f = can(focus) ? focus : step(focus, 1)
+  // a button that just became disabled hands the ring to the next one
+  useEffect(() => { if (f !== focus) setFocus(f) }, [f, focus])
+
+  const press = (b) => {
+    if (!b || b.disabled) return
+    if (b.seg) { setMode(b.i); return }
+    if (b.id === 'play') say('Starting Hollow Pines…')
+    else if (b.id === 'lib') setInLib((v) => !v)
+    else if (b.id === 'more') say('More: manage, hide, uninstall')
+    else if (b.id === 'get') { if (done) say('Starting Hollow Pines…'); else setDl({ ...FRESH_DL, on: true }) }
+    else if (b.id === 'pause') setDl((d) => ({ ...d, paused: !d.paused }))
+    else if (b.id === 'info') say('Hollow Pines · 24 GB · version 1.4.2')
+    else if (b.id === 'apply') { setApplied(mode); say(`Applied ${MODES[mode].label}`) }
+    else if (b.id === 'reset') { setMode(1); setApplied(1); say('Back to Balanced') }
+  }
+  const go = (d) => { setEx((v) => mod(v + d, 3)); setFocus(0); setDown(null); setDl(FRESH_DL) }
+
+  /* input: keys while the pointer or focus is on the example, and a real controller any time */
+  const latest = useRef()
+  latest.current = { items, f, press, go, step }
+  const input = (k, isDown) => {
+    const L = latest.current
+    if (!isDown) { if (k === 'a') { setDown(null); L.press(L.items[L.f]) } return }
+    if (k === 'left') setFocus(L.step(L.f, -1))
+    else if (k === 'right') setFocus(L.step(L.f, 1))
+    else if (k === 'a') { if (!L.items[L.f]?.disabled) setDown(L.items[L.f]?.id) }
+    else if (k === 'lb') L.go(-1)
+    else if (k === 'rb') L.go(1)
+    else if (k === 'cl') setCi((v) => mod(v - 1, 3))
+    else if (k === 'cr') setCi((v) => mod(v + 1, 3))
+  }
+  const inputRef = useRef(); inputRef.current = input
+  useEffect(() => {
+    if (auto) return
+    const map = { ArrowLeft: 'left', ArrowUp: 'left', ArrowRight: 'right', ArrowDown: 'right', Enter: 'a', ' ': 'a', q: 'lb', e: 'rb', z: 'cl', c: 'cr' }
+    const hot = () => stage.current?.matches(':hover') || stage.current?.contains(document.activeElement)
+    const kd = (e) => { const k = map[e.key]; if (!k || !hot() || e.metaKey || e.ctrlKey || e.target.closest?.('.sw')) return; e.preventDefault(); if (!e.repeat || k === 'left' || k === 'right') inputRef.current(k, true) }
+    const ku = (e) => { const k = map[e.key]; if (k) inputRef.current(k, false) }
+    window.addEventListener('keydown', kd, true)
+    window.addEventListener('keyup', ku, true)
+    // a real controller: buttons and the stick drive the same input, and directions repeat while held
+    const BTN = { 0: 'a', 4: 'lb', 5: 'rb', 14: 'left', 15: 'right', 12: 'left', 13: 'right' }
+    const was = {}, rep = {}
+    let raf
+    const loop = (now) => {
+      const g = navigator.getGamepads && [...navigator.getGamepads()].find(Boolean)
+      if (g && !document.hidden) {
+        const dn = {}
+        for (const [i, k] of Object.entries(BTN)) if (g.buttons[i]?.pressed) dn[k] = true
+        if ((g.axes[0] || 0) < -0.55) dn.left = true
+        if ((g.axes[0] || 0) > 0.55) dn.right = true
+        for (const k of new Set([...Object.keys(dn), ...Object.keys(was)])) {
+          if (dn[k] && !was[k]) { inputRef.current(k, true); rep[k] = now + 380 }
+          else if (!dn[k] && was[k]) inputRef.current(k, false)
+          else if (dn[k] && (k === 'left' || k === 'right') && now > rep[k]) { inputRef.current(k, true); rep[k] = now + 130 }
+        }
+        Object.keys(was).forEach((k) => delete was[k]); Object.assign(was, dn)
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => { window.removeEventListener('keydown', kd, true); window.removeEventListener('keyup', ku, true); cancelAnimationFrame(raf) }
+  }, [auto])
+
+  /* wall: it drives itself */
+  useEffect(() => {
+    if (!auto) return
+    let k = offset
+    const t = setInterval(() => {
+      k++
+      const s = k % 8
+      if (s === 7) inputRef.current('rb', true)
+      else if (s === 3 || s === 5) { inputRef.current('a', true); setTimeout(() => inputRef.current('a', false), 140) }
+      else inputRef.current('right', true)
+    }, 850)
+    return () => clearInterval(t)
+  }, [auto, offset])
+
+  const fid = items[f]?.id
+  const ring = useMarker(row, fid ? `[data-id="${fid}"]` : null, [fid, ex, content, inLib, dl.on, dl.paused, done, mode, applied])
+  const status = note || [
+    `Hollow Pines · ${inLib ? 'in your library' : 'not in your library'}`,
+    done ? 'Hollow Pines · downloaded, ready to play' : dl.on ? `${dl.paused ? 'Paused' : 'Downloading'} · ${Math.round(dl.p * 100)}% of 24 GB` : 'Hollow Pines · 24 GB',
+    `Applied: ${MODES[applied].label}, ${MODES[applied].fps}${mode !== applied ? ` · ${MODES[mode].label} not applied yet` : ''}`,
+  ][ex]
+
+  const btn = (b) => {
+    const idx = items.indexOf(b)
+    return (
+      <Btn key={b.id} sys="cm" kind={b.kind} seg={b.seg} icon={b.icon} label={b.label} faces={b.faces} face={b.face} content={content} disabled={b.disabled}
+        data-id={b.id} tabIndex={-1} role={b.seg ? 'radio' : undefined} aria-checked={b.seg ? mode === b.i : undefined}
+        className={`${idx === f ? 'is-focus' : ''} ${down === b.id ? 'is-press' : ''} ${b.seg && mode === b.i ? 'is-sel' : ''}`}
+        onPointerEnter={() => { if (!auto && !b.disabled) setFocus(idx) }} onPointerDown={() => { if (!auto && !b.disabled) { setFocus(idx); setDown(b.id) } }}
+        onPointerUp={() => setDown(null)} onPointerLeave={() => setDown(null)} onClick={() => { if (!auto) press(b) }} />
+    )
+  }
+  const segs = items.filter((b) => b.seg)
+  return (
+    <div className="ex">
+      <div className="ex-stage" ref={stage} tabIndex={auto ? -1 : 0} aria-label="Couch Mode buttons. Arrow keys move, Enter presses, Q and E switch example, Z and C switch content.">
+        <div className="bt-row cm-row" ref={row}>
+          {ring && <i className={`cm-ring ${down === fid ? 'is-press' : ''}`} aria-hidden="true" style={{ translate: `${ring.x}px ${ring.y}px`, width: ring.w, height: ring.h }} />}
+          {segs.length > 0 && <CmGroup selId={MODES[mode].id} deps={[mode, content, ex]} label="Display mode">{segs.map(btn)}</CmGroup>}
+          {items.filter((b) => !b.seg).map(btn)}
+        </div>
+        {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
+      </div>
+      {!auto && (
+        <div className="ex-controls">
+          <CouchSwitch label="Example" items={CM_EX} value={ex} onChange={(i) => { setEx(i); setFocus(0); setDown(null); setDl(FRESH_DL) }} />
+          <CouchSwitch label="Content" items={CONTENT} value={ci} onChange={setCi} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ================= ELEGANT · Clear =================
+   Buttons for a design canvas, in the frosted warm glass of the Clear tool bar: matte, no rim light, thin line icons.
+   A group's choice is a fill that grows where it is; nothing slides. */
+const CL_EX = ['Export', 'Text', 'Comment']
+const ALIGNS = [{ id: 'left', label: 'Left', icon: IC.left }, { id: 'center', label: 'Center', icon: IC.center }, { id: 'right', label: 'Right', icon: IC.right }]
+
+// a group: one container, each choice owns its fill; arrow keys move the choice
+function ClGroup({ label, items, value, onChange, content = 'both', className = '' }) {
+  const keys = (e) => {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+    if (!d) return
+    e.preventDefault()
+    const next = mod(value + d, items.length)
+    onChange(next)
+    e.currentTarget.querySelector(`[data-i="${next}"]`)?.focus()
+  }
+  return (
+    <div className={`cl-grp ${className}`} role="radiogroup" aria-label={label} onKeyDown={keys}>
+      {items.map((it, i) => (
+        <Btn key={it.label} sys="cl" seg icon={it.icon} label={it.label} content={it.icon ? content : 'text'} data-i={i} role="radio" aria-checked={i === value}
+          tabIndex={i === value ? 0 : -1} className={i === value ? 'is-sel' : ''} onClick={() => onChange(i)} />
+      ))}
+    </div>
+  )
+}
+
+function ClearSwitch({ label, items, value, onChange }) {
+  return (
+    <div className="sw">
+      <span className="sw-k">{label}</span>
+      <ClGroup label={label} items={items.map((t) => ({ label: t }))} value={value} onChange={onChange} />
+    </div>
+  )
+}
+
+function ClearSet({ auto, offset = 0 }) {
+  const [ex, setEx] = useState(offset % 3)
+  const [ci, setCi] = useState(0)
+  const content = CMODE[ci]
+  const [note, say] = useNote()
+  const later = useLater()
+  const [exp, setExp] = useState('idle') // idle · busy · done
+  const [copied, setCopied] = useState(false)
+  const [align, setAlign] = useState(0)
+  const [past, setPast] = useState([])
+  const [future, setFuture] = useState([])
+  const [resolved, setResolved] = useState(false)
+  const busyT = useRef()
+
+  const exportNow = () => {
+    setExp('busy')
+    busyT.current = later(() => { setExp('done'); busyT.current = later(() => setExp('idle'), 1400) }, 1200)
+  }
+  const cancel = () => { clearTimeout(busyT.current); setExp('idle'); say('Export cancelled') }
+  const copy = () => { setCopied(true); later(() => setCopied(false), 1400) }
+  const pickAlign = (i) => { if (i === align) return; setPast((p) => [...p, align]); setFuture([]); setAlign(i) }
+  const undo = () => { if (!past.length) return; setFuture((f) => [align, ...f]); setAlign(past[past.length - 1]); setPast((p) => p.slice(0, -1)) }
+  const redo = () => { if (!future.length) return; setPast((p) => [...p, align]); setAlign(future[0]); setFuture((f) => f.slice(1)) }
+
+  /* wall: it runs itself */
+  const latest = useRef(); latest.current = { exportNow, copy, pickAlign, setResolved, align }
+  useEffect(() => {
+    if (!auto) return
+    let k = offset
+    const t = setInterval(() => {
+      const L = latest.current
+      const s = k++ % 6
+      if (s === 0) L.exportNow()
+      else if (s === 2) L.copy()
+      else if (s === 3) L.pickAlign((L.align + 1) % 3)
+      else if (s === 4) L.setResolved((v) => !v)
+      else setEx((v) => (v + 1) % 3)
+    }, 1300)
+    return () => clearInterval(t)
+  }, [auto, offset])
+
+  const b = (props) => <Btn sys="cl" content={content} {...props} />
+  const exportFaces = [[IC.download, 'Export'], [IC.download, 'Exporting…'], [IC.check, 'Exported']]
+  const views = [
+    <>
+      {b({ key: 'cancel', kind: 'ter', icon: IC.close, label: 'Cancel', disabled: exp !== 'busy', onClick: cancel })}
+      {b({ key: 'copy', kind: 'sec', icon: copied ? IC.check : IC.link, label: copied ? 'Copied' : 'Copy link', faces: [[IC.link, 'Copy link'], [IC.check, 'Copied']], onClick: copy })}
+      {b({ key: 'export', kind: 'pri', icon: exp === 'done' ? IC.check : IC.download, label: { idle: 'Export', busy: 'Exporting…', done: 'Exported' }[exp], faces: exportFaces, disabled: exp !== 'idle', onClick: exportNow })}
+    </>,
+    <>
+      <ClGroup label="Text alignment" items={ALIGNS} value={align} onChange={pickAlign} content={content} />
+      {b({ key: 'undo', kind: 'ter', icon: IC.undo, label: 'Undo', disabled: !past.length, onClick: undo })}
+      {b({ key: 'redo', kind: 'ter', icon: IC.redo, label: 'Redo', disabled: !future.length, onClick: redo })}
+      {b({ key: 'done', kind: 'pri', icon: IC.check, label: 'Done', onClick: () => say('Text style saved') })}
+    </>,
+    <>
+      {b({ key: 'reopen', kind: 'ter', icon: IC.reopen, label: 'Reopen', disabled: !resolved, onClick: () => setResolved(false) })}
+      {b({ key: 'reply', kind: 'sec', icon: IC.reply, label: 'Reply', onClick: () => say('Reply box opened') })}
+      {b({ key: 'resolve', kind: 'pri', icon: IC.check, label: resolved ? 'Resolved' : 'Resolve', faces: [[IC.check, 'Resolve'], [IC.check, 'Resolved']], disabled: resolved, onClick: () => setResolved(true) })}
+    </>,
+  ]
+  const status = note || [
+    exp === 'busy' ? 'Exporting 2 frames…' : exp === 'done' ? 'Exported 2 frames as PNG' : copied ? 'Link copied' : '2 frames selected',
+    `Aligned ${ALIGNS[align].id} · ${past.length ? `${past.length} change${past.length > 1 ? 's' : ''} to undo` : 'nothing to undo'}`,
+    resolved ? 'Resolved · hidden from the canvas' : 'Open comment · 2 replies',
+  ][ex]
+
+  return (
+    <div className="ex">
+      <div className="ex-stage">
+        <div className="bt-row cl-row">{views[ex]}</div>
+        {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
+      </div>
+      {!auto && (
+        <div className="ex-controls">
+          <ClearSwitch label="Example" items={CL_EX} value={ex} onChange={setEx} />
+          <ClearSwitch label="Content" items={CONTENT} value={ci} onChange={setCi} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ================= static samples: the same parts, frozen in one configuration or state ================= */
+function Sample({ label, children }) {
+  return (
+    <figure className="sample">
+      <figcaption>{label}</figcaption>
+      <div className="sample-body" inert="" aria-hidden="true">{children}</div>
+    </figure>
+  )
+}
+const Row = ({ children }) => <div className="bt-row">{children}</div>
+
+// a frozen group: the chosen one drawn in place (no live indicator to measure)
+function StaticGroup({ sys, items, sel = 0, content = 'both', st, off }) {
+  return (
+    <div className={`${sys}-grp`}>
+      {items.map((it, i) => <Btn key={it.label} sys={sys} seg icon={it.icon} label={it.label} content={content} disabled={i === off} className={`${i === sel ? 'is-sel st-sel' : ''} ${st && i === st[0] ? st[1] : ''}`} />)}
+    </div>
+  )
+}
+
+// states: one row per emphasis, one column per state
+function StateGrid({ cols, rows }) {
+  return (
+    <div className="sg-wrap">
+      <div className="sg" style={{ '--cols': cols.length }} inert="" aria-hidden="true">
+        <span />
+        {cols.map((c) => <span key={c} className="sg-h">{c}</span>)}
+        {rows.map(([k, cells]) => [
+          <span key={k} className="sg-k">{k}</span>,
+          ...cells.map((n, i) => <div key={`${k}${i}`} className="sg-c">{n}</div>),
+        ])}
+      </div>
+    </div>
+  )
+}
+
+const CM = (p) => <Btn sys="cm" {...p} />
+const CL = (p) => <Btn sys="cl" {...p} />
+const CM_TRIO = [{ kind: 'pri', icon: IC.play, label: 'Play' }, { kind: 'sec', icon: IC.plus, label: 'Add to Library' }, { kind: 'ter', icon: IC.info, label: 'Details' }]
+const CL_TRIO = [{ kind: 'pri', icon: IC.download, label: 'Export' }, { kind: 'sec', icon: IC.link, label: 'Copy link' }, { kind: 'ter', icon: IC.close, label: 'Cancel' }]
+const trio = (Make, list, content) => <Row>{list.map((p) => <Make key={p.kind} {...p} content={content} />)}</Row>
+const CM_STATE = [CM_TRIO[0], { kind: 'sec', icon: IC.plus, label: 'Library' }, CM_TRIO[2]]
+const stateCells = (Make, p, hover) => [
+  <Make {...p} />, <Make {...p} className={hover} />, <Make {...p} className={`${hover} is-press st-press`} />, <Make {...p} disabled />,
+]
+
+const SETS = [
+  {
+    id: 'couch', tone: 'Futuristic, Couch Mode',
+    about: 'Buttons for a living-room screen, read from across the room and driven by a controller. One focus ring glides between them; disabled buttons are skipped.',
+    keys: [
+      { d: 'Move', k: [['←', '→']], or: 'or point' },
+      { d: 'Press', k: [['Enter']], or: 'or click' },
+      { d: 'Switch example', k: [['Q', 'E'], ['LB', 'RB']] },
+      { d: 'Switch content', k: [['Z', 'C']] },
+    ],
+    Body: CouchSet,
+    configs: [
+      { title: 'Emphasis', row: true, items: CM_TRIO.map((p, i) => [['Primary: filled light', 'Secondary: dark fill and edge', 'Tertiary: edge only'][i], <CM {...p} />]) },
+      { title: 'Content', items: [
+        ['Icon and text', trio(CM, CM_TRIO, 'both')],
+        ['Text only', trio(CM, CM_TRIO, 'text')],
+        ['Icon only: 48 × 48, the label moves to the accessible name', trio(CM, CM_TRIO, 'icon')],
+      ] },
+      { title: 'Button group · single selection', items: [
+        ['Icon and text: one indicator moves between the choices', <StaticGroup sys="cm" items={MODES} sel={1} />],
+        ['Text only', <StaticGroup sys="cm" items={MODES} sel={1} content="text" />],
+        ['Icon only', <StaticGroup sys="cm" items={MODES} sel={1} content="icon" />],
+      ] },
+    ],
+    states: <StateGrid cols={['Enabled', 'Focus (hover)', 'Pressed', 'Disabled']} rows={[
+      ...CM_STATE.map((p, i) => [['Primary', 'Secondary', 'Tertiary'][i], stateCells(CM, p, 'is-focus st-focus')]),
+      ['Group choice', [
+        <StaticGroup sys="cm" items={MODES} sel={0} content="icon" />,
+        <StaticGroup sys="cm" items={MODES} sel={0} content="icon" st={[1, 'is-focus st-focus']} />,
+        <StaticGroup sys="cm" items={MODES} sel={0} content="icon" st={[1, 'is-focus st-focus is-press st-press']} />,
+        <StaticGroup sys="cm" items={MODES} sel={0} content="icon" off={1} />,
+      ]],
+    ]} />,
+    spec: [
+      ['Button', [['Height', '48 · icon only 48 × 48'], ['Padding', '0 × 20'], ['Icon to label', '10'], ['Icon', '20 × 20 · line 1.5'], ['Buttons apart', '12']]],
+      ['Group', [['Container', '48 high · padding 4 · radius 12'], ['Choice', '40 high · padding 0 × 16 · icon only 40 × 40'], ['Choices apart', '2']]],
+      ['Type', [['Font', 'Inter Medium'], ['Size / line height', '15 / 20'], ['Numbers', 'tabular, so a counting label holds still']]],
+      ['Shape', [['Corner radius', 'buttons 8 · group 12 · choices 8 · rings 8'], ['Stroke width', 'edge 1 · focus ring 2 · selection 1.5']]],
+      ['Color', [['Primary', '#E6EBF0 · ink #0F141B'], ['Secondary', '#1D232B · edge #2A313A · text #E6EBF0'], ['Tertiary', 'no fill · edge #2A313A · text #98A2AD'], ['Accent', '#1A9FFF']]],
+      ['States', [['Focus (hover)', 'the ring glides here: white 2 + glow #1A9FFF 12 / 28'], ['Pressed', '.94 · fill mixes 35% accent'], ['Disabled', '35% opacity · the ring skips it'], ['Group choice', 'white 8% + 1.5 edge, one indicator slides between']]],
+      ['Motion', [['Press, colour', '120 ms ease-out'], ['Ring, indicator', '220 ms cubic-bezier(0.2, 0, 0, 1)'], ['Label change', 'the new face fades in, 150 ms · width never changes']]],
+      ['Input', [['Move', 'arrows · D-pad · stick'], ['Press', 'Enter · A'], ['Example', 'Q / E · LB / RB'], ['Content', 'Z / C']]],
+    ],
+  },
+  {
+    id: 'clear', tone: 'Elegant, Clear',
+    about: 'Buttons for a design canvas in the soft, frosted warm glass of the Clear tool bar: matte, thin line icons, and a choice that fills in place.',
+    Body: ClearSet,
+    configs: [
+      { title: 'Emphasis', row: true, items: CL_TRIO.map((p, i) => [['Primary: light fill', 'Secondary: frosted glass', 'Tertiary: outline only'][i], <CL {...p} />]) },
+      { title: 'Content', items: [
+        ['Icon and text', trio(CL, CL_TRIO, 'both')],
+        ['Text only', trio(CL, CL_TRIO, 'text')],
+        ['Icon only: 40 × 40, the label moves to the accessible name', trio(CL, CL_TRIO, 'icon')],
+      ] },
+      { title: 'Button group · single selection', items: [
+        ['Icon and text: the choice fills where it is', <StaticGroup sys="cl" items={ALIGNS} sel={0} />],
+        ['Text only', <StaticGroup sys="cl" items={ALIGNS} sel={0} content="text" />],
+        ['Icon only', <StaticGroup sys="cl" items={ALIGNS} sel={0} content="icon" />],
+      ] },
+    ],
+    states: <StateGrid cols={['Enabled', 'Hover', 'Pressed', 'Disabled']} rows={[
+      ...CL_TRIO.map((p, i) => [['Primary', 'Secondary', 'Tertiary'][i], stateCells(CL, p, 'st-hover')]),
+      ['Group choice', [
+        <StaticGroup sys="cl" items={ALIGNS} sel={0} content="icon" />,
+        <StaticGroup sys="cl" items={ALIGNS} sel={0} content="icon" st={[1, 'st-hover']} />,
+        <StaticGroup sys="cl" items={ALIGNS} sel={0} content="icon" st={[1, 'st-hover st-press']} />,
+        <StaticGroup sys="cl" items={ALIGNS} sel={0} content="icon" off={1} />,
+      ]],
+    ]} />,
+    spec: [
+      ['Button', [['Height', '40 · icon only 40 × 40'], ['Padding', '0 × 16'], ['Icon to label', '8'], ['Icon', '20 × 20 · line 1.5'], ['Buttons apart', '8']]],
+      ['Group', [['Container', '40 high · padding 4 · radius 12, frosted'], ['Choice', '32 high · padding 0 × 12 · icon only 32 × 32'], ['Choices apart', '2']]],
+      ['Type', [['Font', 'Inter Regular'], ['Size / line height', '15 / 20'], ['Text', 'white 90% · on primary #3A3734']]],
+      ['Shape', [['Corner radius', 'buttons 12 · group 12 · choices 8'], ['Stroke width', 'tertiary outline 1 · glass edge 1 · focus 2']]],
+      ['Material', [['Primary', 'white 90%'], ['Secondary', 'frosted warm glass #76726F to #686562 at 86% · blur 32 · edge white 10%'], ['Tertiary', 'no fill · outline white 24%'], ['Shadow', 'secondary and group 0 6 16, black 30%']]],
+      ['States', [['Hover', 'primary turns white · secondary +8% light · tertiary white 8% fill'], ['Pressed', '.97 · primary white 80% · others +18% light'], ['Disabled', '38% opacity'], ['Group choice', 'white 14% fill, grows in place']]],
+      ['Motion', [['Hover, press', '120 ms ease-out'], ['Choice', 'grows from 0.85, 240 ms cubic-bezier(0.2, 0, 0, 1) · the old one fades 150 ms ease-in'], ['Label change', 'the new face fades in, 150 ms · width never changes']]],
+      ['Focus', [['Keyboard', 'outline 2 white 85%, offset 2'], ['Group', 'arrow keys move the choice']]],
+    ],
+  },
+]
+
+/* the example's controls: each action, then its keys as keycaps; alternatives are split by "or" */
+function KeyHints({ items }) {
+  return (
+    <ul className="keys" aria-label="Controls">
+      {items.map((it) => (
+        <li key={it.d}>
+          <span className="keys-d">{it.d}</span>
+          {(it.k || []).map((g, gi) => (
+            <span key={gi} className="keys-g">{gi > 0 && <i>or</i>}{g.map((k) => <kbd key={k}>{k}</kbd>)}</span>
+          ))}
+          {it.or && <i>{it.or}</i>}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/* wall (home page hover background): the buttons operating themselves, repeated to fill the screen */
+function Wall() {
+  const embedded = window.parent !== window
+  const [active, setActive] = useState(true)
+  useEffect(() => {
+    if (!embedded) return
+    const onMessage = (e) => {
+      if (e.origin !== window.location.origin) return
+      if (e.data === 'wall:play') setActive(true)
+      if (e.data === 'wall:pause') setActive(false)
+    }
+    window.addEventListener('message', onMessage)
+    window.parent.postMessage('wall:ready', window.location.origin)
+    return () => window.removeEventListener('message', onMessage)
+  }, [embedded])
+  const [layout] = useState(() => ({ cols: Math.max(1, Math.round(window.innerWidth / 560)), rows: Math.ceil(window.innerHeight / 96) + 1 }))
+  return (
+    <div className="wall" aria-hidden="true">
+      {active && Array.from({ length: layout.cols }, (_, c) => (
+        <div key={c} className="wall-col">
+          {Array.from({ length: layout.rows }, (_, r) => {
+            const set = SETS[(c + r) % SETS.length]
+            return <div key={r} className="wall-tile"><set.Body auto offset={c * 2 + r} /></div>
+          })}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const SECTIONS = [['example', 'Example'], ['configurations', 'Configurations'], ['states', 'States'], ['specifications', 'Specifications']]
+
+function SetPage({ set }) {
+  const [active, setActive] = useState('example')
+  useEffect(() => { document.title = `${set.tone} · Buttons` }, [set])
+  // the outline marks the section you are reading
+  useEffect(() => {
+    const els = SECTIONS.map(([id]) => document.getElementById(id)).filter(Boolean)
+    const io = new IntersectionObserver((entries) => {
+      const seen = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+      if (seen[0]) setActive(seen[0].target.id)
+    }, { rootMargin: '-20% 0px -60% 0px' })
+    els.forEach((el) => io.observe(el))
+    return () => io.disconnect()
+  }, [])
+  const head = (n, title, note) => (
+    <header className="sec-head">
+      <span className="sec-n">{String(n).padStart(2, '0')}</span>
+      <h2>{title}</h2>
+      {note && (typeof note === 'string' ? <p>{note}</p> : note)}
+    </header>
+  )
+  return (
+    <div className={`page page-${set.id}`}>
+      <aside className="rail">
+        <a className="up" href="./">Buttons</a>
+        <h1>{set.tone}</h1>
+        <p className="about">{set.about}</p>
+        <nav className="toc" aria-label="On this page">
+          {SECTIONS.map(([id, label], i) => (
+            <a key={id} href={`#${id}`} className={active === id ? 'on' : ''} aria-current={active === id ? 'true' : undefined}>
+              <span>{String(i + 1).padStart(2, '0')}</span>{label}
+            </a>
+          ))}
+        </nav>
+        {set.figma && <a className="figma" href={set.figma} target="_blank" rel="noreferrer">Figma drawing ↗</a>}
+      </aside>
+      <main className="content">
+        <section className="sec" id="example">
+          {head(1, 'Example', set.keys && <KeyHints items={set.keys} />)}
+          <set.Body />
+        </section>
+        <section className="sec" id="configurations">
+          {head(2, 'Configurations', 'Frozen copies of the same parts, one per required case.')}
+          {set.configs.map((g) => (
+            <div key={g.title} className={`group ${g.row ? 'row' : ''}`}>
+              <h3 className="group-k">{g.title}</h3>
+              <div className="group-items">{g.items.map(([label, node]) => <Sample key={label} label={label}>{node}</Sample>)}</div>
+            </div>
+          ))}
+        </section>
+        <section className="sec" id="states">
+          {head(3, 'States')}
+          {set.states}
+        </section>
+        <section className="sec" id="specifications">
+          {head(4, 'Specifications', 'All values in px.')}
+          <div className="spec-grid">
+            {set.spec.map(([title, rows]) => (
+              <div key={title} className="spec-group">
+                <h3 className="group-k">{title}</h3>
+                <dl>{rows.map(([k, v]) => <div key={k} className="spec-row"><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  )
+}
+
+function Index() {
+  return (
+    <main className="index-page">
+      <h1>Buttons</h1>
+      <ul className="index">
+        {SETS.map((s) => <li key={s.id}><a href={`?set=${s.id}`}>{s.tone}</a><p>{s.about}</p></li>)}
+      </ul>
+    </main>
+  )
+}
+
+export default function App() {
+  const params = new URLSearchParams(window.location.search)
+  if (params.has('wall')) return <Wall />
+  const set = SETS.find((s) => s.id === params.get('set'))
+  return set ? <SetPage set={set} /> : <Index />
+}
