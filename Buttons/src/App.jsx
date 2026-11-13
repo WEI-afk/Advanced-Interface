@@ -30,6 +30,13 @@ const IC = {
   moon: ['M15.500 12.500A6 6 0 0 1 7.500 4.500a6 6 0 1 0 8 8z'], cal: ['M3.500 5h13v11.500h-13z', 'M3.500 8.500h13', 'M7 3v3.500', 'M13 3v3.500'],
   plan: ['M3.500 3.500h13v13h-13z', 'M3.500 10h7', 'M10.500 3.500v9', 'M13.500 10v6.500'], section: ['M3 16.500h14', 'M5 16.500V9l5-5.500 5 5.500v7.500', 'M8 16.500v-4h4v4'],
   elev: ['M3 16.500h14', 'M4.500 16.500V6h11v10.500', 'M7.500 9h2', 'M10.500 9h2', 'M7.500 12.500h2', 'M10.500 12.500h2'],
+  archive: ['M3 4h14v4H3z', 'M4.500 8v8h11V8', 'M8 11h4'], bell: ['M5.500 13.500V9a4.500 4.500 0 0 1 9 0v4.500l1.500 2h-12z', 'M8.500 17.500a1.500 1.500 0 0 0 3 0'],
+  prev: ['M14 5v10l-7-5z', 'M5 5v10'], next: ['M6 5v10l7-5z', 'M15 5v10'], chev: ['M6 8l4 4 4-4'], pen: ['M4 16l3-.500 9-9-2.500-2.500-9 9z', 'M12 5l2.500 2.500'],
+  walk: ['M10.500 4.500a1.500 1.500 0 1 0 0-3 1.500 1.500 0 0 0 0 3z', 'M8 18l2-5.500 2.500 2.500V18', 'M6 10.500l3-4 3 1.500 1.500 3', 'M9 6.500l1.500 6'],
+  bike: ['M5 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M15 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M5 12l3.500-6h4', 'M15 12l-3-6', 'M8.500 6l3 6H5'],
+  car: ['M3.500 13.500V10l2-4.500h9l2 4.500v3.500z', 'M3.500 10h13', 'M6 13.500v2', 'M14 13.500v2'],
+  note: ['M5 3h10v14H5z', 'M8 7h4', 'M8 10h4', 'M8 13h2'], list2: ['M8.500 5.500h8', 'M8.500 10h8', 'M8.500 14.500h8', 'M3.500 5.500l1 1 2-2', 'M3.500 10l1 1 2-2', 'M3.500 14.500l1 1 2-2'],
+  photo: ['M3 5h14v11H3z', 'M3 13l4-4 3 3 2-2 5 5'], mic: ['M10 3a2 2 0 0 1 2 2v5a2 2 0 0 1-4 0V5a2 2 0 0 1 2-2z', 'M5.500 9.500a4.500 4.500 0 0 0 9 0', 'M10 14v3'],
   laptop: ['M4 5h12v8H4z', 'M2 15.500h16'], term: ['M3 4h14v12H3z', 'M6 8l2.500 2L6 12', 'M10 12.500h4'], copy: ['M7 7h9v9H7z', 'M13 7V4H4v9h3'],
   doc: ['M5 3h7l3 3v11H5z', 'M12 3v3h3', 'M7.500 10h5', 'M7.500 13h5'], clock: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M10 6v4l2.500 2'],
   invite: ['M8 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M2.500 17a5.500 5.500 0 0 1 11 0', 'M15.500 7v5', 'M13 9.500h5'], arc: ['M10 3a7 7 0 1 1-7 7'],
@@ -619,7 +626,7 @@ function IndexSet({ auto, offset = 0 }) {
    happened after. Its content rides on a strip seen through the button: at rest [icon][label]; hover or focus slides the strip so the
    label stays and the next piece of information comes in ([label][what happens]); after the press the strip lifts away and the result
    rises in. The button is as wide as its widest frame, so it never changes size. */
-function HuBtn({ kind = 'pri', seg, icon, label, next, result = [], done = null, content = 'both', mono, onMeasured, className = '', style, ...rest }) {
+function HuBtn({ kind = 'pri', seg, icon, label, labelSize, next, result = [], done = null, content = 'both', mono, size, shape, fill, fluid, onMeasured, className = '', style, ...rest }) {
   const btn = useRef(null), strip = useRef(null), res = useRef(null)
   const [geo, setGeo] = useState(null)
   const [ready, setReady] = useState(false)
@@ -641,15 +648,15 @@ function HuBtn({ kind = 'pri', seg, icon, label, next, result = [], done = null,
     const W = content === 'icon' ? b.offsetHeight : Math.ceil(Math.max(w0, w1, wr) + 2 * pad)
     setGeo((g) => (g && g.W === W && Math.abs(g.o0 - ((W - w0) / 2 - f0[0].l)) < .5 && Math.abs(g.o1 - ((W - w1) / 2 - f1[0].l)) < .5 ? g : { W, o0: (W - w0) / 2 - f0[0].l, o1: (W - w1) / 2 - f1[0].l }))
   }
-  useLayoutEffect(measure, [label, icon, next?.text, next?.size, next?.icon, content, result.map((r) => r.text).join()]) // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(measure, [label, labelSize, icon, next?.text, next?.size, next?.icon, content, size, result.map((r) => r.text).join()]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { document.fonts?.ready.then(measure) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <button ref={btn} type="button" className={`bt hu-${seg ? 'seg' : 'b'} ${seg ? '' : `is-${kind}`} ${content === 'icon' ? 'is-icon' : ''} ${done != null ? 'is-done' : ''} ${nT || nI ? 'has-next' : ''} ${ready ? '' : 'is-measuring'} ${className}`}
+    <button ref={btn} type="button" className={`bt hu-${seg ? 'seg' : 'b'} ${seg ? '' : `is-${kind}`} ${content === 'icon' ? 'is-icon' : ''} ${done != null ? 'is-done' : ''} ${nT || nI ? 'has-next' : ''} ${size ? `sz sz-${size}` : ''} ${shape ? `shape-${shape}` : ''} ${fluid ? 'is-fluid' : ''} ${ready ? '' : 'is-measuring'} ${className}`}
       aria-label={content === 'icon' ? label : undefined} title={content === 'icon' ? label : undefined}
-      style={{ width: geo?.W, '--o0': `${geo?.o0 ?? 0}px`, '--o1': `${geo?.o1 ?? 0}px`, ...style }} {...rest}>
+      style={{ width: fluid ? undefined : geo?.W, '--o0': `${geo?.o0 ?? 0}px`, '--o1': `${geo?.o1 ?? 0}px`, ...style }} {...rest}>
       <span className="hu-strip" ref={strip} aria-hidden={done != null ? true : undefined}>
-        {A && <span data-p="a" className="hu-p hu-ic">{li(icon)}</span>}
-        {B && <span data-p="b" className={`hu-p ${mono ? 'is-mono' : ''}`}>{label}</span>}
+        {A && <span data-p="a" className={`hu-p hu-ic ${fill ? 'is-fill' : ''}`}>{li(icon)}</span>}
+        {B && <span data-p="b" className={`hu-p ${mono ? 'is-mono' : ''}`}>{labelSize ? <span className="hu-stack"><span className="sz">{labelSize}</span><span>{label}</span></span> : label}</span>}
         {(nT || nI) && <span data-p="c" className="hu-p hu-next" aria-hidden="true">{nT && <span className="hu-stack"><span className="sz">{next.size || next.text}</span><span>{next.text}</span></span>}{nI && <span className="hu-ic">{li(next.icon)}</span>}</span>}
       </span>
       <span className="hu-res" ref={res} aria-live="polite">
@@ -794,6 +801,211 @@ function HeadsSet({ auto, offset = 0 }) {
   )
 }
 
+/* ================= MATTER-OF-FACT · Every Button =================
+   The Heads Up idea carried through Material 3's whole button catalogue: every type says what will happen before the press and what
+   happened after. Five sizes (XS 32, S 40, M 56, L 96, XL 136), square or round, and the shape changes when pressed or turned on. */
+const SIZES = ['xs', 's', 'm', 'l', 'xl']
+const SIZE_H = { xs: 32, s: 40, m: 56, l: 96, xl: 136 }
+
+// icon buttons have no room for the next fact, so a tooltip says it
+function HuIcon({ tip, kind = 'tonal', icon, label, size = 's', shape, width = 'default', on, fill, className = '', ...rest }) {
+  return (
+    <span className={`hu-wrap ${className}`}>
+      <HuBtn kind={kind} icon={icon} label={label} content="icon" size={size} shape={shape} fill={fill} fluid
+        className={`hu-ib w-${width} ${on != null ? 'is-toggle' : ''} ${on ? 'is-on' : ''} ${className}`} aria-pressed={on} {...rest} />
+      {tip && <span className="hu-tip" role="tooltip">{tip}</span>}
+    </span>
+  )
+}
+
+// split button: the main action, 2 apart from a menu button whose chevron turns and whose corners round while the menu is open
+function HuSplit({ size = 's', kind = 'filled', shape, lead, menu, onPick, open: forced, className = '' }) {
+  const [openState, setOpen] = useState(false)
+  const open = forced ?? openState
+  const box = useRef(null)
+  useEffect(() => {
+    if (!openState) return
+    const close = (e) => { if (!box.current?.contains(e.target)) setOpen(false) }
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc) }
+  }, [openState])
+  return (
+    <span className={`hu-split sz-${size} ${open ? 'is-open' : ''} ${className}`} ref={box}>
+      <HuBtn kind={kind} size={size} shape={shape} {...lead} className={`hu-lead ${lead.className || ''}`} />
+      <button type="button" className={`bt hu-b hu-trail is-${kind} sz sz-${size} ${shape ? `shape-${shape}` : ''}`} aria-haspopup="menu" aria-expanded={open} disabled={lead.disabled}
+        aria-label={`More ways to ${lead.label.toLowerCase()}`} onClick={() => setOpen((v) => !v)}>
+        <span className="hu-ic hu-chev">{li(IC.chev)}</span>
+      </button>
+      {open && (
+        <span className="hu-menu" role="menu">
+          {menu.map((it) => (
+            <button key={it.label} type="button" role="menuitem" className="hu-mi" onClick={() => { setOpen(false); onPick?.(it) }}>
+              <span className="hu-ic">{li(it.icon)}</span><span className="hu-mi-l">{it.label}</span><span className="hu-mi-i">{it.info}</span>
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
+  )
+}
+
+// standard button group: pressing a button widens it and its neighbours give way; the group keeps its width
+function HuStdGroup({ size = 's', shape, items, label }) {
+  const H = SIZE_H[size]
+  const base = items.map((it) => Math.round(H * ({ narrow: 0.8, wide: 1.3 }[it.width] || 1)))
+  const [down, setDown] = useState(null)
+  const d = Math.round(H * 0.15)
+  const widths = base.map((w, i) => {
+    if (down == null) return w
+    if (i === down) return w + d
+    const n = (down > 0 ? 1 : 0) + (down < items.length - 1 ? 1 : 0)
+    return Math.abs(i - down) === 1 ? w - d / n : w
+  })
+  return (
+    <span className={`hu-std sz-${size}`} role="group" aria-label={label} onPointerLeave={() => setDown(null)}>
+      {items.map((it, i) => (
+        <HuIcon key={it.label} {...it} size={size} shape={shape} style={{ width: widths[i] }}
+          onPointerDown={() => setDown(i)} onPointerUp={() => setDown(null)} />
+      ))}
+    </span>
+  )
+}
+
+// connected button group: choices 2 apart; the chosen one fills, turns fully round, and keeps its extra fact showing
+function HuConnected({ size = 's', items, value, onChange, label }) {
+  const keys = (e) => {
+    const k = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+    if (!k) return
+    e.preventDefault()
+    const n = mod(value + k, items.length)
+    onChange(n)
+    e.currentTarget.querySelector(`[data-i="${n}"]`)?.focus()
+  }
+  return (
+    <span className={`hu-con sz-${size}`} role="radiogroup" aria-label={label} onKeyDown={keys}>
+      {items.map((it, i) => (
+        <HuBtn key={it.label} kind={i === value ? 'filled' : 'tonal'} size={size} icon={it.icon} label={it.label} next={{ text: it.info }} data-i={i}
+          role="radio" aria-checked={i === value} tabIndex={i === value ? 0 : -1} className={`hu-ci ${i === value ? 'is-sel' : ''}`} onClick={() => onChange(i)} />
+      ))}
+    </span>
+  )
+}
+
+// FAB menu: opens from the FAB, in its place, with 2–6 related actions; the FAB becomes a round close button
+function HuFabMenu({ items, onPick, open: forced, label = 'New', fab = 's', round }) {
+  const [openState, setOpen] = useState(false)
+  const open = forced ?? openState
+  return (
+    <span className={`hu-fabm ${open ? 'is-open' : ''}`}>
+      {open && (
+        <span className="hu-fabm-list" role="menu">
+          {items.map((it, i) => (
+            <button key={it.label} type="button" role="menuitem" className="hu-fabm-item" style={{ '--k': items.length - 1 - i }} onClick={() => { setOpen(false); onPick?.(it) }}>
+              <span className="hu-ic">{li(it.icon)}</span><span>{it.label}</span><span className="hu-mi-i">{it.info}</span>
+            </button>
+          ))}
+        </span>
+      )}
+      <button type="button" className={`bt hu-fab fab-${fab} ${round ? 'is-round' : ''}`} aria-expanded={open} aria-label={open ? 'Close' : label} onClick={() => setOpen((v) => !v)}>
+        <span className="hu-ic hu-fab-x">{li(IC.plus)}</span>
+      </button>
+    </span>
+  )
+}
+
+const EB_EX = ['Split', 'Toggle', 'Groups', 'FAB']
+const SEND_MENU = [{ icon: IC.clock, label: 'Send later', info: 'tomorrow 9:00' }, { icon: IC.doc, label: 'Send as PDF', info: '1 page' }, { icon: IC.cal, label: 'Schedule', info: 'pick a time' }]
+const ROUTE = [{ label: 'Walk', icon: IC.walk, info: '25 min' }, { label: 'Bike', icon: IC.bike, info: '9 min' }, { label: 'Drive', icon: IC.car, info: '6 min' }]
+const NEW_ITEMS = [{ icon: IC.note, label: 'Note', info: '⌘N' }, { icon: IC.list2, label: 'Checklist', info: '⌘L' }, { icon: IC.photo, label: 'Photo', info: '⌘P' }, { icon: IC.mic, label: 'Voice memo', info: '⌘R' }]
+
+function EveryButtonSet({ auto, offset = 0 }) {
+  const [ex, setEx] = useState(offset % 4)
+  const [si, setSi] = useState(1)
+  const [round, setRound] = useState(0)
+  const size = SIZES[si], shape = round ? 'round' : 'square'
+  const fab = { l: 'm', xl: 'l' }[size] || 's' // FABs come in three sizes: 56, 80, 96
+  const [note, say] = useNote()
+  const later = useLater()
+  const [sent, setSent] = useState(null)
+  const [archived, setArchived] = useState(null)
+  const [follow, setFollow] = useState(false)
+  const [notify, setNotify] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const [track, setTrack] = useState(3)
+  const [route, setRoute] = useState(1)
+  const [drafted, setDrafted] = useState(null)
+  const flash = (set, ms = 1500) => { set(0); later(() => set(null), ms) }
+  const SENT = ['Sent', 'Scheduled', 'Sent as PDF']
+  const send = (i = 0) => { setSent(i); later(() => setSent(null), 1500) }
+
+  const latest = useRef(); latest.current = { send }
+  useEffect(() => {
+    if (!auto) return
+    let k = offset
+    const t = setInterval(() => {
+      const s = k++ % 6
+      if (s === 0) latest.current.send()
+      else if (s === 2) setFollow((v) => !v)
+      else if (s === 3) setPlaying((v) => !v)
+      else if (s === 4) setRoute((v) => (v + 1) % 3)
+      else setEx((v) => (v + 1) % 4)
+    }, 1500)
+    return () => clearInterval(t)
+  }, [auto, offset])
+
+  const views = [
+    <>
+      <HuSplit size={size} shape={shape} lead={{ icon: IC.send, label: 'Send', next: { text: 'to Tanya' }, result: [{ icon: IC.check, text: SENT[0] }, { icon: IC.clock, text: SENT[1] }, { icon: IC.doc, text: SENT[2] }], done: sent, onClick: () => send(0) }}
+        menu={SEND_MENU} onPick={(it) => send({ 'Send later': 1, 'Send as PDF': 2, Schedule: 1 }[it.label])} />
+      <HuBtn kind="tonal" size={size} shape={shape} icon={IC.archive} label="Archive" next={{ text: '⌘E' }} result={[{ icon: IC.check, text: 'Archived' }]} done={archived} onClick={() => flash(setArchived)} />
+      <HuBtn kind="text" size={size} shape={shape} icon={IC.close} label="Discard" next={{ text: 'can’t undo' }} result={[{ icon: IC.check, text: 'Discarded' }]} onClick={() => say('Draft discarded')} />
+    </>,
+    <>
+      <HuBtn kind="filled" size={size} shape={shape} className={`is-toggle ${follow ? 'is-on' : ''}`} aria-pressed={follow} icon={follow ? IC.check : IC.plus} label={follow ? 'Following' : 'Follow'} labelSize="Following"
+        next={{ text: follow ? 'Unfollow' : 'weekly digest', size: 'weekly digest' }} onClick={() => setFollow((v) => !v)} />
+      <HuIcon size={size} shape={shape} kind="tonal" icon={IC.bell} label={notify ? 'Mute' : 'Notify'} on={notify} fill={notify} tip={notify ? 'Mute · no more alerts' : 'Notify · each new post'} onClick={() => setNotify((v) => !v)} />
+      <HuIcon size={size} shape={shape} kind="tonal" icon={IC.mark} label={saved ? 'Unsave' : 'Save'} on={saved} fill={saved} tip={saved ? 'Remove · from Reading list' : 'Save · to Reading list'} onClick={() => setSaved((v) => !v)} />
+      <HuIcon size={size} shape={shape} kind="text" icon={IC.more} label="More" tip="More · share, report" onClick={() => say('More: share, copy link, report')} />
+    </>,
+    <>
+      <HuStdGroup size={size} shape={shape} label="Player" items={[
+        { kind: 'tonal', icon: IC.prev, label: 'Previous', tip: `Back · track ${track - 1 || 12}`, onClick: () => setTrack((t) => (t + 10) % 12 + 1) },
+        { kind: 'filled', icon: playing ? IC.pause : IC.play, label: playing ? 'Pause' : 'Play', width: 'wide', on: playing, tip: playing ? 'Pause' : `Play · track ${track}`, onClick: () => setPlaying((v) => !v) },
+        { kind: 'tonal', icon: IC.next, label: 'Next', tip: `Next · track ${track % 12 + 1}`, onClick: () => setTrack((t) => t % 12 + 1) },
+      ]} />
+      <HuConnected size={size} label="Route" items={ROUTE} value={route} onChange={setRoute} />
+    </>,
+    <>
+      <HuBtn kind="filled" className={`hu-xfab xfab-${fab} ${round ? 'is-round' : ''}`} icon={IC.pen} label="Compose" next={{ text: 'new draft' }} result={[{ icon: IC.check, text: 'Draft created' }]} done={drafted} onClick={() => flash(setDrafted)} />
+      <HuFabMenu items={NEW_ITEMS} fab={fab} round={round} onPick={(it) => say(`New ${it.label.toLowerCase()} created`)} />
+    </>,
+  ]
+  const status = note || [
+    sent != null ? `${SENT[sent]} · to Tanya${sent === 1 ? ', tomorrow 9:00' : ''}` : archived != null ? 'Archived · find it under All mail' : 'Draft to Tanya · 2 attachments',
+    `${follow ? 'Following' : 'Not following'} · alerts ${notify ? 'on' : 'off'} · ${saved ? 'saved' : 'not saved'}`,
+    `Track ${track} of 12 · ${playing ? 'playing' : 'paused'} · ${ROUTE[route].label.toLowerCase()}, ${ROUTE[route].info}`,
+    drafted != null ? 'Draft created · 4 notes' : '4 notes · last edited 2 min ago',
+  ][ex]
+  return (
+    <div className="ex">
+      <div className={`ex-stage ${ex === 3 ? 'eb-fab-stage' : ''}`}>
+        <div className={`bt-row eb-row ${ex === 3 ? 'is-fab' : ''}`}>{views[ex]}</div>
+        {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
+      </div>
+      {!auto && (
+        <div className="ex-controls">
+          <HuSwitch label="Example" items={EB_EX} value={ex} onChange={setEx} />
+          <HuSwitch label="Size" items={['XS', 'S', 'M', 'L', 'XL']} value={si} onChange={setSi} />
+          <HuSwitch label="Shape" items={['Square', 'Round']} value={round} onChange={setRound} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ================= static samples: the same parts, frozen in one configuration or state ================= */
 function Sample({ label, children }) {
   return (
@@ -851,6 +1063,8 @@ const HU_STATE = [
   { kind: 'sec', icon: IC.link, label: 'Copy link', next: { text: '7 days' }, result: [{ icon: IC.check, text: 'Copied' }] },
   { kind: 'ter', icon: IC.close, label: 'Remove', next: { text: 'Tanya' }, result: [{ icon: IC.check, text: 'Removed' }] },
 ]
+const EB_SEND = { icon: IC.send, label: 'Send', next: { text: 'to Tanya' }, result: [{ icon: IC.check, text: 'Sent' }] }
+const ebColor = (kind, label) => <HuBtn kind={kind} size="s" icon={IC.send} label={label} next={{ text: 'to Tanya' }} />
 const trio = (Make, list, content) => <Row>{list.map((p) => <Make key={p.kind} {...p} content={content} />)}</Row>
 const CM_STATE = [CM_TRIO[0], { kind: 'sec', icon: IC.plus, label: 'Library' }, CM_TRIO[2]]
 const stateCells = (Make, p, hover) => [
@@ -1052,6 +1266,68 @@ const SETS = [
       ['States', [['Hover', 'next frame · primary turns white, secondary #262625, tertiary white 6% fill'], ['Pressed', '.97'], ['After press', 'the result, held 1.3–1.5 s, then back'], ['Disabled', '40% · no preview']]],
       ['Motion', [['Slide', '280 ms cubic-bezier(0.2, 0, 0, 1)'], ['Lift, rise', '260 ms, same curve · the strip fades 200 ms'], ['Return', 'the same path back'], ['Press', '120 ms ease-out']]],
       ['Scenarios', [['Download', 'size before, done after'], ['Price', 'cost before, plan after'], ['Copy', 'what is copied, then confirmed'], ['Seats, links', 'what is left, where it goes']]],
+    ],
+  },
+  {
+    id: 'every', tone: 'Matter-of-fact, Every Button',
+    about: 'The Heads Up idea carried through Material 3\'s whole button catalogue: split buttons, toggles, icon buttons, standard and connected groups, FABs and the FAB menu. Each one says what will happen before the press and what happened after.',
+    Body: EveryButtonSet,
+    configs: [
+      { title: 'Color styles · by emphasis', row: true, items: [
+        ['Filled: final or unblocking actions', ebColor('filled', 'Send')], ['Tonal: supporting', ebColor('tonal', 'Send')], ['Elevated: over busy backgrounds', ebColor('elevated', 'Send')],
+        ['Outlined: secondary, or a way out', ebColor('outlined', 'Send')], ['Text: not essential', ebColor('text', 'Send')],
+      ] },
+      { title: 'Sizes · XS 32, S 40, M 56, L 96, XL 136', items: SIZES.map((z) => [`${z.toUpperCase()} · ${SIZE_H[z]} high`, <HuBtn kind="filled" size={z} {...EB_SEND} />]) },
+      { title: 'Shape · square or round, squarer when pressed', row: true, items: [
+        ['Square', <HuBtn kind="filled" size="m" shape="square" {...EB_SEND} />], ['Square, pressed', <HuBtn kind="filled" size="m" shape="square" {...EB_SEND} className="st-press" />],
+        ['Round', <HuBtn kind="filled" size="m" shape="round" {...EB_SEND} />], ['Round, pressed', <HuBtn kind="filled" size="m" shape="round" {...EB_SEND} className="st-press" />],
+      ] },
+      { title: 'Toggle button · off, on (fills and turns round), hover when on', row: true, items: [
+        ['Off', <HuBtn kind="filled" size="m" className="is-toggle" icon={IC.plus} label="Follow" labelSize="Following" next={{ text: 'weekly digest' }} />],
+        ['On', <HuBtn kind="filled" size="m" className="is-toggle is-on" icon={IC.check} label="Following" labelSize="Following" next={{ text: 'Unfollow', size: 'weekly digest' }} />],
+        ['On, hover: says what pressing again does', <HuBtn kind="filled" size="m" className="is-toggle is-on st-hover" icon={IC.check} label="Following" labelSize="Following" next={{ text: 'Unfollow', size: 'weekly digest' }} />],
+      ] },
+      { title: 'Icon buttons · standard, filled, tonal, outlined; narrow, default, wide; toggle', row: true, items: [
+        ['Standard', <HuIcon kind="text" size="m" icon={IC.mark} label="Save" />], ['Filled', <HuIcon kind="filled" size="m" icon={IC.mark} label="Save" />],
+        ['Tonal', <HuIcon kind="tonal" size="m" icon={IC.mark} label="Save" />], ['Outlined', <HuIcon kind="outlined" size="m" icon={IC.mark} label="Save" />],
+        ['Narrow', <HuIcon kind="tonal" size="m" width="narrow" icon={IC.mark} label="Save" />], ['Wide', <HuIcon kind="tonal" size="m" width="wide" icon={IC.mark} label="Save" />],
+        ['Toggle off', <HuIcon kind="tonal" size="m" icon={IC.bell} label="Notify" on={false} />], ['Toggle on: filled icon, round', <HuIcon kind="tonal" size="m" icon={IC.bell} label="Notify" on fill />],
+        ['Hover: the tooltip says what happens', <span className="eb-tip-sample"><HuIcon kind="tonal" size="m" icon={IC.bell} label="Notify" tip="Notify · each new post" className="st-hover" /></span>],
+      ] },
+      { title: 'Split button · leading action, 2 apart from the menu button', row: true, items: [
+        ['Closed', <HuSplit size="m" lead={EB_SEND} menu={SEND_MENU} open={false} />],
+        ['Hover on the action: who it goes to', <HuSplit size="m" lead={{ ...EB_SEND, className: 'st-hover' }} menu={SEND_MENU} open={false} />],
+        ['Open: chevron turned, menu button round, menu 4 below', <HuSplit size="m" lead={EB_SEND} menu={SEND_MENU} open className="is-sample-open" />],
+      ] },
+      { title: 'Button groups', row: true, items: [
+        ['Standard: the pressed one widens, neighbours give way', <HuStdGroup size="m" label="Player" items={[{ kind: 'tonal', icon: IC.prev, label: 'Previous' }, { kind: 'filled', icon: IC.play, label: 'Play', width: 'wide' }, { kind: 'tonal', icon: IC.next, label: 'Next' }]} />],
+        ['Connected: 2 apart, the choice fills and rounds', <HuConnected size="m" label="Route" items={ROUTE} value={1} onChange={() => {}} />],
+      ] },
+      { title: 'FAB · FAB, extended FAB, FAB menu', row: true, items: [
+        ['FAB 56 · 80 · 96', <Row><button className="bt hu-fab fab-s" type="button"><span className="hu-ic">{li(IC.pen)}</span></button><button className="bt hu-fab fab-m" type="button"><span className="hu-ic">{li(IC.pen)}</span></button><button className="bt hu-fab fab-l" type="button"><span className="hu-ic">{li(IC.pen)}</span></button></Row>],
+        ['Extended FAB: hover says what it makes', <Row><HuBtn kind="filled" className="hu-xfab xfab-s" icon={IC.pen} label="Compose" next={{ text: 'new draft' }} /><HuBtn kind="filled" className="hu-xfab xfab-s st-hover" icon={IC.pen} label="Compose" next={{ text: 'new draft' }} /></Row>],
+        ['FAB menu: 2–6 related items, the FAB becomes close', <span className="eb-fab-sample"><HuFabMenu items={NEW_ITEMS} open /></span>],
+      ] },
+    ],
+    states: <StateGrid cols={['Button', 'Toggle, on', 'Icon button', 'Split button', 'FAB']} rows={[
+      ['Enabled', [<HuBtn kind="filled" size="xs" {...EB_SEND} />, <HuBtn kind="filled" size="xs" className="is-toggle is-on" icon={IC.check} label="Following" next={{ text: 'Unfollow' }} />, <HuIcon kind="tonal" size="xs" icon={IC.mark} label="Save" />, <HuSplit size="xs" lead={EB_SEND} menu={SEND_MENU} open={false} />, <button className="bt hu-fab fab-s" type="button"><span className="hu-ic">{li(IC.pen)}</span></button>]],
+      ['Hover', [<HuBtn kind="filled" size="xs" {...EB_SEND} className="st-hover" />, <HuBtn kind="filled" size="xs" className="is-toggle is-on st-hover" icon={IC.check} label="Following" next={{ text: 'Unfollow' }} />, <HuIcon kind="tonal" size="xs" icon={IC.mark} label="Save" className="st-hover" />, <HuSplit size="xs" lead={{ ...EB_SEND, className: 'st-hover' }} menu={SEND_MENU} open={false} />, <button className="bt hu-fab fab-s st-hover" type="button"><span className="hu-ic">{li(IC.pen)}</span></button>]],
+      ['Pressed', [<HuBtn kind="filled" size="xs" {...EB_SEND} className="st-hover st-press" />, <HuBtn kind="filled" size="xs" className="is-toggle is-on st-hover st-press" icon={IC.check} label="Following" next={{ text: 'Unfollow' }} />, <HuIcon kind="tonal" size="xs" icon={IC.mark} label="Save" className="st-hover st-press" />, <HuSplit size="xs" lead={{ ...EB_SEND, className: 'st-hover st-press' }} menu={SEND_MENU} open={false} />, <button className="bt hu-fab fab-s st-press" type="button"><span className="hu-ic">{li(IC.pen)}</span></button>]],
+      ['After press', [<HuBtn kind="filled" size="xs" {...EB_SEND} done={0} />, <HuBtn kind="filled" size="xs" className="is-toggle" icon={IC.plus} label="Follow" next={{ text: 'weekly digest' }} />, <HuIcon kind="tonal" size="xs" icon={IC.mark} label="Save" on fill />, <HuSplit size="xs" lead={{ ...EB_SEND, done: 0 }} menu={SEND_MENU} open={false} />, <span />]],
+      ['Disabled', [<HuBtn kind="filled" size="xs" {...EB_SEND} disabled />, <HuBtn kind="filled" size="xs" className="is-toggle is-on" icon={IC.check} label="Following" next={{ text: 'Unfollow' }} disabled />, <HuIcon kind="tonal" size="xs" icon={IC.mark} label="Save" disabled />, <HuSplit size="xs" lead={{ ...EB_SEND, disabled: true }} menu={SEND_MENU} open={false} className="is-off" />, <button className="bt hu-fab fab-s" type="button" disabled><span className="hu-ic">{li(IC.pen)}</span></button>]],
+    ]} />,
+    spec: [
+      ['Choosing', [['High emphasis', 'FAB, extended FAB, FAB menu, filled, split, standard group · one per screen'], ['Medium', 'tonal, elevated (busy backgrounds only), outlined'], ['Low', 'connected group, text, icon button']]],
+      ['Sizes', [['XS', '32 high · padding 12 · icon 20 · 14 / 20'], ['S', '40 · padding 16 · icon 20 · 14 / 20'], ['M', '56 · padding 24 · icon 24 · 16 / 24'], ['L', '96 · padding 48 · icon 32 · 24 / 32'], ['XL', '136 · padding 64 · icon 40 · 32 / 40'], ['Target', 'XS and S still answer to 48 × 48']]],
+      ['Shape', [['Round', 'fully rounded'], ['Square', 'radius 12 · 12 · 16 · 28 · 28'], ['Pressed', 'squarer: 8 · 8 · 12 · 16 · 16'], ['Toggle on', 'square turns round, round turns square']]],
+      ['Heads Up', [['Rest', '[icon] [label]'], ['Hover, focus', 'the label stays, the next fact slides in'], ['After press', 'the result rises in, then back'], ['Width', 'the widest frame, never resizes']]],
+      ['Toggle', [['Off', 'tonal colours, outline icon'], ['On', 'filled colours, filled icon, shape flips'], ['Hover when on', 'says what pressing again does: Unfollow']]],
+      ['Icon button', [['Widths', 'narrow 0.8 · default 1 · wide 1.3 × height'], ['Styles', 'standard, filled, tonal, outlined'], ['Tooltip', '8 above · #262625 · Inter 13 / 18 · says the consequence']]],
+      ['Split button', [['Space', '2 between action and menu button'], ['Inner corners', '4 for XS–M · 8 L · 12 XL'], ['Open', 'chevron turns 180° · menu button turns round'], ['Menu', '4 below, aligned to the menu button · items show their consequence']]],
+      ['Groups', [['Standard', 'pressed button +15% width, neighbours share the loss, group width holds'], ['Connected', '2 apart · inner corners 8 · the choice fills, rounds and shows its fact']]],
+      ['FAB', [['FAB', '56 · 80 · 96 · radius 16 · 20 · 28 · icon 24 · 28 · 36'], ['Extended FAB', '56 high · padding 16 · Inter 600 16'], ['FAB menu', '2–6 items, 56 high pills, 4 apart, rise in 22 ms apart · the FAB turns into a round close']]],
+      ['Motion', [['Slide, lift', '280 / 260 ms cubic-bezier(0.2, 0, 0, 1)'], ['Shape, width', '200 ms, same curve'], ['Press', '120 ms ease-out'], ['Chevron, close', '200 ms rotation']]],
+      ['Phone', [['Large sizes', 'L steps down to 72, XL to 88, so a whole button fits the width'], ['FAB', '56 · 80 · 96 follow the Size switcher: XS–M 56, L 80, XL 96']]],
     ],
   },
 ]
