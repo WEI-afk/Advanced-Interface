@@ -626,7 +626,7 @@ function IndexSet({ auto, offset = 0 }) {
    happened after. Its content rides on a strip seen through the button: at rest [icon][label]; hover or focus slides the strip so the
    label stays and the next piece of information comes in ([label][what happens]); after the press the strip lifts away and the result
    rises in. The button is as wide as its widest frame, so it never changes size. */
-function HuBtn({ kind = 'pri', seg, icon, label, labelSize, next, result = [], done = null, content = 'both', mono, size, shape, fill, fluid, onMeasured, className = '', style, ...rest }) {
+function HuBtn({ kind = 'pri', seg, icon, label, labelSize, next, result = [], done = null, content = 'both', mono, size, shape, fill, fluid, fit, onMeasured, className = '', style, ...rest }) {
   const btn = useRef(null), strip = useRef(null), res = useRef(null)
   const [geo, setGeo] = useState(null)
   const [ready, setReady] = useState(false)
@@ -646,14 +646,28 @@ function HuBtn({ kind = 'pri', seg, icon, label, labelSize, next, result = [], d
     const wr = Math.max(0, ...[...res.current.children].map((el) => el.offsetWidth))
     const pad = parseFloat(getComputedStyle(b).getPropertyValue('--pad')) || 20
     const W = content === 'icon' ? b.offsetHeight : Math.ceil(Math.max(w0, w1, wr) + 2 * pad)
-    setGeo((g) => (g && g.W === W && Math.abs(g.o0 - ((W - w0) / 2 - f0[0].l)) < .5 && Math.abs(g.o1 - ((W - w1) / 2 - f1[0].l)) < .5 ? g : { W, o0: (W - w0) / 2 - f0[0].l, o1: (W - w1) / 2 - f1[0].l }))
+    // fit: the button hugs whichever frame is showing (a standalone button, like an extended FAB); otherwise it holds the widest
+    const next = fit
+      ? { W, w0: Math.ceil(w0 + 2 * pad), w1: Math.ceil(w1 + 2 * pad), wr: Math.ceil(wr + 2 * pad), o0: pad - f0[0].l, o1: pad - f1[0].l }
+      : { W, o0: (W - w0) / 2 - f0[0].l, o1: (W - w1) / 2 - f1[0].l }
+    setGeo((g) => (g && ['W', 'w0', 'w1', 'wr', 'o0', 'o1'].every((k) => Math.abs((g[k] ?? 0) - (next[k] ?? 0)) < .5) ? g : next))
   }
-  useLayoutEffect(measure, [label, labelSize, icon, next?.text, next?.size, next?.icon, content, size, result.map((r) => r.text).join()]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { document.fonts?.ready.then(measure) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const measureNow = useRef(); measureNow.current = measure
+  useLayoutEffect(measure, [label, labelSize, icon, next?.text, next?.size, next?.icon, content, size, className, result.map((r) => r.text).join()]) // eslint-disable-line react-hooks/exhaustive-deps
+  // whatever changes the content's size (a size switch, a font arriving) re-measures, so the frames stay centred with even space
+  useEffect(() => {
+    document.fonts?.ready.then(() => measureNow.current())
+    const ro = new ResizeObserver(() => measureNow.current())
+    if (strip.current) ro.observe(strip.current)
+    if (res.current) [...res.current.children].forEach((el) => ro.observe(el))
+    if (btn.current) ro.observe(btn.current, { box: 'border-box' })
+    return () => ro.disconnect()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <button ref={btn} type="button" className={`bt hu-${seg ? 'seg' : 'b'} ${seg ? '' : `is-${kind}`} ${content === 'icon' ? 'is-icon' : ''} ${done != null ? 'is-done' : ''} ${nT || nI ? 'has-next' : ''} ${size ? `sz sz-${size}` : ''} ${shape ? `shape-${shape}` : ''} ${fluid ? 'is-fluid' : ''} ${ready ? '' : 'is-measuring'} ${className}`}
+    <button ref={btn} type="button" className={`bt hu-${seg ? 'seg' : 'b'} ${seg ? '' : `is-${kind}`} ${content === 'icon' ? 'is-icon' : ''} ${done != null ? 'is-done' : ''} ${nT || nI ? 'has-next' : ''} ${size ? `sz sz-${size}` : ''} ${shape ? `shape-${shape}` : ''} ${fluid ? 'is-fluid' : ''} ${fit ? 'is-fit' : ''} ${ready ? '' : 'is-measuring'} ${className}`}
       aria-label={content === 'icon' ? label : undefined} title={content === 'icon' ? label : undefined}
-      style={{ width: fluid ? undefined : geo?.W, '--o0': `${geo?.o0 ?? 0}px`, '--o1': `${geo?.o1 ?? 0}px`, ...style }} {...rest}>
+      style={{ width: fluid || fit ? undefined : geo?.W, '--o0': `${geo?.o0 ?? 0}px`, '--o1': `${geo?.o1 ?? 0}px`,
+        ...(fit && geo ? { '--w0': `${geo.w0}px`, '--w1': `${geo.w1}px`, '--wr': `${geo.wr}px` } : null), ...style }} {...rest}>
       <span className="hu-strip" ref={strip} aria-hidden={done != null ? true : undefined}>
         {A && <span data-p="a" className={`hu-p hu-ic ${fill ? 'is-fill' : ''}`}>{li(icon)}</span>}
         {B && <span data-p="b" className={`hu-p ${mono ? 'is-mono' : ''}`}>{labelSize ? <span className="hu-stack"><span className="sz">{labelSize}</span><span>{label}</span></span> : label}</span>}
@@ -979,7 +993,7 @@ function EveryButtonSet({ auto, offset = 0 }) {
       <HuConnected size={size} label="Route" items={ROUTE} value={route} onChange={setRoute} />
     </>,
     <>
-      <HuBtn kind="filled" className={`hu-xfab xfab-${fab} ${round ? 'is-round' : ''}`} icon={IC.pen} label="Compose" next={{ text: 'new draft' }} result={[{ icon: IC.check, text: 'Draft created' }]} done={drafted} onClick={() => flash(setDrafted)} />
+      <HuBtn kind="filled" fit className={`hu-xfab xfab-${fab} ${round ? 'is-round' : ''}`} icon={IC.pen} label="Compose" next={{ text: 'new draft' }} result={[{ icon: IC.check, text: 'Draft created' }]} done={drafted} onClick={() => flash(setDrafted)} />
       <HuFabMenu items={NEW_ITEMS} fab={fab} round={round} onPick={(it) => say(`New ${it.label.toLowerCase()} created`)} />
     </>,
   ]
@@ -1305,7 +1319,7 @@ const SETS = [
       ] },
       { title: 'FAB · FAB, extended FAB, FAB menu', row: true, items: [
         ['FAB 56 · 80 · 96', <Row><button className="bt hu-fab fab-s" type="button"><span className="hu-ic">{li(IC.pen)}</span></button><button className="bt hu-fab fab-m" type="button"><span className="hu-ic">{li(IC.pen)}</span></button><button className="bt hu-fab fab-l" type="button"><span className="hu-ic">{li(IC.pen)}</span></button></Row>],
-        ['Extended FAB: hover says what it makes', <Row><HuBtn kind="filled" className="hu-xfab xfab-s" icon={IC.pen} label="Compose" next={{ text: 'new draft' }} /><HuBtn kind="filled" className="hu-xfab xfab-s st-hover" icon={IC.pen} label="Compose" next={{ text: 'new draft' }} /></Row>],
+        ['Extended FAB: hover says what it makes', <Row><HuBtn kind="filled" fit className="hu-xfab xfab-s" icon={IC.pen} label="Compose" next={{ text: 'new draft' }} /><HuBtn kind="filled" fit className="hu-xfab xfab-s st-hover" icon={IC.pen} label="Compose" next={{ text: 'new draft' }} /></Row>],
         ['FAB menu: 2–6 related items, the FAB becomes close', <span className="eb-fab-sample"><HuFabMenu items={NEW_ITEMS} open /></span>],
       ] },
     ],
@@ -1320,7 +1334,7 @@ const SETS = [
       ['Choosing', [['High emphasis', 'FAB, extended FAB, FAB menu, filled, split, standard group · one per screen'], ['Medium', 'tonal, elevated (busy backgrounds only), outlined'], ['Low', 'connected group, text, icon button']]],
       ['Sizes', [['XS', '32 high · padding 12 · icon 20 · 14 / 20'], ['S', '40 · padding 16 · icon 20 · 14 / 20'], ['M', '56 · padding 24 · icon 24 · 16 / 24'], ['L', '96 · padding 48 · icon 32 · 24 / 32'], ['XL', '136 · padding 64 · icon 40 · 32 / 40'], ['Target', 'XS and S still answer to 48 × 48']]],
       ['Shape', [['Round', 'fully rounded'], ['Square', 'radius 12 · 12 · 16 · 28 · 28'], ['Pressed', 'squarer: 8 · 8 · 12 · 16 · 16'], ['Toggle on', 'square turns round, round turns square']]],
-      ['Heads Up', [['Rest', '[icon] [label]'], ['Hover, focus', 'the label stays, the next fact slides in'], ['After press', 'the result rises in, then back'], ['Width', 'the widest frame, never resizes']]],
+      ['Heads Up', [['Rest', '[icon] [label]'], ['Hover, focus', 'the label stays, the next fact slides in'], ['After press', 'the result rises in, then back'], ['Width', 'in a row: the widest frame, so neighbours never move · a standalone extended FAB hugs each frame with even padding and eases between them, 280 ms']]],
       ['Toggle', [['Off', 'tonal colours, outline icon'], ['On', 'filled colours, filled icon, shape flips'], ['Hover when on', 'says what pressing again does: Unfollow']]],
       ['Icon button', [['Widths', 'narrow 0.8 · default 1 · wide 1.3 × height'], ['Styles', 'standard, filled, tonal, outlined'], ['Tooltip', '8 above · #262625 · Inter 13 / 18 · says the consequence']]],
       ['Split button', [['Space', '2 between action and menu button'], ['Inner corners', '4 for XS–M · 8 L · 12 XL'], ['Open', 'chevron turns 180° · menu button turns round'], ['Menu', '4 below, aligned to the menu button · items show their consequence']]],

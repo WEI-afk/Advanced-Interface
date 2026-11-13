@@ -407,6 +407,11 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .hu-xfab.xfab-m .hu-ic { width: 28px; height: 28px; }
 .hu-xfab.xfab-l .hu-ic { width: 36px; height: 36px; }
 .hu-fab.is-round, .hu-xfab.is-round { border-radius: 999px; }
+/* fit: a standalone button hugs whichever frame is showing, with the same padding in each; its width eases between them */
+.hu-b.is-fit { width: var(--w0); transition: background-color var(--t-fb) ease-out, scale var(--t-fb) ease-out, width 280ms var(--e-std), border-radius 200ms var(--e-std); }
+.hu-b.is-fit:not(:disabled):not(.is-done):hover, .hu-b.is-fit:not(.is-done):focus-visible, .hu-b.is-fit.st-hover:not(.is-done) { width: var(--w1); }
+.hu-b.is-fit.is-done { width: var(--wr); }
+.hu-b.is-fit.is-measuring { transition: none; }
 /* FAB menu: opens from the FAB, in its place; items rise in one after another; the FAB turns into a round close */
 .hu-fabm { position: relative; display: inline-flex; flex-direction: column; align-items: flex-end; }
 .hu-fabm .hu-fab-x { transition: rotate 200ms var(--e-std); }
