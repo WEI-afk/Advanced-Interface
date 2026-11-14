@@ -22,15 +22,6 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .sec-n { font: 400 12px/24px "Geist Mono", ui-monospace, monospace; color: #55554f; }
 .sec-head h2 { margin: 0; font: 600 17px/24px Inter, sans-serif; letter-spacing: -0.01em; }
 .sec-head p { grid-column: 2; margin: 4px 0 0; font: 400 13px/20px Inter, sans-serif; color: #8e8e8a; }
-/* controls legend: action in light text, keys as keycaps */
-.keys { grid-column: 2; display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 12px 0 0; padding: 0; list-style: none; }
-.keys li { display: flex; align-items: center; gap: 8px; font: 400 13px/20px Inter, sans-serif; color: #8e8e8a; }
-.keys-d { color: #ededeb; }
-.keys-g { display: inline-flex; align-items: center; gap: 4px; }
-.keys i { font-style: normal; color: #6f6f6b; }
-.keys-g i { margin: 0 4px; }
-.keys kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 6px; border: 1px solid #2c2c2a; border-bottom-width: 2px;
-  background: #141413; color: #ededeb; font: 500 12px/1 "Geist Mono", ui-monospace, monospace; }
 .group { margin-bottom: 28px; }
 .group:last-child { margin-bottom: 0; }
 .group-k { margin: 0 0 12px; font: 600 11px/16px Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #6f6f6b; }
@@ -78,14 +69,10 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .ex-controls { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; justify-items: start; gap: 12px 16px; margin-top: 16px; }
 .sw { display: contents; } /* label and switcher fall into the two columns of the controls grid, so labels line up */
 .sw-k { font: 400 13px/20px Inter, sans-serif; color: #6f6f6b; }
-.sw-ring { animation: sw-ring-in var(--t-fb) ease-out both; } /* the ring appears where you point, it never flies in */
-@keyframes sw-ring-in { from { opacity: 0; } }
 .ex-stage { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; outline: none; border-radius: 18px; }
 .ex-stage:focus-visible { outline: 1px solid #ededeb; outline-offset: 6px; }
 .tb-status { margin: 0; min-height: 20px; font: 400 13px/20px Inter, sans-serif; color: #8e8e8a; font-variant-numeric: tabular-nums; }
 
-.sw-box { position: relative; }
-.page-clear .sample-body { padding-bottom: 28px; } /* room for the glass shadow, so it is never cut */
 
 /* ================= states grid: a row per emphasis, a column per state ================= */
 .sg-wrap { overflow-x: auto; margin: 0 -32px; padding: 4px 32px 24px; }
@@ -108,118 +95,7 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .bt-ic svg { width: 100%; height: 100%; }
 .bt-t { font-variant-numeric: tabular-nums; }
 .bt-row { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.page-clear .bt-row { gap: 8px; }
-.page-camp .bt-row { gap: 20px; }
 .page-index .bt-row { gap: 16px; }
-
-/* ================= FUTURISTIC · Couch Mode =================
-   button 48 high, radius 8, padding 0 20, gap 10 · icon 20 line 1.5 · Inter 500 15/20 · buttons 12 apart
-   primary #E6EBF0 ink #0F141B · secondary #1D232B edge #2A313A · tertiary edge #2A313A text #98A2AD
-   one focus ring: 2 white + glow #1A9FFF 12/28, glides 220 ms · pressed .94 + accent 35% · disabled 35%, skipped by the ring
-   group: container 48, padding 4, radius 12, #0F141B edge #1D232B · choice 40 high, padding 0 16 · one indicator white 8% + 1.5 edge */
-:root { --acc: #1a9fff; }
-.cm-b, .cm-seg { z-index: 1; --gap: 10px; font: 500 15px/20px Inter, sans-serif; border-radius: 8px;
-  transition: background-color var(--t-fb) ease-out, color var(--t-fb) ease-out, transform var(--t-fb) ease-out, opacity var(--t-out) ease-out; }
-.cm-b { height: 48px; padding: 0 20px; color: #e6ebf0; }
-.cm-b.is-icon { width: 48px; padding: 0; }
-.cm-b .bt-ic, .cm-seg .bt-ic { width: 20px; height: 20px; }
-.cm-b.is-pri { background: #e6ebf0; color: #0f141b; }
-.cm-b.is-sec { background: #1d232b; box-shadow: inset 0 0 0 1px #2a313a; }
-.cm-b.is-ter { color: #98a2ad; box-shadow: inset 0 0 0 1px #2a313a; }
-.cm-b.is-ter.is-focus { color: #fff; }
-.cm-b.is-press, .cm-seg.is-press { transform: scale(.94); }
-.cm-b.is-pri.is-press { background: color-mix(in srgb, var(--acc) 35%, #e6ebf0); }
-.cm-b.is-sec.is-press, .cm-b.is-ter.is-press, .cm-seg.is-press { background: color-mix(in srgb, var(--acc) 35%, transparent); color: #fff; }
-.cm-b:disabled, .cm-seg:disabled { opacity: .35; }
-.cm-grp { position: relative; display: inline-flex; align-items: center; gap: 2px; height: 48px; padding: 4px; border-radius: 12px; background: #0f141b; box-shadow: inset 0 0 0 1px #1d232b; }
-.cm-seg { height: 40px; padding: 0 16px; color: #98a2ad; }
-.cm-seg.is-icon { width: 40px; padding: 0; }
-.cm-seg.is-sel, .cm-seg.is-focus { color: #fff; }
-/* the group's one selection indicator: a restrained fill and edge that moves and resizes between choices */
-.cm-sel { position: absolute; z-index: 0; left: 0; top: 0; border-radius: 8px; pointer-events: none; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.9);
-  transition: transform var(--t-ind) var(--e-std), width var(--t-ind) var(--e-std), height var(--t-ind) var(--e-std); }
-.cm-seg.st-sel { background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.9); } /* frozen samples draw the indicator in place */
-/* one focus ring; its position lives in `translate`, so a press can shrink it in place without moving it */
-.cm-ring { position: absolute; z-index: 3; left: 0; top: 0; border-radius: 8px; pointer-events: none;
-  box-shadow: inset 0 0 0 2px #fff, 0 0 12px color-mix(in srgb, var(--acc) 80%, transparent), 0 0 28px color-mix(in srgb, var(--acc) 30%, transparent);
-  transition: translate var(--t-ind) var(--e-std), width var(--t-ind) var(--e-std), height var(--t-ind) var(--e-std), scale var(--t-fb) ease-out; }
-.cm-ring.is-press { scale: .94; transition-property: scale; } /* a press lands where you pressed: the ring stops gliding and snaps to the button */
-.st-focus { box-shadow: inset 0 0 0 2px #fff, 0 0 12px rgba(26,159,255,.8), 0 0 28px rgba(26,159,255,.3) !important; } /* frozen samples draw the ring on the button */
-.cm-b.st-focus, .cm-seg.st-focus { color: #fff; }
-.cm-b.is-pri.st-focus { color: #0f141b; }
-
-/* ================= ELEGANT · Clear =================
-   the frosted warm glass of the Clear tool bar: matte, no rim light or sheen, only a faint edge and a soft shadow
-   button 40 high, radius 12, padding 0 16, gap 8 · icon 20 line 1.5 · Inter 400 15/20 white 90% · buttons 8 apart
-   primary white 90%, ink #3A3734 · secondary frosted glass · tertiary outline white 24%
-   group: container 40, padding 4, radius 12, frosted · choice 32 high, padding 0 12, radius 8 · chosen: white 14% that grows in place */
-.cl-b, .cl-seg { --gap: 8px; color: rgba(255,255,255,.9); font: 400 15px/20px Inter, sans-serif;
-  transition: background-color var(--t-fb) ease-out, transform var(--t-fb) ease-out, opacity var(--t-out) ease-out; }
-.cl-b { height: 40px; padding: 0 16px; border-radius: 12px; }
-.cl-b.is-icon { width: 40px; padding: 0; }
-.cl-b .bt-ic, .cl-seg .bt-ic { width: 20px; height: 20px; }
-.cl-b.is-sec, .cl-grp { isolation: isolate; background: linear-gradient(180deg, rgba(118,114,111,.86), rgba(104,101,98,.86));
-  -webkit-backdrop-filter: blur(32px) saturate(1.2); backdrop-filter: blur(32px) saturate(1.2); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), 0 6px 16px rgba(0,0,0,.3); }
-.cl-b.is-pri { background: rgba(255,255,255,.9); color: #3a3734; }
-.cl-b.is-ter { box-shadow: inset 0 0 0 1px rgba(255,255,255,.24); }
-/* light laid over the glass: hover and press brighten it without changing its material */
-.cl-b.is-sec::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: #fff; opacity: 0; pointer-events: none; transition: opacity var(--t-fb) ease-out; }
-.cl-b.is-pri:not(:disabled):hover, .cl-b.is-pri.st-hover { background: #fff; }
-.cl-b.is-sec:not(:disabled):hover::after, .cl-b.is-sec.st-hover::after { opacity: .08; }
-.cl-b.is-ter:not(:disabled):hover, .cl-b.is-ter.st-hover { background: rgba(255,255,255,.08); }
-.cl-b:not(:disabled):active, .cl-b.st-press, .cl-seg:not(:disabled):active, .cl-seg.st-press { transform: scale(.97); }
-.cl-b.is-pri:not(:disabled):active, .cl-b.is-pri.st-press { background: rgba(255,255,255,.8); }
-.cl-b.is-sec:not(:disabled):active::after, .cl-b.is-sec.st-press::after { opacity: .18; }
-.cl-b.is-ter:not(:disabled):active, .cl-b.is-ter.st-press { background: rgba(255,255,255,.14); }
-.cl-b:disabled, .cl-seg:disabled { opacity: .38; }
-.cl-b:focus-visible, .cl-seg:focus-visible { outline: 2px solid rgba(255,255,255,.85); outline-offset: 2px; }
-.cl-grp { display: inline-flex; align-items: center; gap: 2px; height: 40px; padding: 4px; border-radius: 12px; }
-.cl-seg { z-index: 0; height: 32px; padding: 0 12px; border-radius: 8px; }
-.cl-seg.is-icon { width: 32px; padding: 0; }
-.cl-seg:not(:disabled):not(.is-sel):hover, .cl-seg.st-hover { background: rgba(255,255,255,.08); }
-/* each choice owns its fill. Nothing travels: the new one grows where it is, the old one fades where it was */
-.cl-seg::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; background: rgba(255,255,255,.14); opacity: 0; transform: scale(.85);
-  transition: opacity var(--t-out) ease-in, transform var(--t-out) ease-in; }
-.cl-seg.is-sel::before { opacity: 1; transform: none; transition: opacity 200ms var(--e-std), transform var(--t-in) var(--e-std); }
-
-/* ================= REBELLIOUS · Base Camp =================
-   the Persona-style language of the Base Camp menu: cut slabs with no corners, leaning −2°, a plate peeking from behind, Anton capitals
-   button 48 high, padding 0 22, gap 10 · icon 20 line 2 · Anton 20/24 +3% · buttons 20 apart
-   primary red #D90416 slab, white letters, paper #F3F0EA plate · secondary paper slab, ink #0B0B0B letters · tertiary white letters on a red slash
-   hover: steps 6 forward, leans −3°, snaps (140 ms cubic-bezier(.3,1.6,.5,1)) · pressed .95, the slab inverts · disabled grey 40% */
-.bc-b, .bc-seg { --gap: 10px; isolation: isolate; font: 400 20px/24px Anton, Impact, sans-serif; text-transform: uppercase; letter-spacing: .03em; }
-.bc-b { --cut: polygon(0 8%, 100% 0, 98% 100%, 2% 92%); height: 48px; padding: 0 22px; color: #fff; rotate: -2deg;
-  transition: translate 140ms cubic-bezier(.3,1.6,.5,1), rotate 140ms cubic-bezier(.3,1.6,.5,1), scale 100ms ease-out, color 100ms ease-out, filter var(--t-out) ease-out, opacity var(--t-out) ease-out; }
-.bc-b.is-icon { width: 52px; padding: 0; }
-.bc-b .bt-ic, .bc-seg .bt-ic { width: 20px; height: 20px; }
-.bc-b svg, .bc-seg svg { stroke-width: 2; }
-.bc-b .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: var(--bg, transparent); clip-path: var(--cut); transition: background-color 100ms ease-out, clip-path 140ms cubic-bezier(.3,1.6,.5,1); }
-.bc-b::before { content: ''; position: absolute; inset: 0; z-index: -2; background: var(--plate, transparent); clip-path: var(--cut); translate: 5px 5px; transition: translate 140ms cubic-bezier(.3,1.6,.5,1), background-color 100ms ease-out; }
-.bc-b.is-pri { --bg: #d90416; --plate: #f3f0ea; }
-.bc-b.is-sec { --bg: #f3f0ea; color: #0b0b0b; }
-.bc-b.is-ter { --bg: #d90416; }
-.bc-b.is-ter .bt-bg { clip-path: polygon(0 74%, 100% 66%, 99% 88%, 1% 96%); } /* a red slash under the word */
-.bc-b:not(:disabled):hover, .bc-b.st-hover { translate: 6px 0; rotate: -3deg; }
-.bc-b.is-pri:not(:disabled):hover::before, .bc-b.is-pri.st-hover::before { translate: 8px 8px; }
-.bc-b.is-sec:not(:disabled):hover, .bc-b.is-sec.st-hover { --plate: #d90416; }
-.bc-b.is-ter:not(:disabled):hover .bt-bg, .bc-b.is-ter.st-hover .bt-bg { clip-path: var(--cut); }
-.bc-b:not(:disabled):active, .bc-b.st-press { scale: .95; }
-.bc-b.is-pri:not(:disabled):active, .bc-b.is-pri.st-press { --bg: #f3f0ea; color: #d90416; }
-.bc-b.is-sec:not(:disabled):active, .bc-b.is-sec.st-press { --bg: #d90416; color: #fff; }
-.bc-b.is-ter:not(:disabled):active, .bc-b.is-ter.st-press { --bg: #f3f0ea; color: #0b0b0b; }
-.bc-b:disabled, .bc-seg:disabled { filter: grayscale(1); opacity: .4; }
-.bc-b:focus-visible, .bc-seg:focus-visible { outline: 2px dashed #fff; outline-offset: 5px; }
-/* group: names in grey, one white shard jumps to the chosen one, which leans and grows */
-.bc-grp { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 48px; isolation: isolate; }
-.bc-seg { z-index: 1; height: 44px; padding: 0 16px; color: #8d8a84; transition: color 100ms ease-out, scale 140ms cubic-bezier(.3,1.6,.5,1), rotate 140ms cubic-bezier(.3,1.6,.5,1); }
-.bc-seg.is-icon { width: 48px; padding: 0; }
-.bc-seg:not(:disabled):hover, .bc-seg.st-hover { color: #fff; }
-.bc-seg.is-sel { color: #0b0b0b; scale: 1.08; rotate: -3deg; }
-.bc-seg.is-sel:not(:disabled):hover, .bc-seg.is-sel.st-hover { color: #0b0b0b; } /* white on the white shard would vanish */
-.bc-seg:not(:disabled):active, .bc-seg.st-press { color: #d90416; }
-.bc-sel { position: absolute; z-index: 0; left: 0; top: 0; background: #fff; pointer-events: none; rotate: -3deg; scale: 1.1;
-  clip-path: polygon(0 18%, 100% 0, 95% 100%, 3% 88%); transition: transform 240ms cubic-bezier(.3,1.5,.5,1), width 240ms cubic-bezier(.3,1.5,.5,1), height 240ms cubic-bezier(.3,1.5,.5,1); }
-.bc-seg.st-sel .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: #fff; clip-path: polygon(0 18%, 100% 0, 95% 100%, 3% 88%); } /* frozen samples draw the shard in place */
 
 /* ================= MONUMENTAL · The Index =================
    carved lettering: square, heavy, ruled · Big Shoulders Display 800 26/28 uppercase · button 56 high, padding 0 24, gap 12 · icon 24 line 2 · buttons 16 apart
@@ -257,12 +133,11 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .ix-sel { position: absolute; z-index: 0; left: 0; top: 0; background: #e6e1d7; pointer-events: none; transition: transform 260ms var(--e-std), width 260ms var(--e-std), height 260ms var(--e-std); }
 .ix-seg.st-sel .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: #e6e1d7; } /* frozen samples draw the block in place */
 
-/* ================= MATTER-OF-FACT · Heads Up =================
+/* ================= the Heads Up button (Matter-of-fact) =================
    after the trycoffee download button: the content rides on a strip seen through the button
    button 52 high, radius 14, padding 0 20, gap 10 · icon 20 line 1.5 · Inter 600 16/20 · next fact Inter 500, 55% · buttons 12 apart
    rest [icon][label] → hover [label][next] (slide 280 ms) → after press the strip lifts, the result rises (260 ms)
    primary #F4F4F2 ink #111 · secondary #1E1E1D · tertiary outline white 20% */
-.page-heads .bt-row { gap: 12px; }
 .hu-b, .hu-seg { --pad: 20px; --gap: 10px; overflow: hidden; font: 600 16px/20px Inter, sans-serif; letter-spacing: -0.006em;
   transition: background-color var(--t-fb) ease-out, scale var(--t-fb) ease-out, opacity var(--t-out) ease-out; }
 .hu-b { height: 52px; border-radius: 14px; }
@@ -296,12 +171,6 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 /* after the press: the strip lifts away and the result rises in */
 .hu-b.is-done .hu-strip { translate: 0 -100%; opacity: 0; }
 .hu-b.is-done .hu-res { translate: 0 0; opacity: 1; }
-.hu-b.is-pri { --next: #6e6e6a; background: #f4f4f2; color: #111; box-shadow: inset 0 1px 0 #fff, 0 10px 30px rgba(0,0,0,.45); }
-.hu-b.is-sec { --next: #8e8e8a; background: #1e1e1d; color: #f4f4f2; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), inset 0 1px 0 rgba(255,255,255,.08); }
-.hu-b.is-ter { --next: #8e8e8a; color: #f4f4f2; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
-.hu-b.is-pri:not(:disabled):hover, .hu-b.is-pri.st-hover { background: #fff; }
-.hu-b.is-sec:not(:disabled):hover, .hu-b.is-sec.st-hover { background: #262625; }
-.hu-b.is-ter:not(:disabled):hover, .hu-b.is-ter.st-hover { background: rgba(255,255,255,.06); }
 .hu-b:not(:disabled):active, .hu-b.st-press, .hu-seg:not(:disabled):active, .hu-seg.st-press { scale: .97; }
 .hu-b:disabled, .hu-seg:disabled { opacity: .4; }
 .hu-b.is-done:disabled { opacity: .7; } /* done and locked: the result stays readable */
@@ -394,17 +263,12 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 /* phones and narrow sets: buttons wrap, never clip */
 @container set (max-width: 640px) {
   .ex-controls { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .ex-controls .cm-grp, .ex-controls .cl-grp, .ex-controls .bc-grp, .ex-controls .ix-grp, .ex-controls .hu-grp { margin-bottom: 10px; }
+  .ex-controls .ix-grp, .ex-controls .hu-grp { margin-bottom: 10px; }
   .ex-controls .hu-grp .hu-seg { --pad: 12px; }
   /* large sizes step down on phones (Material scales them up on large windows, down on small ones) */
   .sz-l { --h: 72px; --pad: 28px; --gap: 10px; --ic: 28px; --fs: 20px; --lh: 28px; --r: 24px; --rp: 14px; }
   .sz-xl { --h: 88px; --pad: 32px; --gap: 12px; --ic: 32px; --fs: 24px; --lh: 32px; --r: 28px; --rp: 16px; }
   /* the display type steps down on phones so a whole group fits the width */
-  .bc-b, .bc-seg { font-size: 17px; line-height: 22px; }
-  .bc-b { height: 44px; padding: 0 16px; }
-  .bc-b.is-icon { width: 48px; }
-  .bc-seg { height: 40px; padding: 0 10px; }
-  .bc-seg.is-icon { width: 44px; }
   .ix-b, .ix-seg { --gap: 8px; }
   .ix-b { height: 48px; padding: 0 16px; font-size: 20px; line-height: 24px; }
   .ix-b.is-icon { width: 48px; }
@@ -424,7 +288,7 @@ body:has(.wall) { overflow: hidden; background: #050505; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
-.sample .bt-v.on, .sg .bt-v.on, .sample .bt, .sg .bt, .sample .cl-seg::before, .sg .cl-seg::before { animation: none; transition: none; }
+.sample .bt-v.on, .sg .bt-v.on, .sample .bt, .sg .bt { animation: none; transition: none; }
 .sample .hu-strip, .sg .hu-strip, .sample .hu-res, .sg .hu-res, .sample .hu-sel, .sample .hu-face, .sample .hu-p, .sg .hu-p { transition: none; } /* frozen samples never animate in */
 .page-every .sg { grid-template-columns: 72px repeat(var(--cols), max-content); column-gap: 14px; } /* five types side by side */
 
