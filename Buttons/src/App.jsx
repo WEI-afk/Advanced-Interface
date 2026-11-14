@@ -908,7 +908,7 @@ function HuConnected({ size = 's', items, value, onChange, label }) {
 }
 
 // FAB menu: opens from the FAB, in its place, with 2–6 related actions; the FAB becomes a round close button
-function HuFabMenu({ items, onPick, open: forced, label = 'New', fab = 's', round }) {
+function HuFabMenu({ items, onPick, open: forced, label = 'New', tip, fab = 's', round }) {
   const [openState, setOpen] = useState(false)
   const open = forced ?? openState
   return (
@@ -922,9 +922,12 @@ function HuFabMenu({ items, onPick, open: forced, label = 'New', fab = 's', roun
           ))}
         </span>
       )}
-      <button type="button" className={`bt hu-fab fab-${fab} ${round ? 'is-round' : ''}`} aria-expanded={open} aria-label={open ? 'Close' : label} onClick={() => setOpen((v) => !v)}>
-        <span className="hu-ic hu-fab-x">{li(IC.plus)}</span>
-      </button>
+      <span className="hu-wrap">
+        <button type="button" className={`bt hu-fab fab-${fab} ${round ? 'is-round' : ''}`} aria-expanded={open} aria-label={open ? 'Close' : label} onClick={() => setOpen((v) => !v)}>
+          <span className="hu-ic hu-fab-x">{li(IC.plus)}</span>
+        </button>
+        {tip && !open && <span className="hu-tip hu-tip-side" role="tooltip">{tip}</span>}
+      </span>
     </span>
   )
 }
@@ -994,7 +997,7 @@ function EveryButtonSet({ auto, offset = 0 }) {
     </>,
     <>
       <HuBtn kind="filled" fit className={`hu-xfab xfab-${fab} ${round ? 'is-round' : ''}`} icon={IC.pen} label="Compose" next={{ text: 'new draft' }} result={[{ icon: IC.check, text: 'Draft created' }]} done={drafted} onClick={() => flash(setDrafted)} />
-      <HuFabMenu items={NEW_ITEMS} fab={fab} round={round} onPick={(it) => say(`New ${it.label.toLowerCase()} created`)} />
+      <HuFabMenu items={NEW_ITEMS} fab={fab} round={round} tip="New · note, checklist, photo, voice" onPick={(it) => say(`New ${it.label.toLowerCase()} created`)} />
     </>,
   ]
   const status = note || [
@@ -1339,7 +1342,7 @@ const SETS = [
       ['Icon button', [['Widths', 'narrow 0.8 · default 1 · wide 1.3 × height'], ['Styles', 'standard, filled, tonal, outlined'], ['Tooltip', '8 above · #262625 · Inter 13 / 18 · says the consequence']]],
       ['Split button', [['Space', '2 between action and menu button'], ['Inner corners', '4 for XS–M · 8 L · 12 XL'], ['Open', 'chevron turns 180° · menu button turns round'], ['Menu', '4 below, aligned to the menu button · items show their consequence']]],
       ['Groups', [['Standard', 'pressed button +15% width, neighbours share the loss, group width holds'], ['Connected', '2 apart · inner corners 8 · the choice fills, rounds and shows its fact']]],
-      ['FAB', [['FAB', '56 · 80 · 96 · radius 16 · 20 · 28 · icon 24 · 28 · 36'], ['Extended FAB', '56 high · padding 16 · Inter 600 16'], ['FAB menu', '2–6 items, 56 high pills, 4 apart, rise in 22 ms apart · the FAB turns into a round close']]],
+      ['FAB', [['FAB', '56 · 80 · 96 · radius 16 · 20 · 28 · icon 24 · 28 · 36'], ['Extended FAB', '56 high · padding 16 · Inter 600 16'], ['FAB menu', '2–6 items, 56 high pills, 4 apart, rise in 22 ms apart · the FAB turns into a round close'], ['Hover', 'ink over the light surface: #DCDCD9 hover, #CFCFCC pressed · menu shortcuts turn full ink · the FAB\'s tooltip, 8 to its left, says what it opens']]],
       ['Motion', [['Slide, lift', '280 / 260 ms cubic-bezier(0.2, 0, 0, 1)'], ['Shape, width', '200 ms, same curve'], ['Press', '120 ms ease-out'], ['Chevron, close', '200 ms rotation']]],
       ['Phone', [['Large sizes', 'L steps down to 72, XL to 88, so a whole button fits the width'], ['FAB', '56 · 80 · 96 follow the Size switcher: XS–M 56, L 80, XL 96']]],
     ],
