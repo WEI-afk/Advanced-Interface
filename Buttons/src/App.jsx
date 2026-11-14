@@ -24,10 +24,7 @@ const IC = {
   two: ['M7.500 9a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5z', 'M2.500 16a5 5 0 0 1 10 0', 'M13 4.200a2.500 2.500 0 0 1 0 4.700', 'M14.500 11.300a5 5 0 0 1 3 4.700'],
   three: ['M10 8a2.200 2.200 0 1 0 0-4.400 2.200 2.200 0 0 0 0 4.400z', 'M5 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'M15 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'M6 16.500a4 4 0 0 1 8 0', 'M1.500 16a3.500 3.500 0 0 1 3.800-3.500', 'M18.500 16a3.500 3.500 0 0 0-3.800-3.500'],
   send: ['M3 10l14-6.500-4.500 14L10 11z', 'M10 11l7-7.500'],
-  mark: ['M5.500 3h9v14l-4.500-3.500L5.500 17z'], quote: ['M4 11h4v5H4z', 'M4 11c0-3 1.500-5 4-6', 'M12 11h4v5h-4z', 'M12 11c0-3 1.500-5 4-6'], arrow: ['M4 10h12', 'M11 5l5 5-5 5'],
-  dawn: ['M3 14h14', 'M6 14a4 4 0 0 1 8 0', 'M10 4v3', 'M4.500 8l1.500 1.500', 'M15.500 8L14 9.500'],
-  sun: ['M10 6.500a3.500 3.500 0 1 0 0 7 3.500 3.500 0 0 0 0-7z', 'M10 2v2', 'M10 16v2', 'M2 10h2', 'M16 10h2', 'M4.300 4.300l1.400 1.400', 'M14.300 14.300l1.400 1.400', 'M4.300 15.700l1.400-1.400', 'M14.300 5.700l1.400-1.400'],
-  moon: ['M15.500 12.500A6 6 0 0 1 7.500 4.500a6 6 0 1 0 8 8z'], cal: ['M3.500 5h13v11.500h-13z', 'M3.500 8.500h13', 'M7 3v3.500', 'M13 3v3.500'],
+  mark: ['M5.500 3h9v14l-4.500-3.500L5.500 17z'], quote: ['M4 11h4v5H4z', 'M4 11c0-3 1.500-5 4-6', 'M12 11h4v5h-4z', 'M12 11c0-3 1.500-5 4-6'], arrow: ['M4 10h12', 'M11 5l5 5-5 5'], cal: ['M3.500 5h13v11.500h-13z', 'M3.500 8.500h13', 'M7 3v3.500', 'M13 3v3.500'],
   plan: ['M3.500 3.500h13v13h-13z', 'M3.500 10h7', 'M10.500 3.500v9', 'M13.500 10v6.500'], section: ['M3 16.500h14', 'M5 16.500V9l5-5.500 5 5.500v7.500', 'M8 16.500v-4h4v4'],
   elev: ['M3 16.500h14', 'M4.500 16.500V6h11v10.500', 'M7.500 9h2', 'M10.500 9h2', 'M7.500 12.500h2', 'M10.500 12.500h2'],
   archive: ['M3 4h14v4H3z', 'M4.500 8v8h11V8', 'M8 11h4'], bell: ['M5.500 13.500V9a4.500 4.500 0 0 1 9 0v4.500l1.500 2h-12z', 'M8.500 17.500a1.500 1.500 0 0 0 3 0'],
@@ -40,7 +37,6 @@ const IC = {
   laptop: ['M4 5h12v8H4z', 'M2 15.500h16'], term: ['M3 4h14v12H3z', 'M6 8l2.500 2L6 12', 'M10 12.500h4'], copy: ['M7 7h9v9H7z', 'M13 7V4H4v9h3'],
   doc: ['M5 3h7l3 3v11H5z', 'M12 3v3h3', 'M7.500 10h5', 'M7.500 13h5'], clock: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M10 6v4l2.500 2'],
   invite: ['M8 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M2.500 17a5.500 5.500 0 0 1 11 0', 'M15.500 7v5', 'M13 9.500h5'], arc: ['M10 3a7 7 0 1 1-7 7'],
-  print: ['M6 8V3.500h8V8', 'M6.500 14H4V8h12v6h-2.500', 'M6.500 11.500h7v5h-7z'], expand: ['M12 3.500h4.500V8', 'M16.500 3.500l-5 5', 'M8 16.500H3.500V12', 'M3.500 16.500l5-5'],
 }
 const CONTENT = ['Icon and text', 'Text only', 'Icon only']
 const CMODE = ['both', 'text', 'icon']
@@ -547,73 +543,37 @@ function CampSet({ auto, offset = 0 }) {
 
 /* ================= MONUMENTAL · The Index =================
    Buttons for an archive of structures, cut like carved lettering: square, heavy, ruled. A slab wipes in from the left on
-   hover, the way the Index rows fill, and a press turns it rust. */
-const IX_EX = ['Record', 'Visit', 'Drawings']
-const SLOTS = [{ label: 'Morning', icon: IC.dawn }, { label: 'Midday', icon: IC.sun }, { label: 'Evening', icon: IC.moon }]
+   hover, the way the Index rows fill; holding a press only presses it in. */
 const DRAW = [{ label: 'Plan', icon: IC.plan }, { label: 'Section', icon: IC.section }, { label: 'Elevation', icon: IC.elev }]
 
-function IndexSet({ auto, offset = 0 }) {
-  const [ex, setEx] = useState(offset % 3)
+// one record of the archive: view its plans, keep it, cite it
+function IndexSet({ auto }) {
   const [ci, setCi] = useState(0)
   const content = CMODE[ci]
   const [note, say] = useNote()
-  const later = useLater()
   const [saved, setSaved] = useState(false)
-  const [slot, setSlot] = useState(null)
-  const [booked, setBooked] = useState(false)
-  const [d, setD] = useState(0)
-  const [print, setPrint] = useState('idle') // idle · busy · done
-  const printNow = () => { setPrint('busy'); later(() => { setPrint('done'); later(() => setPrint('idle'), 1400) }, 1200) }
-  const pickSlot = (i) => { setSlot(i); setBooked(false) }
 
-  const latest = useRef(); latest.current = { slot, printNow }
+  /* wall: it runs itself */
   useEffect(() => {
     if (!auto) return
-    let k = offset
-    const t = setInterval(() => {
-      const L = latest.current
-      const s = k++ % 6
-      if (s === 0) setSaved((v) => !v)
-      else if (s === 2) { if (L.slot == null) pickSlot(1); else setBooked(true) }
-      else if (s === 3) setD((v) => (v + 1) % 3)
-      else if (s === 4) L.printNow()
-      else setEx((v) => (v + 1) % 3)
-    }, 1300)
+    let k = 0
+    const t = setInterval(() => { if (k++ % 2) setSaved((v) => !v); else setCi((v) => (v + 1) % 3) }, 1300)
     return () => clearInterval(t)
-  }, [auto, offset])
+  }, [auto])
 
   const b = ({ key, ...props }) => <Btn key={key} sys="ix" content={content} {...props} />
-  const views = [
-    <>
-      {b({ key: 'view', kind: 'pri', icon: IC.arrow, label: 'View plans', onClick: () => say('Plans of the Pantheon opened') })}
-      {b({ key: 'save', kind: 'sec', icon: saved ? IC.check : IC.mark, label: saved ? 'Saved' : 'Save', faces: [[IC.mark, 'Save'], [IC.check, 'Saved']], onClick: () => setSaved((v) => !v) })}
-      {b({ key: 'cite', kind: 'ter', icon: IC.quote, label: 'Cite', onClick: () => say('Citation copied') })}
-    </>,
-    <>
-      <SlideGroup sys="ix" label="Visiting time" items={SLOTS} value={slot} onChange={pickSlot} content={content} />
-      {b({ key: 'book', kind: 'pri', icon: booked ? IC.check : IC.cal, label: booked ? 'Booked' : 'Book', faces: [[IC.cal, 'Book'], [IC.check, 'Booked']], disabled: slot == null || booked, onClick: () => setBooked(true) })}
-      {b({ key: 'clear', kind: 'ter', icon: IC.close, label: 'Clear', disabled: slot == null, onClick: () => { setSlot(null); setBooked(false) } })}
-    </>,
-    <>
-      <SlideGroup sys="ix" label="Drawing" items={DRAW} value={d} onChange={setD} content={content} />
-      {b({ key: 'print', kind: 'pri', icon: print === 'done' ? IC.check : IC.print, label: { idle: 'Print', busy: 'Printing…', done: 'Printed' }[print], faces: [[IC.print, 'Print'], [IC.print, 'Printing…'], [IC.check, 'Printed']], disabled: print !== 'idle', onClick: printNow })}
-      {b({ key: 'enlarge', kind: 'ter', icon: IC.expand, label: 'Enlarge', onClick: () => say(`${DRAW[d].label} at full size`) })}
-    </>,
-  ]
-  const status = note || [
-    `Pantheon · 126 AD${saved ? ' · saved to your index' : ''}`,
-    slot == null ? 'Pick a time to visit' : booked ? `Booked · Saturday, ${SLOTS[slot].label.toLowerCase()}` : `${SLOTS[slot].label} · not booked yet`,
-    print === 'busy' ? `Printing the ${DRAW[d].label.toLowerCase()}…` : print === 'done' ? 'Printed · A1 at 1:200' : `${DRAW[d].label} · Pantheon, 1:200`,
-  ][ex]
   return (
     <div className="ex">
       <div className="ex-stage">
-        <div className="bt-row ix-row">{views[ex]}</div>
-        {!auto && <p className="tb-status" aria-live="polite">{status}</p>}
+        <div className="bt-row ix-row">
+          {b({ key: 'view', kind: 'pri', icon: IC.arrow, label: 'View plans', onClick: () => say('Plans of the Pantheon opened') })}
+          {b({ key: 'save', kind: 'sec', icon: saved ? IC.check : IC.mark, label: saved ? 'Saved' : 'Save', faces: [[IC.mark, 'Save'], [IC.check, 'Saved']], onClick: () => setSaved((v) => !v) })}
+          {b({ key: 'cite', kind: 'ter', icon: IC.quote, label: 'Cite', onClick: () => say('Citation copied') })}
+        </div>
+        {!auto && <p className="tb-status" aria-live="polite">{note || `Pantheon · 126 AD${saved ? ' · saved to your index' : ''}`}</p>}
       </div>
       {!auto && (
         <div className="ex-controls">
-          <SlideSwitch sys="ix" label="Example" items={IX_EX} value={ex} onChange={setEx} />
           <SlideSwitch sys="ix" label="Content" items={CONTENT} value={ci} onChange={setCi} />
         </div>
       )}
@@ -1201,8 +1161,8 @@ const SETS = [
       ['Group', [['Container', '56 high · 3 rule along the bottom'], ['Choice', '56 high · padding 0 × 20 · icon only 56'], ['Chosen', 'one bone block slides under it, letters turn ink']]],
       ['Type', [['Font', 'Big Shoulders Display ExtraBold, uppercase'], ['Size / line height', '26 / 28']]],
       ['Shape', [['Corners', 'square, radius 0'], ['Rules', '3: secondary frame, tertiary underline, group baseline']]],
-      ['Color', [['Bone', '#E6E1D7'], ['Ink', '#1A1815'], ['Rust', '#6B2C1C, pressed'], ['Dim', '#827B6F, disabled and unchosen']]],
-      ['States', [['Hover', 'a slab wipes in from the left: ink over the primary (it keeps a bone frame), bone under the others'], ['Pressed', '.98 · the slab turns rust, letters bone'], ['Disabled', 'letters and rules dim #827B6F · primary slab #2B2925']]],
+      ['Color', [['Bone', '#E6E1D7'], ['Ink', '#1A1815'], ['Dim', '#827B6F, disabled and unchosen']]],
+      ['States', [['Hover', 'a slab wipes in from the left: ink over the primary (it keeps a bone frame), bone under the others'], ['Pressed', '.98 · no colour of its own: the hover slab and letters hold'], ['Disabled', 'letters and rules dim #827B6F · primary slab #2B2925']]],
       ['Motion', [['Wipe', '320 ms cubic-bezier(.2, .9, .2, 1), from the left edge'], ['Press', '120 ms ease-out'], ['Group block', '260 ms cubic-bezier(0.2, 0, 0, 1)'], ['Label change', 'the new face fades in, 150 ms · width never changes']]],
       ['Focus', [['Keyboard', 'outline 2 bone, offset 4'], ['Group', 'arrow keys move the choice']]],
       ['Phone', [['Button', '48 high · padding 0 × 16 · 20 / 24 · icon 20'], ['Choice', '48 high · padding 0 × 12 · 18 / 22']]],

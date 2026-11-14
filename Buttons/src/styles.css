@@ -224,7 +224,7 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 /* ================= MONUMENTAL · The Index =================
    carved lettering: square, heavy, ruled · Big Shoulders Display 800 26/28 uppercase · button 56 high, padding 0 24, gap 12 · icon 24 line 2 · buttons 16 apart
    primary bone #E6E1D7 slab, ink #1A1815 letters · secondary 3 bone frame · tertiary 3 rule under the word
-   hover: a slab wipes in from the left (320 ms cubic-bezier(.2,.9,.2,1)) · pressed .98, the slab turns rust #6B2C1C · disabled dim #827B6F */
+   hover: a slab wipes in from the left (320 ms cubic-bezier(.2,.9,.2,1)) · pressed .98, no colour of its own: the hover slab holds · disabled dim #827B6F */
 .ix-b, .ix-seg { --gap: 12px; isolation: isolate; font: 800 26px/28px "Big Shoulders Display", Impact, sans-serif; text-transform: uppercase; letter-spacing: .01em; }
 .ix-b { height: 56px; padding: 0 24px; color: #e6e1d7; overflow: hidden; transition: color 200ms ease-out, scale var(--t-fb) ease-out, box-shadow 200ms ease-out, background-color 200ms ease-out; }
 .ix-b.is-icon { width: 56px; padding: 0; }
@@ -241,8 +241,7 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .ix-b.is-pri:not(:disabled):hover, .ix-b.is-pri.st-hover { color: #e6e1d7; box-shadow: inset 0 0 0 3px #e6e1d7; } /* ink fills it, a bone frame keeps its shape */
 .ix-b.is-sec:not(:disabled):hover, .ix-b.is-sec.st-hover, .ix-b.is-ter:not(:disabled):hover, .ix-b.is-ter.st-hover { color: #1a1815; }
 .ix-b:not(:disabled):active, .ix-b.st-press { scale: .98; }
-.ix-b:is(.is-pri, .is-sec, .is-ter):not(:disabled):active, .ix-b:is(.is-pri, .is-sec, .is-ter).st-press.st-press { color: #e6e1d7; } /* a press outranks the hover underneath it */
-.ix-b:not(:disabled):active .bt-bg, .ix-b.st-press .bt-bg { transform: none; background: #6b2c1c; }
+.ix-b:not(:disabled):active .bt-bg, .ix-b.st-press .bt-bg { transform: none; } /* holding the press keeps the hover slab; no new colour */
 .ix-b:disabled { color: #827b6f; }
 .ix-b.is-pri:disabled { background: #2b2925; }
 .ix-b.is-sec:disabled { box-shadow: inset 0 0 0 3px #3a3732; }
@@ -253,8 +252,7 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .ix-seg.is-icon { width: 56px; padding: 0; }
 .ix-seg:not(:disabled):hover, .ix-seg.st-hover { color: #e6e1d7; }
 .ix-seg.is-sel, .ix-seg.is-sel:not(:disabled):hover, .ix-seg.is-sel.st-hover { color: #1a1815; } /* hovering the choice keeps its ink: bone on the bone block would vanish */
-.ix-seg:not(:disabled):active, .ix-seg.st-press { scale: .98; color: #e6e1d7; }
-.ix-seg:not(:disabled):active .bt-bg, .ix-seg.st-press .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: #6b2c1c; }
+.ix-seg:not(:disabled):active, .ix-seg.st-press { scale: .98; }
 .ix-seg:disabled { color: #3a3732; }
 .ix-sel { position: absolute; z-index: 0; left: 0; top: 0; background: #e6e1d7; pointer-events: none; transition: transform 260ms var(--e-std), width 260ms var(--e-std), height 260ms var(--e-std); }
 .ix-seg.st-sel .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: #e6e1d7; } /* frozen samples draw the block in place */
