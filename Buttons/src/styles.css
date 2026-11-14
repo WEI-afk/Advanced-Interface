@@ -215,6 +215,7 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .bc-seg.is-icon { width: 48px; padding: 0; }
 .bc-seg:not(:disabled):hover, .bc-seg.st-hover { color: #fff; }
 .bc-seg.is-sel { color: #0b0b0b; scale: 1.08; rotate: -3deg; }
+.bc-seg.is-sel:not(:disabled):hover, .bc-seg.is-sel.st-hover { color: #0b0b0b; } /* white on the white shard would vanish */
 .bc-seg:not(:disabled):active, .bc-seg.st-press { color: #d90416; }
 .bc-sel { position: absolute; z-index: 0; left: 0; top: 0; background: #fff; pointer-events: none; rotate: -3deg; scale: 1.1;
   clip-path: polygon(0 18%, 100% 0, 95% 100%, 3% 88%); transition: transform 240ms cubic-bezier(.3,1.5,.5,1), width 240ms cubic-bezier(.3,1.5,.5,1), height 240ms cubic-bezier(.3,1.5,.5,1); }
@@ -251,7 +252,7 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .ix-seg { z-index: 1; height: 56px; padding: 0 20px; color: #827b6f; transition: color 200ms ease-out, scale var(--t-fb) ease-out; }
 .ix-seg.is-icon { width: 56px; padding: 0; }
 .ix-seg:not(:disabled):hover, .ix-seg.st-hover { color: #e6e1d7; }
-.ix-seg.is-sel { color: #1a1815; }
+.ix-seg.is-sel, .ix-seg.is-sel:not(:disabled):hover, .ix-seg.is-sel.st-hover { color: #1a1815; } /* hovering the choice keeps its ink: bone on the bone block would vanish */
 .ix-seg:not(:disabled):active, .ix-seg.st-press { scale: .98; color: #e6e1d7; }
 .ix-seg:not(:disabled):active .bt-bg, .ix-seg.st-press .bt-bg { display: block; position: absolute; inset: 0; z-index: -1; background: #6b2c1c; }
 .ix-seg:disabled { color: #3a3732; }
@@ -312,7 +313,7 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .hu-seg { --pad: 16px; --next: #8e8e8a; z-index: 1; height: 44px; border-radius: 10px; color: #8e8e8a; }
 .hu-seg.is-icon { width: 44px; }
 .hu-seg:not(:disabled):hover, .hu-seg.st-hover { color: #f4f4f2; }
-.hu-seg.is-sel { --next: #6e6e6a; color: #111; }
+.hu-seg.is-sel, .hu-seg.is-sel:not(:disabled):hover, .hu-seg.is-sel.st-hover { --next: #6e6e6a; color: #111; } /* light on the light block would vanish */
 .hu-sel.is-still { transition: none; }
 .hu-sel { position: absolute; z-index: 0; left: 0; top: 0; border-radius: 10px; background: #f4f4f2; pointer-events: none; transition: transform var(--t-ind) var(--e-std), width var(--t-ind) var(--e-std), height var(--t-ind) var(--e-std); }
 
