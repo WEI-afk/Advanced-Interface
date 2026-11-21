@@ -379,17 +379,13 @@ const SETS = [
   },
   {
     id: 'reel', tone: 'Kinetic, The Reel',
-    note: 'Point at the reel to open it. Scroll or drag the albums, roll the ruler to change month, or use ↑ ↓ and ← →. Type the start of an album to jump to it.',
+    note: 'Point at the half-circle on the left edge and the reel grows out of it; move away and it folds back. Scroll or drag the albums, roll the ruler to change month, or use ↑ ↓ and ← →. Type the start of an album to jump to it.',
     about: 'A photo journal you move through like a title sequence. At rest it shows only the month and the album you are in; point at it and the reel opens: every month on the ruler, the albums around you, counts, and a strip of photos from the chosen one.',
     Body: (p) => <ReelSet {...p} />,
     configs: [
-      { title: 'Sidebar · at rest and engaged', row: true, items: [
-        ['At rest: the month, the album, the arrow. Nothing else', <div className="rl-stage"><Reel still live={false} cat={1} /></div>],
-        ['Engaged (pointer or focus): every month, the albums around it, slots, and the chosen album\'s date, place, count and photos', <div className="rl-stage"><Reel still live cat={1} /></div>],
-      ] },
-      { title: 'Sidebar · collapsed', row: true, items: [
-        ['Collapsed: the whole reel shrinks into a half-circle on the left edge, the current month\'s icon inside it, its name on hover; scrolling it still changes the month', <div className="rl-stage"><Reel still collapsed cat={4} /></div>],
-        ['Expanded: the same half-circle, small, is the handle that folds it', <div className="rl-stage"><Reel still live={false} cat={4} /></div>],
+      { title: 'Sidebar · at rest and on hover', row: true, items: [
+        ['At rest: folded into a half-circle on the left edge, the month\'s icon in a ring of ticks', <div className="rl-stage"><Reel still cat={1} /></div>],
+        ['On hover or focus: the reel grows out of it with everything, every month, the albums around, slots, and the chosen album\'s date, place, count and photos', <div className="rl-stage"><Reel still live cat={1} /></div>],
       ] },
       { title: 'Item · the right slot (shown when engaged)', row: true, items: [
         ['Badge: new photos', <div className="rl-frozen"><ReelWord it={REEL[1].items[0]} className="is-sel" /></div>],
@@ -417,8 +413,8 @@ const SETS = [
     ),
     spec: [
       ['Use case', [['Product', 'a photo journal: months, their albums, and the library around them'], ['Ruler', 'the months of the year · its count beside each when engaged'], ['Drum', 'that month\'s albums'], ['Tab bar', 'Library · Memories · Albums · Map · Shared']]],
-      ['Rest and engaged', [['At rest', 'the current month, the chosen album and the arrow · other months hidden · neighbours at 16% and 2.5 blur a step · no slots'], ['Engaged', 'pointer over it or focus inside it · every month · neighbours 72%, 1.2 blur a step · slots · the chosen album unfolds its detail'], ['Leaving', 'it stays open 400 ms after the pointer leaves, 2.5 s after a touch, so passing through never flickers'], ['Hovered album', 'a neighbour you point at sharpens fully before you pick it']]],
-      ['Sidebar', [['Size', 'expanded 640 × 480 · collapsed 64 × 480'], ['Container', 'radius 28 · #080808 to #121212, edge white 6%'], ['Handle', 'a half-circle on the left edge at the middle line · expanded 30 × 60 with a ‹ · collapsed 48 × 96 with the month\'s icon 20 and a ring of 13 ticks, 15° apart'], ['Fold', 'the ruler and the albums shrink to 12% into the handle, 320 ms, and grow back out of it']]],
+      ['Rest and engaged', [['At rest', 'folded into the handle: only the current month\'s icon'], ['Engaged', 'pointer over it or focus inside it · every month · neighbours 72%, 1.2 blur a step · slots · the chosen album unfolds its detail'], ['Leaving', 'it stays open 400 ms after the pointer leaves, 2.5 s after a touch, so passing through never flickers'], ['Hovered album', 'a neighbour you point at sharpens fully before you pick it']]],
+      ['Sidebar', [['Size', 'expanded 640 × 480 · collapsed 64 × 480'], ['Container', 'radius 28 · #080808 to #121212, edge white 6%'], ['Handle', 'a 48 × 96 half-circle on the left edge at the middle line: the month\'s icon 20 in a ring of 13 ticks, 15° apart'], ['Open', 'no click: pointing at the handle or focusing the reel grows it out of the handle, 320 ms; it folds back 400 ms after the pointer leaves'], ['Space', 'the reel opens over the page, the page does not move']]],
       ['Ruler · the months', [['Arc', 'radius 360, centre 170 off the left edge, on the middle line'], ['Ticks', 'every 3°: minor 12 · major 22, one per month · 55% at rest, 100% engaged'], ['Month', 'Geist Mono 12, caps, +8% · 34 inside the ticks · count Geist Mono 10 beside it when engaged'], ['Engaged', 'months come in from the middle out, 30 ms apart']]],
       ['Drum · the albums', [['Word', 'Inter Bold 44 / 56, lowercase, −3.5% · max 376 wide'], ['Gaps', 'icon 26 to word 14 · word to slot 12'], ['Roll', '60 a step · each step tilts 20° on X with 900 perspective'], ['Opening', 'the albums below the chosen one drop 84 to make room for its detail']]],
       ['Detail', [['Line', 'date · place · count, Geist Mono 12, #a3a3a3'], ['Photos', 'three 48 × 48 tiles, radius 8, 6 apart, then the rest as +n'], ['In', 'line 120 ms after engaging, photos 180 ms, each slides 8 down, 320 ms']]],

@@ -126,9 +126,9 @@ function useEngaged(forced) {
 export function Reel({ still, live: liveProp, collapsed: colProp, cat: c0 = 0, act: a0 = 0, sections = REEL, onStatus, label = 'Journal 2026' }) {
   const [cat, setCat] = useState(c0)
   const [act, setAct] = useState(a0)
-  const [col, setCol] = useState(!!colProp)
   const [opened, setOpened] = useState(null)
   const [live, engage] = useEngaged(liveProp)
+  const col = colProp ?? !live // at rest it is folded into the handle; pointing at it (or focusing it) opens it
   const C = sections[cat]
   const n = C.items.length
   const goCat = (i) => { const j = clamp(i, 0, sections.length - 1); if (j !== cat) { setCat(j); setAct(0); setOpened(null) } }
@@ -159,15 +159,14 @@ export function Reel({ still, live: liveProp, collapsed: colProp, cat: c0 = 0, a
   for (let a = -90; a <= (sections.length - 1) * MAJOR + 90; a += MINOR) ticks.push(a)
   const turn = -cat * MAJOR
   return (
-    <nav className={`rl ${col ? 'is-col' : ''} ${live ? 'is-live' : ''}`} aria-label={`${label}, ← → change month, ↑ ↓ move through its albums`} tabIndex={still ? -1 : 0} onKeyDown={still ? undefined : keys} {...(still ? {} : engage)}>
+    <nav className={`rl ${col ? 'is-col' : ''} ${live ? 'is-live' : ''}`} aria-label={`${label}, ${C.name}${n ? `, ${C.items[act].label}` : ''}. Focus to open; ← → change month, ↑ ↓ move through its albums`} aria-expanded={!col} tabIndex={still ? -1 : 0} onKeyDown={still ? undefined : keys} {...(still ? {} : engage)}>
       {/* the handle: a half-circle on the left edge at the middle line; the whole reel shrinks into it, and it grows back out of it */}
-      <button type="button" className="rl-nub" ref={nub} tabIndex={still ? -1 : 0} aria-label={col ? `Expand the sidebar, ${C.name}${n ? `, ${C.items[act].label}` : ''}` : 'Collapse the sidebar'} aria-expanded={!col}
-        title={col ? `${C.name}${n ? ` · ${C.items[act].label}` : ''}` : undefined} onClick={(e) => { e.stopPropagation(); if (!still) setCol((c) => !c) }}>
-        <svg className="rl-nub-ticks" viewBox="0 -48 48 96" aria-hidden="true">
+      <span className="rl-nub" ref={nub} title={col ? `${C.name}${n ? ` · ${C.items[act].label}` : ''}` : undefined} aria-hidden="true">
+        <svg className="rl-nub-ticks" viewBox="0 -48 48 96">
           {Array.from({ length: 13 }, (_, k) => { const a = (-90 + k * 15) * Math.PI / 180, r0 = k === 6 ? 33 : 37; return <line key={k} className={k === 6 ? 'is-major' : ''} x1={Math.cos(a) * r0} y1={Math.sin(a) * r0} x2={Math.cos(a) * 42} y2={Math.sin(a) * 42} /> })}
         </svg>
-        <span className="rl-nub-in">{col ? li(C.icon, 1.75) : li(['M12 6l-4 4 4 4'], 1.75)}</span>
-      </button>
+        <span className="rl-nub-in">{li(C.icon, 1.75)}</span>
+      </span>
       <div className="rl-ruler" ref={ruler} {...rulerDrag}>
         <div className="rl-arc" style={{ transform: `rotate(${turn}deg)` }}>
           {ticks.map((a) => {
