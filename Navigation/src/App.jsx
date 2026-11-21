@@ -16,6 +16,13 @@ const IC = {
   wall: ['M3 15.500h14', 'M3 6.500h14', 'M3 6.500v9', 'M17 6.500v9', 'M3 11h14', 'M8 6.500V11', 'M12 11v4.500', 'M5 4v2.500', 'M10 4v2.500', 'M15 4v2.500'],
   tower: ['M7 17V5l3-2.500L13 5v12', 'M5 17h10', 'M7 9h6', 'M7 13h6'], pen: ['M4 16l3-.500 9-9-2.500-2.500-9 9z'],
   map: ['M3 5l4.500-1.500 5 1.500L17 3.500v11.500l-4.500 1.500-5-1.500L3 16.500z', 'M7.500 3.500v11.500', 'M12.500 5v11.500'], mark: ['M5.500 3h9v14l-4.500-3.500L5.500 17z'],
+  note: ['M8 15.500V4.500l8-1.500v11', 'M6 17.500a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'M14 16a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'], album: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M10 8.500a1.500 1.500 0 1 0 0 3 1.500 1.500 0 0 0 0-3z'],
+  list: ['M7 5h10', 'M7 10h10', 'M7 15h10', 'M3.500 5h.010', 'M3.500 10h.010', 'M3.500 15h.010'], down: ['M10 3.500v9', 'M6.500 9L10 12.500 13.500 9', 'M4 16h12'],
+  radio: ['M3.500 8h13v8.500h-13z', 'M6 8l9-4', 'M7.500 12.300a1.200 1.200 0 1 0 0-.010'], bell: ['M5.500 13.500V9a4.500 4.500 0 0 1 9 0v4.500l1.500 2h-12z', 'M8.500 17.500a1.500 1.500 0 0 0 3 0'],
+  lock: ['M5 9h10v8H5z', 'M7 9V6.500a3 3 0 0 1 6 0V9'], card: ['M3 5.500h14v9H3z', 'M3 8.500h14', 'M6 12h3'], team: ['M7.500 9a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5z', 'M2.500 16a5 5 0 0 1 10 0', 'M13 4.200a2.500 2.500 0 0 1 0 4.700', 'M14.500 11.300a5 5 0 0 1 3 4.700'],
+  help: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M8 8a2 2 0 1 1 2.500 1.900c-.400.200-.500.500-.500 1.100', 'M10 13.500v.010'],
+  stairs: ['M3 16.500h4v-4h4v-4h4v-4h2'], ticket: ['M3 6h14v2.500a1.500 1.500 0 0 0 0 3V14H3v-2.500a1.500 1.500 0 0 0 0-3z', 'M12 6v8'], audio: ['M4 12v-1a6 6 0 0 1 12 0v1', 'M4 12h3v4.500H4z', 'M13 12h3v4.500h-3z'],
+  shop: ['M4 7h12l-1 9.500H5z', 'M7.500 7a2.500 2.500 0 0 1 5 0'], box: ['M3.500 6.500L10 3.500l6.500 3v7L10 16.500l-6.500-3z', 'M3.500 6.500L10 9.500l6.500-3', 'M10 9.500v7'], book: ['M4 4.500h5a2 2 0 0 1 2 2V16a1.500 1.500 0 0 0-1.500-1.500H4z', 'M16 4.500h-5', 'M16 4.500v10h-4.500'], clock: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M10 6v4l2.500 2'],
   cal: ['M3.500 5h13v11.500h-13z', 'M3.500 8.500h13', 'M7 3v3.500', 'M13 3v3.500'], grid: ['M3.500 3.500h5v5h-5z', 'M11.500 3.500h5v5h-5z', 'M3.500 11.500h5v5h-5z', 'M11.500 11.500h5v5h-5z'],
 }
 
@@ -138,56 +145,113 @@ function TabBar({ sys, items, value, onChange, label }) {
 }
 
 /* ================= the two sets ================= */
-const MF = {
-  sections: [
-    { title: 'Mail', items: [
-      { id: 'inbox', icon: IC.inbox, label: 'Inbox', slot: { type: 'badge', v: '12', more: '12 unread' }, note: '12 unread · 3 flagged' },
-      { id: 'drafts', icon: IC.draft, label: 'Drafts', slot: { type: 'text', v: '3', more: '3 unsent' }, note: '3 drafts, oldest 2 days' },
-      { id: 'sent', icon: IC.send, label: 'Sent', slot: { type: 'text', v: '⌘3', more: 'press ⌘3' }, note: 'Sent · last one 10 min ago' },
-      { id: 'archive', icon: IC.archive, label: 'Archive', note: 'Archive · 1,204 conversations' },
-    ] },
-    { title: 'Labels', items: [
-      { id: 'clients', icon: IC.tag, label: 'Clients', slot: { type: 'icon', v: IC.out, more: IC.out }, note: 'Clients · opens the shared folder' },
-      { id: 'receipts', icon: IC.receipt, label: 'Receipts', slot: { type: 'badge', v: '2', more: '2 new' }, note: 'Receipts · 2 new this week' },
-    ] },
-  ],
-  tabs: [
-    { id: 'home', icon: IC.home, label: 'Home' }, { id: 'search', icon: IC.search, label: 'Search' },
-    { id: 'inbox', icon: IC.inbox, label: 'Inbox', slot: { type: 'badge', v: '12' } }, { id: 'you', icon: IC.user, label: 'You' },
-  ],
-}
-const IX = {
-  sections: [
-    { title: 'Collections', items: [
-      { id: 'temples', icon: IC.temple, label: 'Temples', slot: { type: 'text', v: '126' }, note: '126 temples, 1,200 BC to now' },
-      { id: 'walls', icon: IC.wall, label: 'Walls', slot: { type: 'text', v: '48' }, note: '48 walls, the longest 21,196 km' },
-      { id: 'towers', icon: IC.tower, label: 'Towers', slot: { type: 'badge', v: 'New' }, note: 'Towers · new collection' },
-    ] },
-    { title: 'Architects', items: [
-      { id: 'ando', icon: IC.pen, label: 'Tadao Ando', slot: { type: 'icon', v: IC.out }, note: 'Tadao Ando · opens his archive' },
-      { id: 'kahn', icon: IC.pen, label: 'Louis Kahn', slot: { type: 'text', v: '9' }, note: 'Louis Kahn · 9 works' },
-    ] },
-  ],
-  tabs: [
-    { id: 'index', icon: IC.grid, label: 'Index' }, { id: 'map', icon: IC.map, label: 'Map' },
-    { id: 'saved', icon: IC.mark, label: 'Saved', slot: { type: 'badge', v: '3' } }, { id: 'visits', icon: IC.cal, label: 'Visits' },
-  ],
-}
+const MF = [
+  { name: 'Mail', icon: IC.inbox, title: 'Workspace',
+    sections: [
+      { title: 'Mail', items: [
+        { id: 'inbox', icon: IC.inbox, label: 'Inbox', slot: { type: 'badge', v: '12', more: '12 unread' }, note: '12 unread · 3 flagged' },
+        { id: 'drafts', icon: IC.draft, label: 'Drafts', slot: { type: 'text', v: '3', more: '3 unsent' }, note: '3 drafts, oldest 2 days' },
+        { id: 'sent', icon: IC.send, label: 'Sent', slot: { type: 'text', v: '⌘3', more: 'press ⌘3' }, note: 'Sent · last one 10 min ago' },
+        { id: 'archive', icon: IC.archive, label: 'Archive', note: 'Archive · 1,204 conversations' },
+      ] },
+      { title: 'Labels', items: [
+        { id: 'clients', icon: IC.tag, label: 'Clients', slot: { type: 'icon', v: IC.out, more: IC.out }, note: 'Clients · opens the shared folder' },
+        { id: 'receipts', icon: IC.receipt, label: 'Receipts', slot: { type: 'badge', v: '2', more: '2 new' }, note: 'Receipts · 2 new this week' },
+      ] },
+    ],
+    tabs: [{ id: 'home', icon: IC.home, label: 'Home' }, { id: 'search', icon: IC.search, label: 'Search' }, { id: 'inbox', icon: IC.inbox, label: 'Inbox', slot: { type: 'badge', v: '12' } }, { id: 'you', icon: IC.user, label: 'You' }] },
+  { name: 'Music', icon: IC.note, title: 'Library',
+    sections: [
+      { title: 'Library', items: [
+        { id: 'songs', icon: IC.note, label: 'Songs', slot: { type: 'text', v: '1,204', more: '71 hours' }, note: '1,204 songs · 71 hours' },
+        { id: 'albums', icon: IC.album, label: 'Albums', slot: { type: 'text', v: '86', more: '86 albums' }, note: '86 albums, 12 added this month' },
+        { id: 'lists', icon: IC.list, label: 'Playlists', slot: { type: 'badge', v: '2', more: '2 updated' }, note: '2 playlists updated since you last listened' },
+      ] },
+      { title: 'On this device', items: [
+        { id: 'down', icon: IC.down, label: 'Downloads', slot: { type: 'text', v: '3.2 GB', more: '3.2 of 64 GB' }, note: 'Downloads · 3.2 GB of 64 GB used' },
+        { id: 'radio', icon: IC.radio, label: 'Radio', slot: { type: 'icon', v: IC.out, more: IC.out }, note: 'Radio · opens the live player' },
+      ] },
+    ],
+    tabs: [{ id: 'now', icon: IC.home, label: 'Listen' }, { id: 'browse', icon: IC.grid, label: 'Browse' }, { id: 'radio', icon: IC.radio, label: 'Radio' }, { id: 'lib', icon: IC.note, label: 'Library', slot: { type: 'badge', v: '2' } }] },
+  { name: 'Settings', icon: IC.user, title: 'Account',
+    sections: [
+      { title: 'General', items: [
+        { id: 'profile', icon: IC.user, label: 'Profile', note: 'Profile · name, photo, email' },
+        { id: 'alerts', icon: IC.bell, label: 'Notifications', slot: { type: 'badge', v: '4', more: '4 new' }, note: '4 notifications need a look' },
+        { id: 'privacy', icon: IC.lock, label: 'Privacy', slot: { type: 'text', v: 'On', more: '2FA on' }, note: 'Two-factor sign-in is on' },
+      ] },
+      { title: 'Billing', items: [
+        { id: 'plan', icon: IC.card, label: 'Plan', slot: { type: 'text', v: 'Pro', more: 'renews 1 Dec' }, note: 'Pro · renews 1 December' },
+        { id: 'invoices', icon: IC.receipt, label: 'Invoices', slot: { type: 'icon', v: IC.out, more: IC.out }, note: 'Invoices · opens the billing portal' },
+      ] },
+    ],
+    tabs: [{ id: 'over', icon: IC.home, label: 'Overview' }, { id: 'team', icon: IC.team, label: 'Team' }, { id: 'bill', icon: IC.card, label: 'Billing', slot: { type: 'badge', v: '1' } }, { id: 'help', icon: IC.help, label: 'Help' }] },
+]
+const IX = [
+  { name: 'Archive', icon: IC.grid, title: 'The Index',
+    sections: [
+      { title: 'Collections', items: [
+        { id: 'temples', icon: IC.temple, label: 'Temples', slot: { type: 'text', v: '126' }, note: '126 temples, 1,200 BC to now' },
+        { id: 'walls', icon: IC.wall, label: 'Walls', slot: { type: 'text', v: '48' }, note: '48 walls, the longest 21,196 km' },
+        { id: 'towers', icon: IC.tower, label: 'Towers', slot: { type: 'badge', v: 'New' }, note: 'Towers · new collection' },
+      ] },
+      { title: 'Architects', items: [
+        { id: 'ando', icon: IC.pen, label: 'Tadao Ando', slot: { type: 'icon', v: IC.out }, note: 'Tadao Ando · opens his archive' },
+        { id: 'kahn', icon: IC.pen, label: 'Louis Kahn', slot: { type: 'text', v: '9' }, note: 'Louis Kahn · 9 works' },
+      ] },
+    ],
+    tabs: [{ id: 'index', icon: IC.grid, label: 'Index' }, { id: 'map', icon: IC.map, label: 'Map' }, { id: 'saved', icon: IC.mark, label: 'Saved', slot: { type: 'badge', v: '3' } }, { id: 'visits', icon: IC.cal, label: 'Visits' }] },
+  { name: 'Museum', icon: IC.temple, title: 'The Hall',
+    sections: [
+      { title: 'Floors', items: [
+        { id: 'ground', icon: IC.stairs, label: 'Ground', slot: { type: 'text', v: '12' }, note: 'Ground floor · 12 rooms' },
+        { id: 'first', icon: IC.stairs, label: 'First', slot: { type: 'text', v: '9' }, note: 'First floor · 9 rooms' },
+        { id: 'roof', icon: IC.tower, label: 'Roof', slot: { type: 'badge', v: 'Open' }, note: 'Roof terrace · open until 18:00' },
+      ] },
+      { title: 'Tours', items: [
+        { id: 'guided', icon: IC.team, label: 'Guided', slot: { type: 'text', v: '11:00' }, note: 'Next guided tour at 11:00' },
+        { id: 'audio', icon: IC.audio, label: 'Audio', slot: { type: 'icon', v: IC.out }, note: 'Audio guide · opens the player' },
+      ] },
+    ],
+    tabs: [{ id: 'visit', icon: IC.temple, label: 'Visit' }, { id: 'hmap', icon: IC.map, label: 'Map' }, { id: 'tickets', icon: IC.ticket, label: 'Tickets', slot: { type: 'badge', v: '2' } }, { id: 'shop', icon: IC.shop, label: 'Shop' }] },
+  { name: 'Reading room', icon: IC.book, title: 'Reading Room',
+    sections: [
+      { title: 'Shelves', items: [
+        { id: 'drawings', icon: IC.book, label: 'Drawings', slot: { type: 'text', v: '2,410' }, note: '2,410 drawings on the shelves' },
+        { id: 'models', icon: IC.box, label: 'Models', slot: { type: 'text', v: '312' }, note: '312 models, by appointment' },
+        { id: 'letters', icon: IC.draft, label: 'Letters', slot: { type: 'badge', v: 'New' }, note: 'Letters · newly catalogued' },
+      ] },
+      { title: 'Requests', items: [
+        { id: 'pending', icon: IC.clock, label: 'Pending', slot: { type: 'text', v: '3' }, note: '3 requests waiting for the desk' },
+        { id: 'ready', icon: IC.box, label: 'Ready', slot: { type: 'icon', v: IC.out }, note: 'Ready · collect at desk 2' },
+      ] },
+    ],
+    tabs: [{ id: 'rsearch', icon: IC.search, label: 'Search' }, { id: 'shelves', icon: IC.book, label: 'Shelves' }, { id: 'reqs', icon: IC.clock, label: 'Holds', slot: { type: 'badge', v: '3' } }, { id: 'desk', icon: IC.user, label: 'Desk' }] },
+]
 
-function NavSet({ sys, data, title, auto }) {
+function NavSet({ sys, scenes, auto }) {
+  const [si, setSi] = useState(0)
+  const data = scenes[si]
   const [side, setSide] = useState(data.sections[0].items[0].id)
   const [tab, setTab] = useState(data.tabs[0].id)
   const [col, setCol] = useState(false)
   const all = data.sections.flatMap((s) => s.items)
+  const pickScene = (id) => {
+    const i = scenes.findIndex((sc) => sc.name === id)
+    setSi(i); setSide(scenes[i].sections[0].items[0].id); setTab(scenes[i].tabs[0].id)
+  }
 
   /* wall: it moves by itself */
+  const latest = useRef(); latest.current = { all, data }
   useEffect(() => {
     if (!auto) return
     let k = 0
     const t = setInterval(() => {
       k++
-      if (k % 5 === 0) setCol((v) => !v)
-      else { setSide(all[k % all.length].id); setTab(data.tabs[k % data.tabs.length].id) }
+      const L = latest.current
+      if (k % 9 === 0) pickScene(scenes[(k / 9) % scenes.length].name)
+      else if (k % 5 === 0) setCol((v) => !v)
+      else { setSide(L.all[k % L.all.length].id); setTab(L.data.tabs[k % L.data.tabs.length].id) }
     }, 1100)
     return () => clearInterval(t)
   }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -196,14 +260,20 @@ function NavSet({ sys, data, title, auto }) {
     <div className="ex nv-ex">
       <div className="nv-part">
         <h3 className="group-k">Sidebar · {col ? 'collapsed' : 'expanded'}</h3>
-        <Sidebar sys={sys} title={title} sections={data.sections} value={side} onChange={setSide} collapsed={col} onToggle={() => setCol((v) => !v)} label={`${title} sidebar`} />
+        <Sidebar key={si} sys={sys} title={data.title} sections={data.sections} value={side} onChange={setSide} collapsed={col} onToggle={() => setCol((v) => !v)} label={`${data.title} sidebar`} />
         {!auto && <p className="tb-status" aria-live="polite">{all.find((it) => it.id === side)?.note}</p>}
       </div>
       <div className="nv-part">
         <h3 className="group-k">Tab bar</h3>
-        <TabBar sys={sys} items={data.tabs} value={tab} onChange={setTab} label={`${title} tabs`} />
+        <TabBar key={si} sys={sys} items={data.tabs} value={tab} onChange={setTab} label={`${data.title} tabs`} />
         {!auto && <p className="tb-status" aria-live="polite">{data.tabs.find((t) => t.id === tab)?.label}</p>}
       </div>
+      {!auto && (
+        <div className="nv-part">
+          <h3 className="group-k">Scenario · the same parts somewhere else</h3>
+          <TabBar sys={sys} items={scenes.map((sc) => ({ id: sc.name, icon: sc.icon, label: sc.name }))} value={data.name} onChange={pickScene} label="Scenario" />
+        </div>
+      )}
     </div>
   )
 }
@@ -252,10 +322,10 @@ const configsFor = (sys, data, title) => [
 const SETS = [
   {
     id: 'mf', tone: 'Matter-of-fact, Heads Up',
-    about: 'Navigation for a mail workspace that tells you what is there before you go: point at an item and its slot says a little more ("12" becomes "12 unread").',
-    Body: (p) => <NavSet sys="mf" data={MF} title="Workspace" {...p} />,
-    configs: configsFor('mf', MF, 'Workspace'),
-    states: statesFor('mf', MF),
+    about: 'Navigation that tells you what is there before you go, shown in mail, music and settings: point at an item and its slot says a little more ("12" becomes "12 unread").',
+    Body: (p) => <NavSet sys="mf" scenes={MF} {...p} />,
+    configs: configsFor('mf', MF[0], 'Workspace'),
+    states: statesFor('mf', MF[0]),
     spec: [
       ['Sidebar', [['Width', 'expanded 264 · collapsed 72'], ['Container', 'padding 12 · radius 20 · #141413, edge white 6%'], ['Top', '40 high: title, collapse button 40 × 40 radius 12']]],
       ['Item', [['Size', '40 high · padding 0 × 14 · radius 12'], ['Gaps', 'icon to label 12 · label to slot 8'], ['Icon', '20 × 20 · line 1.5'], ['Items apart', '2']]],
@@ -271,10 +341,10 @@ const SETS = [
   },
   {
     id: 'ix', tone: 'Monumental, The Index',
-    about: 'Navigation for an archive of structures, cut like carved lettering: heavy capitals, 3 rules, one bone block for where you are, and a rule that wipes in under the item you point at.',
-    Body: (p) => <NavSet sys="ix" data={IX} title="The Index" {...p} />,
-    configs: configsFor('ix', IX, 'The Index'),
-    states: statesFor('ix', IX),
+    about: 'Navigation for an archive, a museum and a reading room, cut like carved lettering: heavy capitals, 3 rules, one bone block for where you are, and a rule that wipes in under the item you point at.',
+    Body: (p) => <NavSet sys="ix" scenes={IX} {...p} />,
+    configs: configsFor('ix', IX[0], 'The Index'),
+    states: statesFor('ix', IX[0]),
     spec: [
       ['Sidebar', [['Width', 'expanded 300 · collapsed 88'], ['Edge', '3 bone rule on the right'], ['Top', '48 high: title Big Shoulders 28, collapse button 48 × 48']]],
       ['Item', [['Size', '52 high · padding 0 × 20'], ['Gaps', 'icon to label 14 · label to slot 10'], ['Icon', '24 × 24 · line 2'], ['Items apart', '0, ruled by hover only']]],
@@ -353,7 +423,7 @@ function SetPage({ set }) {
       </aside>
       <main className="content">
         <section className="sec" id="example">
-          {head(1, 'Example', 'Pick items, collapse the sidebar with its top button, move tabs with the arrow keys.')}
+          {head(1, 'Example', 'Pick items, collapse the sidebar with its top button, move tabs with the arrow keys, and switch the scenario below.')}
           <set.Body />
         </section>
         <section className="sec" id="configurations">
