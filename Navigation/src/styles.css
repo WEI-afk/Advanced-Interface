@@ -128,6 +128,8 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .is-col .nv-label, .is-col .nv-slot { opacity: 0; }
 .nv-item:not(:disabled):active, .nv-item.st-press { scale: .98; }
 .nv-sel { position: absolute; z-index: 0; left: 0; top: 0; pointer-events: none; transition: transform 220ms var(--e-std), width 280ms var(--e-std), height 220ms var(--e-std); }
+.nv-side.is-resizing .nv-sel { visibility: hidden; transition: none; } /* while the sidebar changes width, the chosen item paints its own fill, so nothing can trail behind it */
+.nv-side.is-resizing .nv-item.is-sel { transition: color var(--t-fb) ease-out, scale var(--t-fb) ease-out; }
 .nv-tabs { position: relative; display: inline-flex; align-items: stretch; isolation: isolate; }
 .nv-tip { position: absolute; z-index: 5; left: calc(100% + 8px); translate: 0 -50%; padding: 6px 10px; white-space: nowrap; pointer-events: none; animation: nv-tip-in var(--t-fb) ease-out; }
 @keyframes nv-tip-in { from { opacity: 0; translate: -4px -50%; } }
@@ -155,6 +157,7 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .mf-side .nv-item:not(.is-sel):active, .mf-side .nv-item.st-press:not(.is-sel), .mf-tabs .nv-item:not(.is-sel):active, .mf-tabs .nv-item.st-press:not(.is-sel) { background: #2c2c2b; }
 .mf-side .nv-item.is-sel, .mf-tabs .nv-item.is-sel { color: #111; }
 .mf-side .nv-sel, .mf-tabs .nv-sel { border-radius: 12px; background: #f4f4f2; }
+.mf-side.is-resizing .nv-item.is-sel { background: #f4f4f2; }
 .st-sel.nv-item { background: #f4f4f2; } /* frozen samples draw the slab in place */
 .mf-side .nv-item:focus-visible, .mf-tabs .nv-item:focus-visible, .mf-side .nv-toggle:focus-visible { outline: 2px solid #f4f4f2; outline-offset: 2px; }
 /* the slot */
@@ -199,6 +202,7 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .ix-side .nv-item:not(.is-sel):hover::after, .ix-side .nv-item.st-hover:not(.is-sel)::after, .ix-tabs .nv-item:not(.is-sel):hover::after, .ix-tabs .nv-item.st-hover:not(.is-sel)::after { transform: none; }
 .ix-side .nv-item.is-sel, .ix-tabs .nv-item.is-sel { color: #1a1815; }
 .ix-side .nv-sel, .ix-tabs .nv-sel { background: #e6e1d7; transition: transform 260ms var(--e-std), width 280ms var(--e-std), height 260ms var(--e-std); }
+.ix-side.is-resizing .nv-item.is-sel { background: #e6e1d7; }
 .ix-side .st-sel.nv-item, .ix-tabs .st-sel.nv-item { background: #e6e1d7; }
 .ix-side .nv-item:focus-visible, .ix-tabs .nv-item:focus-visible, .ix-side .nv-toggle:focus-visible { outline: 2px solid #e6e1d7; outline-offset: -2px; }
 .ix-side .nv-slot.is-text { font-size: 22px; line-height: 24px; }

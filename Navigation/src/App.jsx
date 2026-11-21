@@ -80,7 +80,16 @@ function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, s
   // sections fold away under their header (a disclosure control); the slab only shows while its item is visible
   const [shut, setShut] = useState([])
   const hidden = !collapsed && sections.some((sec) => shut.includes(sec.title) && sec.items.some((it) => it.id === value))
-  const sel = useMarker(list, hidden ? null : `[data-id="${value}"]`, [value, collapsed, shut.join()])
+  // while the width animates, the slab is pinned to its item (measured every frame, no transition of its own), so it never trails behind and leaves a gap
+  const [resizing, setResizing] = useState(false)
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    setResizing(true)
+    const t = setTimeout(() => setResizing(false), 1200) // a fallback; normally the width transition's end hands the fill back
+    return () => clearTimeout(t)
+  }, [collapsed])
+  const sel = useMarker(list, hidden ? null : `[data-id="${value}"]`, [value, collapsed, shut.join(), resizing])
   const all = sections.flatMap((s) => s.items)
   // forgiving keys: arrows or j / k, Home / End, and typing the start of a name jumps to it
   const typed = useRef({ text: '', t: 0 })
@@ -105,7 +114,8 @@ function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, s
   const hide = () => { clearTimeout(linger.current); linger.current = setTimeout(() => setHot(null), 160) }
   useEffect(() => () => clearTimeout(linger.current), [])
   return (
-    <nav className={`nv-side ${sys}-side ${collapsed ? 'is-col' : ''} ${className}`} aria-label={label}>
+    <nav className={`nv-side ${sys}-side ${collapsed ? 'is-col' : ''} ${resizing ? 'is-resizing' : ''} ${className}`} aria-label={label}
+      onTransitionEnd={(e) => { if (e.target === e.currentTarget && e.propertyName === 'width') setResizing(false) }}>
       <div className="nv-top">
         <span className="nv-title">{title}</span>
         <button type="button" className="nv-toggle" aria-expanded={!collapsed} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={onToggle} disabled={still}>
