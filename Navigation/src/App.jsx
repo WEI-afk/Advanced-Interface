@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 /* ================= the navigation system =================
    Two parts that share one item: a vertical sidebar (expanded or collapsed to a rail) and a horizontal tab bar.
@@ -73,6 +73,24 @@ function Item({ it, sel, onPick, className = '', role, ...rest }) {
 }
 
 // sidebar: category headers and items; collapses to a rail of icons, where a tooltip names the item you point at
+// Playful: the slab moves like an inchworm. Its leading edge reaches the new item first, then the back catches up with a spring
+const Play = createContext(false)
+function Slab({ sel }) {
+  const play = useContext(Play)
+  const el = useRef(null)
+  const prev = useRef(null)
+  useLayoutEffect(() => {
+    const p = prev.current
+    prev.current = sel
+    if (!play || !p || !el.current || (p.x === sel.x && p.y === sel.y) || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const box = (b) => ({ transform: `translate(${b.x}px, ${b.y}px)`, width: `${b.w}px`, height: `${b.h}px` })
+    const u = { x: Math.min(p.x, sel.x), y: Math.min(p.y, sel.y) }
+    u.w = Math.max(p.x + p.w, sel.x + sel.w) - u.x; u.h = Math.max(p.y + p.h, sel.y + sel.h) - u.y
+    el.current.animate([{ ...box(p), easing: 'cubic-bezier(.3, 0, .2, 1)' }, { ...box(u), offset: .4, easing: 'cubic-bezier(.3, 1.5, .5, 1)' }, box(sel)], { duration: 460 })
+  }, [sel?.x, sel?.y, sel?.w, sel?.h]) // eslint-disable-line react-hooks/exhaustive-deps
+  return <i ref={el} className="nv-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />
+}
+
 function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, still, label, maxH, className = '' }) {
   const list = useRef(null)
   const [hot, setHot] = useState(null)
@@ -112,7 +130,7 @@ function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, s
         </button>
       </div>
       <div className={`nv-list ${maxH ? 'is-scroll' : ''}`} ref={list} style={maxH ? { maxHeight: maxH } : undefined} onKeyDown={keys} onPointerLeave={hide}>
-        {sel && <i className="nv-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
+        {sel && <Slab sel={sel} />}
         {sections.map((sec) => (
           <div key={sec.title} className="nv-sec" role="group" aria-label={sec.title}>
             <button type="button" className="nv-head" aria-expanded={!shut.includes(sec.title)} disabled={still || collapsed} tabIndex={collapsed ? -1 : undefined}
@@ -121,8 +139,8 @@ function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, s
             </button>
             <div className={`nv-items ${shut.includes(sec.title) && !collapsed ? 'is-shut' : ''}`}><div className="nv-items-in">
             {!sec.items.length && <p className="nv-empty">Nothing here yet</p>}
-            {sec.items.map((it) => (
-              <Item key={it.id} it={it} sel={it.id === value} onPick={onChange} aria-label={collapsed ? it.label : undefined}
+            {sec.items.map((it, n) => (
+              <Item key={it.id} it={it} style={{ '--i': n }} sel={it.id === value} onPick={onChange} aria-label={collapsed ? it.label : undefined}
                 onPointerEnter={(e) => show({ id: it.id, y: e.currentTarget.offsetTop + e.currentTarget.offsetHeight / 2 })}
                 onFocus={(e) => show({ id: it.id, y: e.currentTarget.offsetTop + e.currentTarget.offsetHeight / 2 })} onBlur={hide} />
             ))}
@@ -159,7 +177,7 @@ function TabBar({ sys, items, value, onChange, label }) {
   }
   return (
     <nav className={`nv-tabs ${sys}-tabs`} ref={bar} aria-label={label} onKeyDown={keys}>
-      {sel && <i className="nv-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
+      {sel && <Slab sel={sel} />}
       {items.map((it) => <Item key={it.id} it={it} sel={it.id === value} onPick={onChange} tabIndex={it.id === value ? 0 : -1} />)}
     </nav>
   )
@@ -352,6 +370,23 @@ const SETS = [
       ['Laws of UX', [['Fitts', 'targets at least 40 · tabs fill equal segments of the bar · the rail\'s name tag lingers 160 ms (coyote time) so moving between icons never flickers'], ['Hick', 'sections fold away · the phone shows three tabs and More, the rest one tap further'], ['Miller', 'no more than 5 items to a section, 3 to 5 tabs'], ['Doherty', 'every response starts at once and ends within 320 ms'], ['Postel', 'arrows or j / k, Home / End, type a name to jump to it, 1–5 picks a tab']]],
       ['Responsive', [['Desktop', 'the full sidebar stays open'], ['Tablet', 'a rail; its button lays the full sidebar over the page with a scrim, picking closes it'], ['Phone', 'a bottom tab bar of the first three destinations and More; More opens the sidebar as a drawer'], ['Selection', 'one destination stays chosen across all three']]],
       ['Edge cases', [['Long name', 'truncates with an ellipsis, full name on hover'], ['Count over 99', 'the badge reads 99+, hover gives the real number'], ['Zero', 'no badge'], ['Unavailable', '38% and skipped by the arrow keys'], ['Empty section', 'says "Nothing here yet"'], ['Long list', 'scrolls, the section header stays on top'], ['Tabs', '3 to 5, never more']]],
+    ],
+  },
+  {
+    id: 'pl', tone: 'Playful, Wobble',
+    about: 'The Matter-of-fact navigation with no new colour: all the play is in the motion. The slab stretches like an inchworm, icons act out what they do, presses squish like jelly.',
+    Body: (p) => <Play.Provider value={true}><NavSet sys="mf" scenes={MF} {...p} /></Play.Provider>,
+    configs: configsFor('mf', MF[0], 'Workspace'),
+    states: statesFor('mf', MF[0]),
+    spec: [
+      ['Character', [['Colour', 'none added: the Matter-of-fact palette, black and one light slab'], ['Play', 'only in motion: stretch, bounce, wiggle, squish'], ['Rule', 'every move is short and lands still; nothing loops']]],
+      ['Selection', [['Inchworm', 'the slab stretches over both items, then lets go of the old one · 460 ms'], ['Curve', 'reach cubic-bezier(.3, 0, .2, 1), release cubic-bezier(.3, 1.5, .5, 1)'], ['Chosen icon', 'pops 1 → 1.25 → 1, 420 ms']]],
+      ['Icons on hover', [['Inbox', 'bounces'], ['Drafts', 'the pen writes, a wiggle'], ['Sent', 'takes off and comes back'], ['Archive', 'the box drops into place'], ['Tag', 'swings from its hole'], ['Receipt', 'prints out downward'], ['Tabs', 'the chosen icon hops']]],
+      ['Press', [['Squish', 'scale .96 wide × 1.04 tall, 120 ms'], ['Release', 'springs back, cubic-bezier(.3, 1.6, .5, 1), 260 ms']]],
+      ['Collapse', [['Labels', 'squash sideways and fade, 25 ms apart'], ['Toggle', 'the panel icon flips'], ['Rail tag', 'springs open from the icon'], ['Badge dot', 'pops in']]],
+      ['Sections', [['Chevron', 'springs to its new angle'], ['Reopen', 'items drop back in, 30 ms apart']]],
+      ['Badges', [['Hover', 'a jiggle, 400 ms']]],
+      ['Accessibility', [['Reduced motion', 'every move is removed; states still change instantly'], ['Never blocks', 'the next click works while anything moves']]],
     ],
   },
   {
