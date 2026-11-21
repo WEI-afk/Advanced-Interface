@@ -214,6 +214,54 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
 .ix-tabs .nv-item { --ih: 64px; --ic: 24px; --gap: 12px; padding: 0 16px; }
 .ix-tabs .nv-item::after { bottom: 12px; left: 16px; right: 16px; }
 
+/* ================= edge cases ================= */
+.nv-item:disabled { opacity: .38; cursor: not-allowed; }
+.nv-empty { margin: 0; padding: 6px var(--ip) 10px; font: 400 13px/18px Inter, sans-serif; color: #6f6f6b; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.nv-list.is-scroll { overflow-y: auto; scrollbar-width: thin; }
+.nv-list.is-scroll .nv-head { position: sticky; top: 0; z-index: 2; }
+.mf-side .nv-list.is-scroll .nv-head { background: #141413; }
+.ix-side .nv-list.is-scroll .nv-head { background: #050505; margin-top: 0; }
+.nv-frozen .nv-item { width: 240px; }
+.mf-side.nv-frozen { padding: 6px; }
+
+/* ================= responsive: one navigation in three window sizes ================= */
+.nv-resp { width: 100%; }
+.nv-win-box { position: relative; width: 100%; }
+.nv-win { container: app / inline-size; position: absolute; left: 0; top: 0; display: flex; overflow: hidden; transform-origin: 0 0; border-radius: 24px; background: #0b0b0a; box-shadow: inset 0 0 0 1px #2a2a28; }
+.nv-win .nv-side { height: 100%; flex: none; }
+.nv-win .nv-list { overflow-y: auto; scrollbar-width: none; }
+.nv-win .mf-side { border-radius: 0; box-shadow: inset -1px 0 0 rgba(255,255,255,.06); }
+.nv-win .ix-side { padding-top: 8px; }
+.nv-page { flex: 1 1 auto; min-width: 0; padding: 32px; color: #ededeb; }
+.nv-page h4 { margin: 0 0 6px; font: 600 28px/34px Inter, sans-serif; letter-spacing: -.02em; }
+.nv-page p { margin: 0; font: 400 15px/22px Inter, sans-serif; color: #8e8e8a; }
+.ix-win .nv-page h4 { font: 800 56px/56px "Big Shoulders Display", Impact, sans-serif; text-transform: uppercase; letter-spacing: 0; }
+/* tablet: a rail; opened, the full sidebar lies over the page with a scrim */
+.nv-win.is-tablet .nv-page { padding-left: calc(var(--rail, 72px) + 32px); }
+.nv-win.is-tablet.ix-win { --rail: 88px; }
+.nv-side.is-overlay { position: absolute; left: 0; top: 0; bottom: 0; z-index: 4; }
+.nv-side.is-overlay.is-open { box-shadow: 0 0 0 1px rgba(255,255,255,.06), 24px 0 48px rgba(0,0,0,.6); }
+.ix-side.is-overlay { background: #050505; }
+.nv-scrim { position: absolute; inset: 0; z-index: 3; background: rgba(0,0,0,.55); animation: nv-fade 200ms ease-out; }
+@keyframes nv-fade { from { opacity: 0; } }
+/* phone: a menu button, a tab bar at the bottom, and the sidebar as a drawer */
+.nv-win.is-phone { flex-direction: column; }
+.nv-win.is-phone .nv-page { padding: 72px 20px 20px; }
+.nv-menu { position: absolute; left: 12px; top: 12px; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 12px; background: none; color: #ededeb; cursor: pointer; }
+.nv-menu svg { width: 22px; height: 22px; }
+.nv-menu:hover { background: #1e1e1d; }
+.nv-win.is-phone .nv-tabs { position: absolute; left: 10px; right: 10px; bottom: 10px; width: auto; }
+.nv-win.is-phone .ix-tabs { left: 0; right: 0; bottom: 0; background: #050505; }
+.nv-drawer { position: absolute; left: 0; top: 0; bottom: 0; z-index: 4; display: flex; animation: nv-drawer-in 260ms var(--e-std); }
+.nv-drawer .nv-side { height: 100%; --w: 300px; box-shadow: 24px 0 48px rgba(0,0,0,.6); }
+.nv-drawer .ix-side { background: #050505; }
+@keyframes nv-drawer-in { from { translate: -100% 0; } }
+@container app (max-width: 640px) {
+  .ix-tabs .nv-item { flex-direction: column; justify-content: center; gap: 2px; padding: 0 8px; font-size: 16px; line-height: 20px; }
+  .ix-tabs .nv-item::after { left: 10px; right: 10px; bottom: 6px; }
+  .ix-tabs .nv-slot { position: absolute; top: 6px; left: calc(50% + 8px); }
+}
+
 /* phones */
 @container set (max-width: 640px) {
   .mf-tabs .nv-item { min-width: 0; padding: 0 10px; }

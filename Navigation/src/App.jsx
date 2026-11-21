@@ -23,6 +23,7 @@ const IC = {
   help: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M8 8a2 2 0 1 1 2.500 1.900c-.400.200-.500.500-.500 1.100', 'M10 13.500v.010'],
   stairs: ['M3 16.500h4v-4h4v-4h4v-4h2'], ticket: ['M3 6h14v2.500a1.500 1.500 0 0 0 0 3V14H3v-2.500a1.500 1.500 0 0 0 0-3z', 'M12 6v8'], audio: ['M4 12v-1a6 6 0 0 1 12 0v1', 'M4 12h3v4.500H4z', 'M13 12h3v4.500h-3z'],
   shop: ['M4 7h12l-1 9.500H5z', 'M7.500 7a2.500 2.500 0 0 1 5 0'], box: ['M3.500 6.500L10 3.500l6.500 3v7L10 16.500l-6.500-3z', 'M3.500 6.500L10 9.500l6.500-3', 'M10 9.500v7'], book: ['M4 4.500h5a2 2 0 0 1 2 2V16a1.500 1.500 0 0 0-1.500-1.500H4z', 'M16 4.500h-5', 'M16 4.500v10h-4.500'], clock: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M10 6v4l2.500 2'],
+  phone: ['M6.500 2.500h7v15h-7z', 'M9 15h2'], tablet: ['M4 3h12v14H4z', 'M9 14.500h2'], desktop: ['M2.500 4h15v9.500h-15z', 'M7 17h6', 'M10 13.500V17'], menu: ['M3.500 5.500h13', 'M3.500 10h13', 'M3.500 14.500h13'],
   cal: ['M3.500 5h13v11.500h-13z', 'M3.500 8.500h13', 'M7 3v3.500', 'M13 3v3.500'], grid: ['M3.500 3.500h5v5h-5z', 'M11.500 3.500h5v5h-5z', 'M3.500 11.500h5v5h-5z', 'M11.500 11.500h5v5h-5z'],
 }
 
@@ -63,7 +64,7 @@ function Slot({ slot }) {
 function Item({ it, sel, onPick, className = '', role, ...rest }) {
   return (
     <button type="button" data-id={it.id} className={`nv-item ${sel ? 'is-sel' : ''} ${it.slot ? `has-${it.slot.type}` : ''} ${className}`}
-      aria-current={sel ? 'page' : undefined} onClick={() => onPick?.(it.id)} {...rest}>
+      aria-current={sel ? 'page' : undefined} disabled={it.off} title={it.long ? it.label : undefined} onClick={() => onPick?.(it.id)} {...rest}>
       <span className="nv-ic">{li(it.icon)}</span>
       <span className="nv-label">{it.label}</span>
       <Slot slot={it.slot} />
@@ -72,7 +73,7 @@ function Item({ it, sel, onPick, className = '', role, ...rest }) {
 }
 
 // sidebar: category headers and items; collapses to a rail of icons, where a tooltip names the item you point at
-function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, still, label }) {
+function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, still, label, maxH, className = '' }) {
   const list = useRef(null)
   const [hot, setHot] = useState(null)
   // sections fold away under their header (a disclosure control); the slab only shows while its item is visible
@@ -84,19 +85,19 @@ function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, s
     const d = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0
     if (!d) return
     e.preventDefault()
-    const btns = [...list.current.querySelectorAll('.nv-item')]
+    const btns = [...list.current.querySelectorAll('.nv-item:not(:disabled)')]
     const i = btns.indexOf(document.activeElement)
     btns[(i + d + btns.length) % btns.length]?.focus()
   }
   return (
-    <nav className={`nv-side ${sys}-side ${collapsed ? 'is-col' : ''}`} aria-label={label}>
+    <nav className={`nv-side ${sys}-side ${collapsed ? 'is-col' : ''} ${className}`} aria-label={label}>
       <div className="nv-top">
         <span className="nv-title">{title}</span>
         <button type="button" className="nv-toggle" aria-expanded={!collapsed} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={onToggle} disabled={still}>
           {li(IC.rail)}
         </button>
       </div>
-      <div className="nv-list" ref={list} onKeyDown={keys} onPointerLeave={() => setHot(null)}>
+      <div className={`nv-list ${maxH ? 'is-scroll' : ''}`} ref={list} style={maxH ? { maxHeight: maxH } : undefined} onKeyDown={keys} onPointerLeave={() => setHot(null)}>
         {sel && <i className="nv-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
         {sections.map((sec) => (
           <div key={sec.title} className="nv-sec" role="group" aria-label={sec.title}>
@@ -105,6 +106,7 @@ function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, s
               <span>{sec.title}</span><span className="nv-disc">{li(['M6 8l4 4 4-4'])}</span>
             </button>
             <div className={`nv-items ${shut.includes(sec.title) && !collapsed ? 'is-shut' : ''}`}><div className="nv-items-in">
+            {!sec.items.length && <p className="nv-empty">Nothing here yet</p>}
             {sec.items.map((it) => (
               <Item key={it.id} it={it} sel={it.id === value} onPick={onChange} aria-label={collapsed ? it.label : undefined}
                 onPointerEnter={(e) => setHot({ id: it.id, y: e.currentTarget.offsetTop + e.currentTarget.offsetHeight / 2 })}
@@ -160,32 +162,6 @@ const MF = [
       ] },
     ],
     tabs: [{ id: 'home', icon: IC.home, label: 'Home' }, { id: 'search', icon: IC.search, label: 'Search' }, { id: 'inbox', icon: IC.inbox, label: 'Inbox', slot: { type: 'badge', v: '12' } }, { id: 'you', icon: IC.user, label: 'You' }] },
-  { name: 'Music', icon: IC.note, title: 'Library',
-    sections: [
-      { title: 'Library', items: [
-        { id: 'songs', icon: IC.note, label: 'Songs', slot: { type: 'text', v: '1,204', more: '71 hours' }, note: '1,204 songs · 71 hours' },
-        { id: 'albums', icon: IC.album, label: 'Albums', slot: { type: 'text', v: '86', more: '86 albums' }, note: '86 albums, 12 added this month' },
-        { id: 'lists', icon: IC.list, label: 'Playlists', slot: { type: 'badge', v: '2', more: '2 updated' }, note: '2 playlists updated since you last listened' },
-      ] },
-      { title: 'On this device', items: [
-        { id: 'down', icon: IC.down, label: 'Downloads', slot: { type: 'text', v: '3.2 GB', more: '3.2 of 64 GB' }, note: 'Downloads · 3.2 GB of 64 GB used' },
-        { id: 'radio', icon: IC.radio, label: 'Radio', slot: { type: 'icon', v: IC.out, more: IC.out }, note: 'Radio · opens the live player' },
-      ] },
-    ],
-    tabs: [{ id: 'now', icon: IC.home, label: 'Listen' }, { id: 'browse', icon: IC.grid, label: 'Browse' }, { id: 'radio', icon: IC.radio, label: 'Radio' }, { id: 'lib', icon: IC.note, label: 'Library', slot: { type: 'badge', v: '2' } }] },
-  { name: 'Settings', icon: IC.user, title: 'Account',
-    sections: [
-      { title: 'General', items: [
-        { id: 'profile', icon: IC.user, label: 'Profile', note: 'Profile · name, photo, email' },
-        { id: 'alerts', icon: IC.bell, label: 'Notifications', slot: { type: 'badge', v: '4', more: '4 new' }, note: '4 notifications need a look' },
-        { id: 'privacy', icon: IC.lock, label: 'Privacy', slot: { type: 'text', v: 'On', more: '2FA on' }, note: 'Two-factor sign-in is on' },
-      ] },
-      { title: 'Billing', items: [
-        { id: 'plan', icon: IC.card, label: 'Plan', slot: { type: 'text', v: 'Pro', more: 'renews 1 Dec' }, note: 'Pro · renews 1 December' },
-        { id: 'invoices', icon: IC.receipt, label: 'Invoices', slot: { type: 'icon', v: IC.out, more: IC.out }, note: 'Invoices · opens the billing portal' },
-      ] },
-    ],
-    tabs: [{ id: 'over', icon: IC.home, label: 'Overview' }, { id: 'team', icon: IC.team, label: 'Team' }, { id: 'bill', icon: IC.card, label: 'Billing', slot: { type: 'badge', v: '1' } }, { id: 'help', icon: IC.help, label: 'Help' }] },
 ]
 const IX = [
   { name: 'Archive', icon: IC.grid, title: 'The Index',
@@ -201,57 +177,23 @@ const IX = [
       ] },
     ],
     tabs: [{ id: 'index', icon: IC.grid, label: 'Index' }, { id: 'map', icon: IC.map, label: 'Map' }, { id: 'saved', icon: IC.mark, label: 'Saved', slot: { type: 'badge', v: '3' } }, { id: 'visits', icon: IC.cal, label: 'Visits' }] },
-  { name: 'Museum', icon: IC.temple, title: 'The Hall',
-    sections: [
-      { title: 'Floors', items: [
-        { id: 'ground', icon: IC.stairs, label: 'Ground', slot: { type: 'text', v: '12' }, note: 'Ground floor · 12 rooms' },
-        { id: 'first', icon: IC.stairs, label: 'First', slot: { type: 'text', v: '9' }, note: 'First floor · 9 rooms' },
-        { id: 'roof', icon: IC.tower, label: 'Roof', slot: { type: 'badge', v: 'Open' }, note: 'Roof terrace · open until 18:00' },
-      ] },
-      { title: 'Tours', items: [
-        { id: 'guided', icon: IC.team, label: 'Guided', slot: { type: 'text', v: '11:00' }, note: 'Next guided tour at 11:00' },
-        { id: 'audio', icon: IC.audio, label: 'Audio', slot: { type: 'icon', v: IC.out }, note: 'Audio guide · opens the player' },
-      ] },
-    ],
-    tabs: [{ id: 'visit', icon: IC.temple, label: 'Visit' }, { id: 'hmap', icon: IC.map, label: 'Map' }, { id: 'tickets', icon: IC.ticket, label: 'Tickets', slot: { type: 'badge', v: '2' } }, { id: 'shop', icon: IC.shop, label: 'Shop' }] },
-  { name: 'Reading room', icon: IC.book, title: 'Reading Room',
-    sections: [
-      { title: 'Shelves', items: [
-        { id: 'drawings', icon: IC.book, label: 'Drawings', slot: { type: 'text', v: '2,410' }, note: '2,410 drawings on the shelves' },
-        { id: 'models', icon: IC.box, label: 'Models', slot: { type: 'text', v: '312' }, note: '312 models, by appointment' },
-        { id: 'letters', icon: IC.draft, label: 'Letters', slot: { type: 'badge', v: 'New' }, note: 'Letters · newly catalogued' },
-      ] },
-      { title: 'Requests', items: [
-        { id: 'pending', icon: IC.clock, label: 'Pending', slot: { type: 'text', v: '3' }, note: '3 requests waiting for the desk' },
-        { id: 'ready', icon: IC.box, label: 'Ready', slot: { type: 'icon', v: IC.out }, note: 'Ready · collect at desk 2' },
-      ] },
-    ],
-    tabs: [{ id: 'rsearch', icon: IC.search, label: 'Search' }, { id: 'shelves', icon: IC.book, label: 'Shelves' }, { id: 'reqs', icon: IC.clock, label: 'Holds', slot: { type: 'badge', v: '3' } }, { id: 'desk', icon: IC.user, label: 'Desk' }] },
 ]
 
 function NavSet({ sys, scenes, auto }) {
-  const [si, setSi] = useState(0)
-  const data = scenes[si]
+  const data = scenes[0]
   const [side, setSide] = useState(data.sections[0].items[0].id)
   const [tab, setTab] = useState(data.tabs[0].id)
   const [col, setCol] = useState(false)
   const all = data.sections.flatMap((s) => s.items)
-  const pickScene = (id) => {
-    const i = scenes.findIndex((sc) => sc.name === id)
-    setSi(i); setSide(scenes[i].sections[0].items[0].id); setTab(scenes[i].tabs[0].id)
-  }
 
   /* wall: it moves by itself */
-  const latest = useRef(); latest.current = { all, data }
   useEffect(() => {
     if (!auto) return
     let k = 0
     const t = setInterval(() => {
       k++
-      const L = latest.current
-      if (k % 9 === 0) pickScene(scenes[(k / 9) % scenes.length].name)
-      else if (k % 5 === 0) setCol((v) => !v)
-      else { setSide(L.all[k % L.all.length].id); setTab(L.data.tabs[k % L.data.tabs.length].id) }
+      if (k % 5 === 0) setCol((v) => !v)
+      else { setSide(all[k % all.length].id); setTab(data.tabs[k % data.tabs.length].id) }
     }, 1100)
     return () => clearInterval(t)
   }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -260,20 +202,59 @@ function NavSet({ sys, scenes, auto }) {
     <div className="ex nv-ex">
       <div className="nv-part">
         <h3 className="group-k">Sidebar · {col ? 'collapsed' : 'expanded'}</h3>
-        <Sidebar key={si} sys={sys} title={data.title} sections={data.sections} value={side} onChange={setSide} collapsed={col} onToggle={() => setCol((v) => !v)} label={`${data.title} sidebar`} />
+        <Sidebar sys={sys} title={data.title} sections={data.sections} value={side} onChange={setSide} collapsed={col} onToggle={() => setCol((v) => !v)} label={`${data.title} sidebar`} />
         {!auto && <p className="tb-status" aria-live="polite">{all.find((it) => it.id === side)?.note}</p>}
       </div>
       <div className="nv-part">
         <h3 className="group-k">Tab bar</h3>
-        <TabBar key={si} sys={sys} items={data.tabs} value={tab} onChange={setTab} label={`${data.title} tabs`} />
+        <TabBar sys={sys} items={data.tabs} value={tab} onChange={setTab} label={`${data.title} tabs`} />
         {!auto && <p className="tb-status" aria-live="polite">{data.tabs.find((t) => t.id === tab)?.label}</p>}
       </div>
-      {!auto && (
-        <div className="nv-part">
-          <h3 className="group-k">Scenario · the same parts somewhere else</h3>
-          <TabBar sys={sys} items={scenes.map((sc) => ({ id: sc.name, icon: sc.icon, label: sc.name }))} value={data.name} onChange={pickScene} label="Scenario" />
+      {!auto && <Responsive sys={sys} data={data} />}
+    </div>
+  )
+}
+
+/* responsive: one navigation, three window sizes. Desktop keeps the full sidebar; tablet folds it to a rail that opens over the page;
+   phone moves to a tab bar of the first three destinations plus More, which opens the whole sidebar as a drawer. One selection throughout. */
+const WINDOWS = [{ id: 'phone', icon: IC.phone, label: 'Phone', w: 390, h: 660 }, { id: 'tablet', icon: IC.tablet, label: 'Tablet', w: 820, h: 600 }, { id: 'desktop', icon: IC.desktop, label: 'Desktop', w: 1200, h: 600 }]
+function Responsive({ sys, data }) {
+  const [win, setWin] = useState('tablet')
+  const W = WINDOWS.find((w) => w.id === win)
+  const box = useRef(null)
+  const [avail, setAvail] = useState(760)
+  useEffect(() => {
+    const ro = new ResizeObserver(([e]) => setAvail(e.contentRect.width))
+    ro.observe(box.current)
+    return () => ro.disconnect()
+  }, [])
+  const k = Math.min(1, avail / W.w)
+  const all = data.sections.flatMap((s) => s.items)
+  const [value, setValue] = useState(all[0].id)
+  const [open, setOpen] = useState(false)
+  const pick = (id) => { setValue(id); setOpen(false) }
+  const tabs = [...all.slice(0, 3).map(({ id, icon, label, slot }) => ({ id, icon, label, slot: slot?.type === 'badge' ? { type: 'badge', v: slot.v } : undefined })), { id: 'more', icon: IC.menu, label: 'More' }]
+  const cur = all.find((it) => it.id === value)
+  const side = (extra) => <Sidebar sys={sys} title={data.title} sections={data.sections} value={value} onChange={pick} label={`${data.title} sidebar`} {...extra} />
+  return (
+    <div className="nv-part nv-resp">
+      <h3 className="group-k">Responsive · {W.label}, {W.w} wide</h3>
+      <div ref={box} className="nv-win-box" style={{ height: W.h * k }}>
+        <div className={`nv-win is-${win} ${sys}-win`} style={{ width: W.w, height: W.h, transform: `scale(${k})` }}>
+          {win === 'desktop' && side({ still: true })}
+          {win === 'tablet' && side({ collapsed: !open, onToggle: () => setOpen((v) => !v), className: `is-overlay ${open ? 'is-open' : ''}` })}
+          {win === 'tablet' && open && <div className="nv-scrim" onClick={() => setOpen(false)} />}
+          <div className="nv-page">
+            {win === 'phone' && <button type="button" className="nv-menu" aria-label="Open navigation" onClick={() => setOpen(true)}>{li(IC.menu)}</button>}
+            <h4>{cur.label}</h4>
+            <p>{cur.note}</p>
+          </div>
+          {win === 'phone' && <TabBar sys={sys} items={tabs} value={tabs.some((t) => t.id === value) ? value : 'more'} onChange={(id) => (id === 'more' ? setOpen(true) : pick(id))} label="Phone tabs" />}
+          {win === 'phone' && open && <><div className="nv-scrim" onClick={() => setOpen(false)} /><div className="nv-drawer">{side({ onToggle: () => setOpen(false) })}</div></>}
         </div>
-      )}
+      </div>
+      <TabBar sys={sys} items={WINDOWS} value={win} onChange={(id) => { setWin(id); setOpen(false) }} label="Window size" />
+      <p className="tb-status">{{ phone: 'Phone: a tab bar of the first three destinations and More, which opens the sidebar as a drawer', tablet: 'Tablet: a rail; its button opens the full sidebar over the page, and picking closes it', desktop: 'Desktop: the full sidebar stays open' }[win]}</p>
     </div>
   )
 }
@@ -317,12 +298,24 @@ const configsFor = (sys, data, title) => [
     ['None', <SideItem sys={sys} it={{ ...data.sections[0].items[0], slot: null }} />],
   ] },
   { title: 'Tab bar', items: [['Icon and text, the badge sits on the icon', <TabBar sys={sys} items={data.tabs} value={data.tabs[0].id} />]] },
+  { title: 'Edge cases', row: true, items: [
+    ['Long name: it truncates, the full name shows on hover', <SideItem sys={sys} it={{ id: 'long', icon: IC.tag, label: 'Quarterly client reports and invoices', long: true, slot: { type: 'text', v: '14' } }} />],
+    ['Huge count: the badge stops at 99+', <SideItem sys={sys} it={{ ...data.sections[0].items[0], slot: { type: 'badge', v: '99+', more: '1,284 unread' } }} />],
+    ['Nothing to count: no badge at all', <SideItem sys={sys} it={{ ...data.sections[0].items[0], slot: null }} />],
+    ['Unavailable: dimmed, and the arrow keys skip it', <SideItem sys={sys} it={{ ...data.sections[0].items[1], off: true }} />],
+    ['Empty section: it says so', <Sidebar sys={sys} title={title} sections={[{ title: data.sections[1].title, items: [] }]} value="" still />],
+    ['Long list: it scrolls, the header stays', <Sidebar sys={sys} title={title} sections={[{ title: 'Projects', items: [{ id: 'm0', icon: IC.tag, label: 'Project A', slot: { type: 'text', v: '1' } }, { id: 'm1', icon: IC.tag, label: 'Project B', slot: { type: 'text', v: '4' } }, { id: 'm2', icon: IC.tag, label: 'Project C', slot: { type: 'text', v: '7' } }, { id: 'm3', icon: IC.tag, label: 'Project D', slot: { type: 'text', v: '10' } }, { id: 'm4', icon: IC.tag, label: 'Project E', slot: { type: 'text', v: '13' } }, { id: 'm5', icon: IC.tag, label: 'Project F', slot: { type: 'text', v: '16' } }, { id: 'm6', icon: IC.tag, label: 'Project G', slot: { type: 'text', v: '19' } }, { id: 'm7', icon: IC.tag, label: 'Project H', slot: { type: 'text', v: '22' } }, { id: 'm8', icon: IC.tag, label: 'Project I', slot: { type: 'text', v: '25' } }] }]} value="m0" maxH={300} still />],
+  ] },
+  { title: 'Tab bar · the fewest and the most', items: [
+    ['Three tabs', <TabBar sys={sys} items={data.tabs.slice(0, 3)} value={data.tabs[0].id} />],
+    ['Five tabs, the most a tab bar should hold', <TabBar sys={sys} items={[...data.tabs, { id: 'more5', icon: IC.menu, label: 'More' }]} value={data.tabs[0].id} />],
+  ] },
 ]
 
 const SETS = [
   {
     id: 'mf', tone: 'Matter-of-fact, Heads Up',
-    about: 'Navigation that tells you what is there before you go, shown in mail, music and settings: point at an item and its slot says a little more ("12" becomes "12 unread").',
+    about: 'Navigation for a mail workspace that tells you what is there before you go: point at an item and its slot says a little more ("12" becomes "12 unread").',
     Body: (p) => <NavSet sys="mf" scenes={MF} {...p} />,
     configs: configsFor('mf', MF[0], 'Workspace'),
     states: statesFor('mf', MF[0]),
@@ -337,11 +330,13 @@ const SETS = [
       ['States', [['Hover', 'fill #232322 · the slot says more'], ['Pressed', '.98 · fill #2C2C2B'], ['Selected', 'one light slab slides to it'], ['Focus', 'outline 2, offset 2']]],
       ['Motion', [['Selection', '220 ms cubic-bezier(0.2, 0, 0, 1), one slab moves and resizes'], ['Collapse', 'width 280 ms, same curve · labels fade 150 ms'], ['Slot', 'faces cross 150 ms'], ['Press', '120 ms ease-out']]],
       ['Input', [['Sidebar', '↑ ↓ move focus · Enter opens'], ['Tab bar', '← → move the tab'], ['Rail', 'pointing at an icon shows its name and fact']]],
+      ['Responsive', [['Desktop', 'the full sidebar stays open'], ['Tablet', 'a rail; its button lays the full sidebar over the page with a scrim, picking closes it'], ['Phone', 'a bottom tab bar of the first three destinations and More; More opens the sidebar as a drawer'], ['Selection', 'one destination stays chosen across all three']]],
+      ['Edge cases', [['Long name', 'truncates with an ellipsis, full name on hover'], ['Count over 99', 'the badge reads 99+, hover gives the real number'], ['Zero', 'no badge'], ['Unavailable', '38% and skipped by the arrow keys'], ['Empty section', 'says "Nothing here yet"'], ['Long list', 'scrolls, the section header stays on top'], ['Tabs', '3 to 5, never more']]],
     ],
   },
   {
     id: 'ix', tone: 'Monumental, The Index',
-    about: 'Navigation for an archive, a museum and a reading room, cut like carved lettering: heavy capitals, 3 rules, one bone block for where you are, and a rule that wipes in under the item you point at.',
+    about: 'Navigation for an archive of structures, cut like carved lettering: heavy capitals, 3 rules, one bone block for where you are, and a rule that wipes in under the item you point at.',
     Body: (p) => <NavSet sys="ix" scenes={IX} {...p} />,
     configs: configsFor('ix', IX[0], 'The Index'),
     states: statesFor('ix', IX[0]),
@@ -356,6 +351,8 @@ const SETS = [
       ['States', [['Hover', 'letters turn bone · a 3 rule wipes in under the item from the left'], ['Pressed', '.98 · the hover holds, no new colour'], ['Selected', 'one bone block slides under it, letters turn ink']]],
       ['Motion', [['Selection', '260 ms cubic-bezier(0.2, 0, 0, 1)'], ['Wipe', '320 ms cubic-bezier(.2, .9, .2, 1)'], ['Collapse', 'width 280 ms · labels fade 150 ms']]],
       ['Input', [['Sidebar', '↑ ↓ move focus · Enter opens'], ['Tab bar', '← → move the tab'], ['Rail', 'pointing at an icon shows its name']]],
+      ['Responsive', [['Desktop', 'the full sidebar stays open'], ['Tablet', 'a rail; its button lays the full sidebar over the page with a scrim, picking closes it'], ['Phone', 'a bottom tab bar of the first three destinations and More; More opens the sidebar as a drawer'], ['Selection', 'one destination stays chosen across all three']]],
+      ['Edge cases', [['Long name', 'truncates with an ellipsis, full name on hover'], ['Count over 99', 'the badge reads 99+, hover gives the real number'], ['Zero', 'no badge'], ['Unavailable', '38% and skipped by the arrow keys'], ['Empty section', 'says "Nothing here yet"'], ['Long list', 'scrolls, the section header stays on top'], ['Tabs', '3 to 5, never more']]],
     ],
   },
 ]
@@ -423,7 +420,7 @@ function SetPage({ set }) {
       </aside>
       <main className="content">
         <section className="sec" id="example">
-          {head(1, 'Example', 'Pick items, collapse the sidebar with its top button, move tabs with the arrow keys, and switch the scenario below.')}
+          {head(1, 'Example', 'Pick items, collapse the sidebar with its top button, move tabs with the arrow keys, and switch the window size below.')}
           <set.Body />
         </section>
         <section className="sec" id="configurations">
