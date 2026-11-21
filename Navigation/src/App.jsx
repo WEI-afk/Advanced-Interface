@@ -1,3 +1,4 @@
+import { Dial, ArcBar, ArcTab, DialItem, DialSet, DIAL } from './Dial.jsx'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 /* ================= the navigation system =================
@@ -376,6 +377,49 @@ const SETS = [
       ['Edge cases', [['Long name', 'truncates with an ellipsis, full name on hover'], ['Count over 99', 'the badge reads 99+, hover gives the real number'], ['Zero', 'no badge'], ['Unavailable', '38% and skipped by the arrow keys'], ['Empty section', 'says "Nothing here yet"'], ['Long list', 'scrolls, the section header stays on top'], ['Tabs', '3 to 5, never more']]],
     ],
   },
+  {
+    id: 'dial', tone: 'Futuristic, Dial',
+    note: 'Drag the knob round, scroll over the ring or the list, or use ← → and ↑ ↓. Press the knob without turning it to fold the dial.',
+    about: 'Navigation as an instrument: the categories ride a ring round a metal knob, the chosen one sits in a hatched window at three o\'clock, and its items fan out from that window like a wheel.',
+    Body: (p) => <DialSet {...p} />,
+    configs: [
+      { title: 'Dial', row: true, items: [
+        ['Open: the ring of categories, the window, the fanned list', <div className="dl-stage"><Dial still /></div>],
+        ['Folded: the knob only, the collapsed state', <div className="dl-stage is-folded"><Dial still folded /></div>],
+      ] },
+      { title: 'Item · the right slot', row: true, items: [
+        ['Badge', <div className="dl-frozen"><DialItem it={DIAL[0].items[0]} /></div>],
+        ['Icon', <div className="dl-frozen"><DialItem it={DIAL[0].items[2]} /></div>],
+        ['Text', <div className="dl-frozen"><DialItem it={DIAL[0].items[1]} /></div>],
+        ['None', <div className="dl-frozen"><DialItem it={DIAL[0].items[4]} /></div>],
+      ] },
+      { title: 'Arc bar', items: [['The horizontal version: tabs on a curve, the one under the notch is chosen', <div className="dl-stage is-arc"><ArcBar still value={2} /></div>]] },
+      { title: 'Edge cases', row: true, items: [
+        ['Long name: it truncates at 248', <div className="dl-frozen"><DialItem it={{ label: 'Quarterly client reports and invoices', icon: DIAL[0].icon, slot: { type: 'text', v: '14' } }} /></div>],
+        ['Huge count: the badge stops at 99+', <div className="dl-frozen"><DialItem it={{ ...DIAL[1].items[0], slot: { type: 'badge', v: '99+' } }} /></div>],
+        ['First and last: the list stops, it does not wrap', <div className="dl-stage"><Dial still cat={1} act={3} /></div>],
+      ] },
+    ],
+    states: (
+      <StateGrid cols={['Dial item', 'Arc tab']} rows={STATES.map(([k, c]) => [k, [
+        <div className="dl-frozen"><DialItem it={DIAL[1].items[0]} className={c} /></div>,
+        <div className="dl-frozen is-arc"><ArcTab c={DIAL[1]} sel={c.includes('is-sel')} className={c} /></div>,
+      ]])} />
+    ),
+    spec: [
+      ['Dial', [['Size', '680 × 460 · centre at 200, 230'], ['Ring', 'inner radius 94 · outer 162 · 7 segments, 51.4° each, 6 apart'], ['Window', 'fixed at 0° (three o\'clock) · 6 wider than a segment · 45° hatch, 6 pitch'], ['Line', 'window edge to the list, 1 · #6d6f78']]],
+      ['Knob', [['Size', '148 round'], ['Metal', 'radial gradient #f2f3f5 → #8b8e96 · conic ridges every 4°, turning with the ring'], ['Face', '96 round, #1b1c20 · menu icon 22']]],
+      ['Category', [['Icon', '22 × 22 · line 1.5 on the ring at radius 128'], ['Upright', 'counter-turns so it never tilts'], ['Chosen', '#ffffff, the others #8a8c94'], ['Header', 'the window and the line above the list: name · count, Geist Mono 11, caps']]],
+      ['List item', [['Size', '36 high · padding 0 × 12 · radius 10 · max 248 wide'], ['Gaps', 'icon to label 10 · label to slot 12'], ['Fan', 'radius 224 from the centre · 12° apart'], ['Depth', 'each step from the chosen one: −28% opacity, +0.6 blur, up to 2']]],
+      ['Right slot', [['Badge', '18 high · radius 9 · #e8e9ec, ink'], ['Text', 'Geist Mono 12, #8a8c94'], ['Icon', '14 × 14']]],
+      ['Arc bar', [['Curve', 'radius 560 · tabs 13° apart'], ['Tab', '112 × 56 · icon 20 over label'], ['Notch', '24 × 6 at the top centre'], ['Fade', '−22% opacity per step from the notch']]],
+      ['Color', [['Surface', '#16171a'], ['Segment', '#24252a'], ['Text', '#e8e9ec'], ['Dim', '#8a8c94']]],
+      ['States', [['Hover', 'fill #2a2b31'], ['Pressed', '.97 · fill #33353c'], ['Selected', 'light pill #e8e9ec, ink #111 · the icon gets heavier'], ['Focus', 'outline 2, offset 4 round the whole dial']]],
+      ['Motion', [['Turn', '420 ms cubic-bezier(0.2, 0, 0, 1): ring, icons and ridges together'], ['Fan', '320 ms, same curve'], ['Fold', '280 ms: the ring scales to .6 and fades into the knob'], ['Press', '120 ms ease-out']]],
+      ['Input', [['Knob', 'drag round to turn, one category per 31° · press without turning folds'], ['Scroll', 'over the ring turns it, over the list moves the item · one step per 40 of scroll'], ['Keys', '← → turn · ↑ ↓ item · Home / End · Enter opens · Space folds'], ['Arc bar', 'drag 56 per tab, scroll, ← →, or click']]],
+      ['Laws of UX', [['Fitts', 'the knob is the biggest target and sits where the hand starts'], ['Hick', 'only one category\'s items show at a time'], ['Miller', '7 categories, the classic most'], ['Doherty', 'every turn lands within 420 ms'], ['Postel', 'drag, scroll, keys and clicks all turn the same dial']]],
+    ],
+  },
 ]
 
 /* wall (home page hover background) */
@@ -441,7 +485,7 @@ function SetPage({ set }) {
       </aside>
       <main className="content">
         <section className="sec" id="example">
-          {head(1, 'Example', 'Pick items, collapse the sidebar with its top button, move tabs with the arrow keys, and switch the window size below.')}
+          {head(1, 'Example', set.note || 'Pick items, collapse the sidebar with its top button, move tabs with the arrow keys, and switch the window size below.')}
           <set.Body />
         </section>
         <section className="sec" id="configurations">
