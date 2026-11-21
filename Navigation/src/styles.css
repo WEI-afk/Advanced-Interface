@@ -262,49 +262,6 @@ h1 { margin: 0 0 10px; font: 600 22px/1.25 Inter, sans-serif; letter-spacing: -0
   .ix-tabs .nv-slot { position: absolute; top: 6px; left: calc(50% + 8px); }
 }
 
-/* ================= PLAYFUL · Wobble =================
-   the Matter-of-fact parts with no new colour; all of the play is motion. Everything is short, lands still, and never loops. */
-.page-pl { --spring: cubic-bezier(.3, 1.6, .5, 1); }
-.page-pl .nv-sel { transition: none; } /* the inchworm is played from script */
-/* press: a jelly squish that springs back */
-.page-pl .nv-item { transition: color var(--t-fb) ease-out, background-color var(--t-fb) ease-out, scale 260ms var(--spring); }
-.page-pl .nv-item:not(:disabled):active, .page-pl .nv-item.st-press { scale: .96 1.04; transition-duration: var(--t-fb); }
-/* icons act out what they do */
-.page-pl .nv-ic svg { transform-origin: 50% 50%; }
-.page-pl .nv-item:hover .nv-ic svg, .page-pl .nv-item.st-hover .nv-ic svg { animation: pl-bounce 480ms var(--spring); }
-.page-pl [data-id="drafts"]:hover .nv-ic svg { animation-name: pl-write; }
-.page-pl [data-id="sent"]:hover .nv-ic svg { animation: pl-fly 620ms cubic-bezier(.4, 0, .2, 1); }
-.page-pl [data-id="archive"]:hover .nv-ic svg { animation-name: pl-drop; }
-.page-pl [data-id="clients"]:hover .nv-ic svg { animation-name: pl-swing; transform-origin: 20% 20%; }
-.page-pl [data-id="receipts"]:hover .nv-ic svg { animation-name: pl-print; }
-.page-pl .nv-side .nv-item.is-sel .nv-ic svg { animation: pl-pop 420ms var(--spring); }
-.page-pl .nv-tabs .nv-item.is-sel .nv-ic svg { animation: pl-hop 520ms var(--spring); }
-@keyframes pl-bounce { 30% { transform: translateY(-4px) scale(.94, 1.08); } 60% { transform: translateY(0) scale(1.08, .92); } }
-@keyframes pl-write { 20% { transform: rotate(-14deg); } 45% { transform: rotate(10deg) translateX(2px); } 70% { transform: rotate(-6deg); } }
-@keyframes pl-fly { 40% { transform: translate(9px, -9px) scale(.7); opacity: 0; } 41% { transform: translate(-9px, 9px) scale(.7); opacity: 0; } 100% { transform: none; opacity: 1; } }
-@keyframes pl-drop { 0% { transform: translateY(-5px); } 55% { transform: translateY(1px) scale(1.06, .9); } }
-@keyframes pl-swing { 25% { transform: rotate(18deg); } 55% { transform: rotate(-10deg); } 80% { transform: rotate(4deg); } }
-@keyframes pl-print { 0% { clip-path: inset(0 0 100% 0); transform: translateY(-3px); } 100% { clip-path: inset(0); transform: none; } }
-@keyframes pl-pop { 40% { transform: scale(1.25); } }
-@keyframes pl-hop { 35% { transform: translateY(-6px) scale(1.05, .95); } 65% { transform: translateY(0) scale(1.1, .9); } }
-/* badges jiggle when pointed at */
-.page-pl .nv-item:hover .nv-slot.is-badge .nv-face.f1, .page-pl .nv-item:hover .nv-slot.is-badge .nv-face.f0:not(:has(+ .f1)) { animation: pl-jiggle 400ms var(--spring); }
-.page-pl .nv-tabs .nv-item:hover .nv-slot.is-badge .nv-face { animation: pl-jiggle 400ms var(--spring); }
-@keyframes pl-jiggle { 25% { transform: rotate(-8deg) scale(1.12); } 55% { transform: rotate(6deg); } 80% { transform: rotate(-2deg); } }
-/* collapse: labels squash away one after another, the toggle flips, the rail's tag springs open, dots pop in */
-.page-pl .nv-label, .page-pl .nv-slot { transform-origin: 0 50%; transition: opacity var(--t-out) ease-out, scale 240ms var(--spring); transition-delay: calc(var(--i, 0) * 25ms); }
-.page-pl .is-col .nv-label, .page-pl .is-col .nv-slot { scale: .3 1; }
-.page-pl .nv-toggle svg { transition: rotate 360ms var(--spring); }
-.page-pl .is-col .nv-toggle svg { rotate: y 180deg; }
-.page-pl .nv-tip { animation: pl-tip 260ms var(--spring); transform-origin: 0 50%; }
-@keyframes pl-tip { from { opacity: 0; scale: .6; } }
-.page-pl .is-col .nv-item.has-badge .nv-ic::after { animation: pl-pop 360ms var(--spring) both; }
-/* sections: the chevron springs, items drop back in one by one */
-.page-pl .nv-disc { transition: rotate 360ms var(--spring), opacity var(--t-out) ease-out; }
-.page-pl .nv-items:not(.is-shut) .nv-item { animation: pl-in 360ms var(--spring) backwards; animation-delay: calc(var(--i, 0) * 30ms); }
-@keyframes pl-in { from { opacity: 0; translate: 0 -8px; scale: .96; } }
-.page-pl .sample .nv-item, .page-pl .sg .nv-item, .page-pl .sample .nv-ic svg, .page-pl .sg .nv-ic svg { animation: none; } /* frozen samples stay still */
-
 /* phones */
 @container set (max-width: 640px) {
   .mf-tabs .nv-item { min-width: 0; padding: 0 10px; }
