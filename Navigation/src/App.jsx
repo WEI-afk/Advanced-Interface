@@ -1,4 +1,4 @@
-import { Dial, ArcBar, ArcTab, DialItem, DialSet, DIAL } from './Dial.jsx'
+import { Reel, ReelBar, ReelTab, ReelWord, ReelSet, REEL } from './Reel.jsx'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 /* ================= the navigation system =================
@@ -378,46 +378,49 @@ const SETS = [
     ],
   },
   {
-    id: 'dial', tone: 'Futuristic, Dial',
-    note: 'Drag the knob round, scroll over the ring or the list, or use ← → and ↑ ↓. Press the knob without turning it to fold the dial.',
-    about: 'Navigation as an instrument: the categories ride a ring round a metal knob, the chosen one sits in a hatched window at three o\'clock, and its items fan out from that window like a wheel.',
-    Body: (p) => <DialSet {...p} />,
+    id: 'reel', tone: 'Kinetic, The Reel',
+    note: 'Scroll or drag the words to roll through a section, roll the ruler to change section, or use ↑ ↓ and ← →. Type the start of a word to jump to it.',
+    about: 'Navigation that reads like a title sequence: the section headers ride a curved ruler at the edge, and the section\'s pages roll past a fixed arrow as big words, the chosen one sharp, the rest tilting away.',
+    Body: (p) => <ReelSet {...p} />,
     configs: [
-      { title: 'Dial', row: true, items: [
-        ['Open: the ring of categories, the window, the fanned list', <div className="dl-stage"><Dial still /></div>],
-        ['Folded: the knob only, the collapsed state', <div className="dl-stage is-folded"><Dial still folded /></div>],
+      { title: 'Sidebar', row: true, items: [
+        ['Expanded: headers on the ruler, pages on the drum', <div className="rl-stage"><Reel still /></div>],
+        ['Collapsed: only the ruler, icons on its ticks', <div className="rl-stage"><Reel still collapsed /></div>],
       ] },
       { title: 'Item · the right slot', row: true, items: [
-        ['Badge', <div className="dl-frozen"><DialItem it={DIAL[0].items[0]} /></div>],
-        ['Icon', <div className="dl-frozen"><DialItem it={DIAL[0].items[2]} /></div>],
-        ['Text', <div className="dl-frozen"><DialItem it={DIAL[0].items[1]} /></div>],
-        ['None', <div className="dl-frozen"><DialItem it={DIAL[0].items[4]} /></div>],
+        ['Badge', <div className="rl-frozen"><ReelWord it={REEL[0].items[0]} className="is-sel" /></div>],
+        ['Icon', <div className="rl-frozen"><ReelWord it={REEL[0].items[2]} className="is-sel" /></div>],
+        ['Text', <div className="rl-frozen"><ReelWord it={REEL[0].items[1]} className="is-sel" /></div>],
+        ['None', <div className="rl-frozen"><ReelWord it={REEL[0].items[4]} className="is-sel" /></div>],
       ] },
-      { title: 'Arc bar', items: [['The horizontal version: tabs on a curve, the one under the notch is chosen', <div className="dl-stage is-arc"><ArcBar still value={2} /></div>]] },
+      { title: 'Tab bar', items: [['Icon and word, the badge beside it; the tab under the arrow is chosen', <div className="rl-stage is-bar"><ReelBar still value={1} /></div>]] },
       { title: 'Edge cases', row: true, items: [
-        ['Long name: it truncates at 248', <div className="dl-frozen"><DialItem it={{ label: 'Quarterly client reports and invoices', icon: DIAL[0].icon, slot: { type: 'text', v: '14' } }} /></div>],
-        ['Huge count: the badge stops at 99+', <div className="dl-frozen"><DialItem it={{ ...DIAL[1].items[0], slot: { type: 'badge', v: '99+' } }} /></div>],
-        ['First and last: the list stops, it does not wrap', <div className="dl-stage"><Dial still cat={1} act={3} /></div>],
+        ['Long name: it truncates at 360, the full name on hover', <div className="rl-frozen"><ReelWord it={{ label: 'quarterly client reports', icon: REEL[0].icon, slot: { type: 'text', v: '14' } }} className="is-sel" title="quarterly client reports" /></div>],
+        ['Huge count: the badge stops at 99+', <div className="rl-frozen"><ReelWord it={{ ...REEL[1].items[0], slot: { type: 'badge', v: '99+' } }} className="is-sel" /></div>],
+        ['Last page: the drum stops, it does not wrap', <div className="rl-stage"><Reel still cat={2} act={3} /></div>],
+        ['Empty section: it says so', <div className="rl-stage"><Reel still sections={[REEL[0], { id: 'drafts', icon: REEL[0].icon, name: 'Drafts', items: [] }]} cat={1} /></div>],
+        ['Three tabs: the fewest', <div className="rl-stage is-bar"><ReelBar still items={REEL.slice(0, 3)} value={1} /></div>],
       ] },
     ],
     states: (
-      <StateGrid cols={['Dial item', 'Arc tab']} rows={STATES.map(([k, c]) => [k, [
-        <div className="dl-frozen"><DialItem it={DIAL[1].items[0]} className={c} /></div>,
-        <div className="dl-frozen is-arc"><ArcTab c={DIAL[1]} sel={c.includes('is-sel')} className={c} /></div>,
+      <StateGrid cols={['Drum word', 'Tab']} rows={STATES.map(([k, c]) => [k, [
+        <div className="rl-frozen"><ReelWord it={REEL[1].items[0]} className={c} /></div>,
+        <div className="rl-frozen"><ReelTab c={REEL[1]} sel={c.includes('is-sel')} className={c} /></div>,
       ]])} />
     ),
     spec: [
-      ['Dial', [['Size', '680 × 460 · centre at 200, 230'], ['Ring', 'inner radius 94 · outer 162 · 7 segments, 51.4° each, 6 apart'], ['Window', 'fixed at 0° (three o\'clock) · 6 wider than a segment · 45° hatch, 6 pitch'], ['Line', 'window edge to the list, 1 · #6d6f78']]],
-      ['Knob', [['Size', '148 round'], ['Metal', 'radial gradient #f2f3f5 → #8b8e96 · conic ridges every 4°, turning with the ring'], ['Face', '96 round, #1b1c20 · menu icon 22']]],
-      ['Category', [['Icon', '22 × 22 · line 1.5 on the ring at radius 128'], ['Upright', 'counter-turns so it never tilts'], ['Chosen', '#ffffff, the others #8a8c94'], ['Header', 'the window and the line above the list: name · count, Geist Mono 11, caps']]],
-      ['List item', [['Size', '36 high · padding 0 × 12 · radius 10 · max 248 wide'], ['Gaps', 'icon to label 10 · label to slot 12'], ['Fan', 'radius 224 from the centre · 12° apart'], ['Depth', 'each step from the chosen one: −28% opacity, +0.6 blur, up to 2']]],
-      ['Right slot', [['Badge', '18 high · radius 9 · #e8e9ec, ink'], ['Text', 'Geist Mono 12, #8a8c94'], ['Icon', '14 × 14']]],
-      ['Arc bar', [['Curve', 'radius 560 · tabs 13° apart'], ['Tab', '112 × 56 · icon 20 over label'], ['Notch', '24 × 6 at the top centre'], ['Fade', '−22% opacity per step from the notch']]],
-      ['Color', [['Surface', '#16171a'], ['Segment', '#24252a'], ['Text', '#e8e9ec'], ['Dim', '#8a8c94']]],
-      ['States', [['Hover', 'fill #2a2b31'], ['Pressed', '.97 · fill #33353c'], ['Selected', 'light pill #e8e9ec, ink #111 · the icon gets heavier'], ['Focus', 'outline 2, offset 4 round the whole dial']]],
-      ['Motion', [['Turn', '420 ms cubic-bezier(0.2, 0, 0, 1): ring, icons and ridges together'], ['Fan', '320 ms, same curve'], ['Fold', '280 ms: the ring scales to .6 and fades into the knob'], ['Press', '120 ms ease-out']]],
-      ['Input', [['Knob', 'drag round to turn, one category per 31° · press without turning folds'], ['Scroll', 'over the ring turns it, over the list moves the item · one step per 40 of scroll'], ['Keys', '← → turn · ↑ ↓ item · Home / End · Enter opens · Space folds'], ['Arc bar', 'drag 56 per tab, scroll, ← →, or click']]],
-      ['Laws of UX', [['Fitts', 'the knob is the biggest target and sits where the hand starts'], ['Hick', 'only one category\'s items show at a time'], ['Miller', '7 categories, the classic most'], ['Doherty', 'every turn lands within 420 ms'], ['Postel', 'drag, scroll, keys and clicks all turn the same dial']]],
+      ['Sidebar', [['Size', 'expanded 640 × 480 · collapsed 190 × 480'], ['Container', 'radius 28 · #0b0b0b, edge white 6%'], ['Top', 'fold button 40 high at 16, 16: icon 20 and the name, Geist Mono 11 caps']]],
+      ['Ruler · the headers', [['Arc', 'radius 360, centre 190 off the left edge, on the middle line'], ['Ticks', 'every 3°: minor 12 long · major 22 long, every 15°, one per section'], ['Header', 'Geist Mono 12, caps, +8% · set along the arc, 34 inside the ticks'], ['Chosen', 'the header on the middle line, white · the rest fade 22% a step, ticks fade with distance']]],
+      ['Drum · the items', [['Word', 'Inter Bold 44 / 56, lowercase, −3.5% · max 360 wide'], ['Gaps', 'icon 26 to word 14 · word to slot 12'], ['Roll', '60 a step · each step tilts 20° on X with 900 perspective'], ['Depth', 'each step from the chosen one: −30% opacity, +1.2 blur, up to 3'], ['Arrow', '→ fixed at the middle line, Inter Bold 44, white']]],
+      ['Right slot', [['Badge', '22 high · radius 11 · padding 0 × 8 · Inter Bold 13 · white, ink'], ['Text', 'Geist Mono 13, #7a7a7a, raised to the cap line'], ['Icon', '18 × 18']]],
+      ['Tab bar', [['Size', 'width up to 720 · 140 high'], ['Tab', 'icon 22 beside the word, Inter Bold 24 · 150 apart, centre to centre'], ['Ruler', 'a tick every 15 · major every 150, under each tab'], ['Arrow', '↓ fixed above the centre'], ['Count', '3 to 7 tabs']]],
+      ['Color', [['Surface', '#0b0b0b'], ['Chosen', '#ffffff'], ['Others', '#5c5c5c'], ['Hover', '#a3a3a3'], ['Ticks', 'white 45%']]],
+      ['States', [['Enabled', 'grey #5c5c5c, tilted and blurred by its distance'], ['Hover', 'the word brightens to #a3a3a3 and nudges 6 right'], ['Pressed', '.97, held for 120 ms'], ['Selected', 'white, sharp, flat, on the arrow · the icon gets heavier'], ['Opened', 'a 3 white underline wipes in under the word']]],
+      ['Motion', [['Roll', '480 ms cubic-bezier(0.2, 0, 0, 1): transform, opacity and blur together'], ['Ruler', '520 ms, same curve'], ['New section', 'the words rise 32 out of a 6 blur, 360 ms'], ['Collapse', 'width 320 ms · the drum fades 150 ms · headers turn into icons'], ['Reduced motion', 'everything snaps, no blur']]],
+      ['Input', [['Drum', 'scroll, or drag 36 a step · click a word to roll to it, click the chosen one to open it'], ['Ruler', 'scroll, or drag 44 a step · click a header'], ['Keys', '↑ ↓ or j / k move a page · ← → move a section · Home / End · Enter opens · type a word to jump to it'], ['Tab bar', '← → · 1–7 · scroll, drag 68 a step, or click']]],
+      ['Laws of UX', [['Fitts', 'the chosen word is the largest target and always in the same place, on the arrow'], ['Hick', 'only one section\'s pages show at a time'], ['Miller', '3 to 5 pages a section, 7 sections'], ['Doherty', 'every roll lands within 520 ms'], ['Postel', 'scroll, drag, click, arrows, j / k and typing all roll the same reel'], ['Serial position', 'the chosen item sits in the middle, the first and last stay in view at the ends']]],
+      ['Responsive', [['Desktop', 'the full reel'], ['Phone', 'the reel scales to 52% · the tab bar stays full width']]],
+      ['Edge cases', [['Long name', 'truncates at 360, full name on hover'], ['Count over 99', '99+'], ['First, last', 'the drum stops, it does not wrap'], ['Empty section', 'says "nothing here yet"'], ['Tabs', '3 to 7']]],
     ],
   },
 ]
