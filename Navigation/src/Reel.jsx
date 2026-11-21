@@ -135,10 +135,11 @@ export function Reel({ still, live: liveProp, collapsed: colProp, cat: c0 = 0, a
   const goItem = (i) => { setAct(clamp(i, 0, Math.max(0, n - 1))); setOpened(null) }
   useEffect(() => { onStatus?.(n ? `${C.name} · ${C.items[act].label} · ${C.items[act].meta}${opened != null ? ' · opened' : ''}` : `${C.name} · no albums yet`) }, [cat, act, opened]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ruler = useRef(null), drum = useRef(null)
+  const ruler = useRef(null), drum = useRef(null), nub = useRef(null)
   const rw = useNotches((d) => goCat(cat + d)), dw = useNotches((d) => goItem(act + d))
   useWheel(ruler, rw, still)
   useWheel(drum, dw, still)
+  useWheel(nub, (e) => { if (col) rw(e) }, still) // folded, scrolling the handle still changes the month
   const rulerDrag = useDragSteps('y', 44, (d) => goCat(cat + d), still)
   const drumDrag = useDragSteps('y', ROW * 0.6, (d) => goItem(act + d), still)
 
@@ -159,8 +160,13 @@ export function Reel({ still, live: liveProp, collapsed: colProp, cat: c0 = 0, a
   const turn = -cat * MAJOR
   return (
     <nav className={`rl ${col ? 'is-col' : ''} ${live ? 'is-live' : ''}`} aria-label={`${label}, ← → change month, ↑ ↓ move through its albums`} tabIndex={still ? -1 : 0} onKeyDown={still ? undefined : keys} {...(still ? {} : engage)}>
-      <button type="button" className="rl-fold" tabIndex={still ? -1 : 0} aria-label={col ? 'Expand the sidebar' : 'Collapse the sidebar'} aria-expanded={!col} onClick={() => !still && setCol((c) => !c)}>
-        {li(IC.side)}<span>{col ? '' : label}</span>
+      {/* the handle: a half-circle on the left edge at the middle line; the whole reel shrinks into it, and it grows back out of it */}
+      <button type="button" className="rl-nub" ref={nub} tabIndex={still ? -1 : 0} aria-label={col ? `Expand the sidebar, ${C.name}${n ? `, ${C.items[act].label}` : ''}` : 'Collapse the sidebar'} aria-expanded={!col}
+        title={col ? `${C.name}${n ? ` · ${C.items[act].label}` : ''}` : undefined} onClick={(e) => { e.stopPropagation(); if (!still) setCol((c) => !c) }}>
+        <svg className="rl-nub-ticks" viewBox="0 -48 48 96" aria-hidden="true">
+          {Array.from({ length: 13 }, (_, k) => { const a = (-90 + k * 15) * Math.PI / 180, r0 = k === 6 ? 33 : 37; return <line key={k} className={k === 6 ? 'is-major' : ''} x1={Math.cos(a) * r0} y1={Math.sin(a) * r0} x2={Math.cos(a) * 42} y2={Math.sin(a) * 42} /> })}
+        </svg>
+        <span className="rl-nub-in">{col ? li(C.icon, 1.75) : li(['M12 6l-4 4 4 4'], 1.75)}</span>
       </button>
       <div className="rl-ruler" ref={ruler} {...rulerDrag}>
         <div className="rl-arc" style={{ transform: `rotate(${turn}deg)` }}>
