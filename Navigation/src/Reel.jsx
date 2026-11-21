@@ -1,55 +1,74 @@
 import { useEffect, useRef, useState } from 'react'
 
 /* ================= KINETIC · The Reel =================
-   Two ideas combined: a curved ruler at the left edge whose major ticks carry the category headers and roll along the arc (the middle one is the current category),
-   and a word drum beside it where that category's items roll past a fixed arrow: the chosen word is white and sharp, its neighbours tilt away, grey and blurred.
+   A photo journal. A curved ruler at the left edge carries the months on its major ticks, and the middle one is the month you are in.
+   Beside it, that month's albums roll past a fixed arrow as big words.
+   At rest it says as little as it can: the month, the album, the arrow. Point at it (or focus it) and the reel opens: every month on the ruler,
+   the neighbouring albums sharpen, slots appear, and the chosen album unfolds its date, place, count and a strip of photos.
    Collapsed, only the ruler stays, with icons on its ticks. The tab bar is the same reel laid flat. */
 const li = (d, w = 1.5) => (
   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d.map((p, i) => <path key={i} d={p} />)}</svg>
 )
 const IC = {
-  file: ['M5 3h6.500L15 6.500V17H5z', 'M11.500 3v3.500H15'], hash: ['M7.500 3.500L6 16.500', 'M14 3.500L12.500 16.500', 'M3.500 7.500h13', 'M3 12.500h13'],
-  tasks: ['M8.500 5.500h8', 'M8.500 10h8', 'M8.500 14.500h8', 'M3.500 5.500l1 1 2-2', 'M3.500 10l1 1 2-2', 'M3.500 14.500l1 1 2-2'],
-  globe: ['M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M3 10h14', 'M10 3c2 2 3 4.500 3 7s-1 5-3 7c-2-2-3-4.500-3-7s1-5 3-7z'],
+  photo: ['M3 5h14v10H3z', 'M3 13l4-4 3 3 2-2 5 5', 'M13.500 8.500h.010'],
+  pin: ['M10 17s5-4.500 5-8.500a5 5 0 0 0-10 0c0 4 5 8.500 5 8.500z', 'M10 10a1.500 1.500 0 1 0 0-3 1.500 1.500 0 0 0 0 3z'],
+  star: ['M10 3l2.100 4.300 4.700.700-3.400 3.300.800 4.700L10 13.800 5.800 16l.800-4.700L3.200 8l4.700-.700z'],
+  video: ['M3 5.500h10v9H3z', 'M13 8.500l4-2.500v8l-4-2.500'],
+  users: ['M7.500 9a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5z', 'M2.500 16a5 5 0 0 1 10 0', 'M13 4.200a2.500 2.500 0 0 1 0 4.600', 'M14.500 11.500a5 5 0 0 1 3 4.500'],
+  heart: ['M10 16s-6-3.600-6-8a3.200 3.200 0 0 1 6-1.600A3.200 3.200 0 0 1 16 8c0 4.400-6 8-6 8z'],
   grid: ['M3.500 3.500h5v5h-5z', 'M11.500 3.500h5v5h-5z', 'M3.500 11.500h5v5h-5z', 'M11.500 11.500h5v5h-5z'],
-  gear: ['M10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', 'M10 2.500v2', 'M10 15.500v2', 'M2.500 10h2', 'M15.500 10h2', 'M4.700 4.700l1.400 1.400', 'M13.900 13.900l1.400 1.400', 'M4.700 15.300l1.400-1.400', 'M13.900 6.100l1.400-1.400'],
-  user: ['M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M4.500 17a5.500 5.500 0 0 1 11 0'],
+  sun: ['M10 6.500a3.500 3.500 0 1 0 0 7 3.500 3.500 0 0 0 0-7z', 'M10 2v1.500', 'M10 16.500V18', 'M2 10h1.500', 'M16.500 10H18', 'M4.300 4.300l1.100 1.100', 'M14.600 14.600l1.100 1.100', 'M4.300 15.700l1.100-1.100', 'M14.600 5.400l1.100-1.100'],
+  leaf: ['M4 16c0-7 4-11 12-12-1 8-5 12-12 12z', 'M4 16l7-7'], snow: ['M10 2v16', 'M3 6l14 8', 'M3 14l14-8'],
   out: ['M8 4H4v12h12v-4', 'M11 3h6v6', 'M17 3l-7 7'], side: ['M3.500 4h13v12h-13z', 'M8 4v12'],
 }
+const A = (label, icon, hue, meta, slot) => ({ label, icon, hue, meta, slot })
 export const REEL = [
-  { id: 'docs', icon: IC.file, name: 'Docs', items: [
-    { label: 'projects', icon: IC.file, slot: { type: 'badge', v: '3' } }, { label: 'notes', icon: IC.file, slot: { type: 'text', v: 'today' } },
-    { label: 'marketing', icon: IC.file, slot: { type: 'icon' } }, { label: 'roadmap', icon: IC.file, slot: { type: 'text', v: 'Q4' } }, { label: 'reviews', icon: IC.file } ] },
-  { id: 'chat', icon: IC.hash, name: 'Chat', items: [
-    { label: 'design', icon: IC.hash, slot: { type: 'badge', v: '12' } }, { label: 'engineering', icon: IC.hash, slot: { type: 'text', v: '2m' } },
-    { label: 'launch', icon: IC.hash, slot: { type: 'icon' } }, { label: 'random', icon: IC.hash } ] },
-  { id: 'tasks', icon: IC.tasks, name: 'Tasks', items: [
-    { label: 'today', icon: IC.tasks, slot: { type: 'badge', v: '5' } }, { label: 'upcoming', icon: IC.tasks, slot: { type: 'text', v: '8' } },
-    { label: 'done', icon: IC.tasks, slot: { type: 'text', v: '41' } }, { label: 'someday', icon: IC.tasks } ] },
-  { id: 'browse', icon: IC.globe, name: 'Browse', items: [
-    { label: 'search', icon: IC.globe }, { label: 'recent', icon: IC.globe, slot: { type: 'text', v: '9' } },
-    { label: 'starred', icon: IC.globe, slot: { type: 'badge', v: '2' } }, { label: 'shared', icon: IC.globe, slot: { type: 'icon' } } ] },
-  { id: 'spaces', icon: IC.grid, name: 'Spaces', items: [
-    { label: 'studio', icon: IC.grid }, { label: 'campaigns', icon: IC.grid, slot: { type: 'badge', v: '1' } }, { label: 'archive', icon: IC.grid, slot: { type: 'text', v: '120' } } ] },
-  { id: 'settings', icon: IC.gear, name: 'Settings', items: [
-    { label: 'profile', icon: IC.user }, { label: 'alerts', icon: IC.gear, slot: { type: 'badge', v: '4' } }, { label: 'billing', icon: IC.gear, slot: { type: 'text', v: 'pro' } } ] },
-  { id: 'people', icon: IC.user, name: 'People', items: [
-    { label: 'team', icon: IC.user, slot: { type: 'text', v: '14' } }, { label: 'guests', icon: IC.user, slot: { type: 'text', v: '3' } }, { label: 'invite', icon: IC.user, slot: { type: 'icon' } } ] },
+  { id: 'jun', icon: IC.sun, name: 'June', items: [
+    A('graduation', IC.star, 42, 'Jun 6 · ArtCenter, Pasadena · 186 photos', { type: 'text', v: '186' }), A('first apartment', IC.photo, 28, 'Jun 14–15 · Highland Park · 64 photos', { type: 'icon', v: 'shared' }), A('beach day', IC.sun, 196, 'Jun 28 · El Matador · 92 photos') ] },
+  { id: 'jul', icon: IC.sun, name: 'July', items: [
+    A('lisbon', IC.pin, 18, 'Jul 12–18 · Lisbon, PT · 214 photos, 12 new', { type: 'badge', v: '12' }), A('tile hunting', IC.photo, 210, 'Jul 14 · Alfama · 58 photos', { type: 'text', v: '58' }),
+    A('fado night', IC.video, 268, 'Jul 16 · Bairro Alto · 9 videos', { type: 'text', v: '9' }), A('train home', IC.photo, 160, 'Jul 18 · Lisbon → Porto · 31 photos') ] },
+  { id: 'aug', icon: IC.sun, name: 'August', items: [
+    A('studio move', IC.grid, 32, 'Aug 3 · Arts District · 77 photos', { type: 'text', v: '77' }), A('heatwave', IC.sun, 8, 'Aug 9–12 · Los Angeles · 23 photos'), A('grandma 90', IC.heart, 340, 'Aug 24 · Taipei · 301 photos, 4 new', { type: 'badge', v: '4' }) ] },
+  { id: 'sep', icon: IC.leaf, name: 'September', items: [
+    A('first crit', IC.star, 220, 'Sep 8 · Room 204 · 18 photos', { type: 'text', v: '18' }), A('night ride', IC.video, 250, 'Sep 19 · Angeles Crest · 6 videos', { type: 'icon', v: 'shared' }), A('type sketches', IC.photo, 50, 'Sep 2–30 · 140 photos', { type: 'text', v: '140' }) ] },
+  { id: 'oct', icon: IC.leaf, name: 'October', items: [
+    A('pumpkin patch', IC.leaf, 24, 'Oct 11 · Pierce College · 45 photos', { type: 'text', v: '45' }), A('portfolio shoot', IC.photo, 200, 'Oct 18 · Studio B · 260 photos, 30 new', { type: 'badge', v: '30' }),
+    A('halloween', IC.users, 280, 'Oct 31 · Echo Park · 88 photos', { type: 'icon', v: 'shared' }), A('first rain', IC.photo, 205, 'Oct 27 · Pasadena · 12 photos') ] },
+  { id: 'nov', icon: IC.snow, name: 'November', items: [
+    A('museum day', IC.photo, 38, 'Nov 2 · The Broad · 54 photos', { type: 'text', v: '54' }), A('thesis wall', IC.grid, 0, 'Nov 12 · Studio B · 96 photos, 7 new', { type: 'badge', v: '7' }), A('today', IC.star, 186, 'Nov 20 · 14 photos so far', { type: 'text', v: 'now' }) ] },
+]
+export const TABS = [
+  { id: 'library', icon: IC.photo, name: 'Library', meta: '4,812 photos · 53 new', badge: '53' },
+  { id: 'memories', icon: IC.heart, name: 'Memories', meta: 'A year ago today: Kyoto' },
+  { id: 'albums', icon: IC.grid, name: 'Albums', meta: '18 albums · 3 shared' },
+  { id: 'map', icon: IC.pin, name: 'Map', meta: '41 places in 6 countries' },
+  { id: 'shared', icon: IC.users, name: 'Shared', meta: '2 invites waiting', badge: '2' },
 ]
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
-// the ruler: an arc whose centre sits off the left edge; 3° between ticks, a header on every fifth
-const R = 360, CY = 240, MAJOR = 15, MINOR = 3
-const ROW = 60 // the drum: one word every 60, tilting 20° per step
+// the ruler: an arc whose centre sits off the left edge; 3° between ticks, a month on every fifth
+const R = 360, MAJOR = 15, MINOR = 3
+const ROW = 60, OPEN = 84 // the drum: one word every 60; when the reel opens, the words below the chosen one make 84 of room for its detail
 
 export function Slot({ slot }) {
   if (!slot) return null
-  return <span className={`rl-slot is-${slot.type}`}>{slot.type === 'icon' ? li(IC.out) : slot.v}</span>
+  return <span className={`rl-slot is-${slot.type}`} title={slot.type === 'icon' ? slot.v : undefined}>{slot.type === 'icon' ? li(IC.users) : slot.v}</span>
 }
 export function ReelWord({ it, className = '', ...rest }) {
   return (
-    <button type="button" className={`rl-word ${className}`} {...rest}>
+    <button type="button" className={`rl-word ${className}`} title={it.label.length > 14 ? it.label : undefined} {...rest}>
       <span className="rl-ic">{li(it.icon, 1.75)}</span><span className="rl-label">{it.label}</span><Slot slot={it.slot} />
     </button>
+  )
+}
+// the photos the chosen album unfolds: three tiles and the rest as a count
+const Thumbs = ({ it }) => {
+  const n = +(it.meta.match(/(\d[\d,]*) (photos|videos)/)?.[1] || '0').replace(',', '')
+  return (
+    <span className="rl-thumbs" aria-hidden="true">
+      {[0, 1, 2].map((k) => <i key={k} style={{ '--h': it.hue + k * 24, '--k': k }} />)}
+      {n > 3 && <b style={{ '--k': 3 }}>+{n - 3}</b>}
+    </span>
   )
 }
 
@@ -88,17 +107,33 @@ function useDragSteps(axis, step, fn, off) {
     onClickCapture: (e) => { if (d.current?.moved) e.stopPropagation() },
   }
 }
+// at rest or engaged: pointing at it or focusing it opens the detail; it closes 400 ms after you leave (2.5 s after a touch), so passing through never flickers
+function useEngaged(forced) {
+  const [hot, setHot] = useState(false)
+  const t = useRef(0)
+  useEffect(() => () => clearTimeout(t.current), [])
+  const on = () => { clearTimeout(t.current); setHot(true) }
+  const off = (ms) => { clearTimeout(t.current); t.current = setTimeout(() => setHot(false), ms) }
+  const props = forced !== undefined ? {} : {
+    onPointerEnter: on,
+    onPointerLeave: (e) => off(e.pointerType === 'touch' ? 2500 : 400),
+    onFocus: on,
+    onBlur: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) off(0) },
+  }
+  return [forced ?? hot, props]
+}
 
-export function Reel({ still, collapsed: colProp, cat: c0 = 0, act: a0 = 0, sections = REEL, onStatus, label = 'Workspace' }) {
+export function Reel({ still, live: liveProp, collapsed: colProp, cat: c0 = 0, act: a0 = 0, sections = REEL, onStatus, label = 'Journal 2026' }) {
   const [cat, setCat] = useState(c0)
   const [act, setAct] = useState(a0)
   const [col, setCol] = useState(!!colProp)
   const [opened, setOpened] = useState(null)
+  const [live, engage] = useEngaged(liveProp)
   const C = sections[cat]
   const n = C.items.length
   const goCat = (i) => { const j = clamp(i, 0, sections.length - 1); if (j !== cat) { setCat(j); setAct(0); setOpened(null) } }
   const goItem = (i) => { setAct(clamp(i, 0, Math.max(0, n - 1))); setOpened(null) }
-  useEffect(() => { onStatus?.(n ? `${C.name} · ${C.items[act].label}${opened != null ? ' · opened' : ''}` : `${C.name} · empty`) }, [cat, act, opened]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onStatus?.(n ? `${C.name} · ${C.items[act].label} · ${C.items[act].meta}${opened != null ? ' · opened' : ''}` : `${C.name} · no albums yet`) }, [cat, act, opened]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const ruler = useRef(null), drum = useRef(null)
   const rw = useNotches((d) => goCat(cat + d)), dw = useNotches((d) => goItem(act + d))
@@ -123,7 +158,7 @@ export function Reel({ still, collapsed: colProp, cat: c0 = 0, act: a0 = 0, sect
   for (let a = -90; a <= (sections.length - 1) * MAJOR + 90; a += MINOR) ticks.push(a)
   const turn = -cat * MAJOR
   return (
-    <nav className={`rl ${col ? 'is-col' : ''}`} aria-label={`${label}, ← → change section, ↑ ↓ move through it`} tabIndex={still ? -1 : 0} onKeyDown={still ? undefined : keys}>
+    <nav className={`rl ${col ? 'is-col' : ''} ${live ? 'is-live' : ''}`} aria-label={`${label}, ← → change month, ↑ ↓ move through its albums`} tabIndex={still ? -1 : 0} onKeyDown={still ? undefined : keys} {...(still ? {} : engage)}>
       <button type="button" className="rl-fold" tabIndex={still ? -1 : 0} aria-label={col ? 'Expand the sidebar' : 'Collapse the sidebar'} aria-expanded={!col} onClick={() => !still && setCol((c) => !c)}>
         {li(IC.side)}<span>{col ? '' : label}</span>
       </button>
@@ -132,14 +167,15 @@ export function Reel({ still, collapsed: colProp, cat: c0 = 0, act: a0 = 0, sect
           {ticks.map((a) => {
             const major = a % MAJOR === 0 && a >= 0 && a / MAJOR < sections.length
             const off = Math.abs(a + turn)
-            return <i key={a} className={`rl-tick ${major ? 'is-major' : ''}`} style={{ transform: `rotate(${a}deg) translateX(${R - (major ? 22 : 12)}px)`, opacity: Math.max(0.08, 1 - off / 70) }} />
+            return <i key={a} className={`rl-tick ${major ? 'is-major' : ''}`} style={{ transform: `rotate(${a}deg) translateX(${R - (major ? 22 : 12)}px)`, opacity: Math.max(0.06, (live ? 1 : 0.55) - off / (live ? 70 : 40)) }} />
           })}
           {sections.map((s, i) => {
             const d = i - cat
             return (
               <button key={s.id} type="button" tabIndex={-1} className={`rl-head ${d === 0 ? 'is-sel' : ''}`} aria-current={d === 0 ? 'true' : undefined} aria-label={s.name}
-                style={{ transform: `rotate(${i * MAJOR}deg) translateX(${R - 34}px) translate(-100%, -50%)`, opacity: Math.max(0, 1 - Math.abs(d) * 0.22) }} onClick={() => !still && goCat(i)}>
-                <span className="rl-head-t">{s.name}</span><span className="rl-head-i">{li(s.icon, d === 0 ? 2 : 1.5)}</span>
+                style={{ transform: `rotate(${i * MAJOR}deg) translateX(${R - 34}px) translate(-100%, -50%)`, opacity: d === 0 ? 1 : live ? Math.max(0, 1 - Math.abs(d) * 0.2) : 0, transitionDelay: live && d ? `${Math.abs(d) * 30}ms` : '0ms' }}
+                onClick={() => !still && goCat(i)}>
+                <span className="rl-head-t">{s.name}<em>{s.items.length}</em></span><span className="rl-head-i">{li(s.icon, d === 0 ? 2 : 1.5)}</span>
               </button>
             )
           })}
@@ -148,54 +184,62 @@ export function Reel({ still, collapsed: colProp, cat: c0 = 0, act: a0 = 0, sect
       <div className="rl-drum" ref={drum} {...drumDrag}>
         <span className="rl-arrow" aria-hidden="true">→</span>
         <div className="rl-words" key={C.id}>
-          {n === 0 && <p className="rl-empty">nothing here yet</p>}
+          {n === 0 && <p className="rl-empty">no albums yet</p>}
           {C.items.map((it, i) => {
-            const d = i - act
+            const d = i - act, ad = Math.abs(d)
+            const y = d * ROW + (live && d > 0 ? OPEN : 0)
             return (
               <ReelWord key={it.label} it={it} tabIndex={-1} aria-current={d === 0 ? 'page' : undefined}
                 className={`${d === 0 ? 'is-sel' : ''} ${opened === i ? 'is-open' : ''}`}
-                style={{ '--d': d, '--ad': Math.abs(d), '--k': i, transform: `translateY(${d * ROW}px) rotateX(${-d * 20}deg)`, opacity: Math.max(0, 1 - Math.abs(d) * 0.3), filter: d ? `blur(${Math.min(3, Math.abs(d) * 1.2)}px)` : 'none' }}
+                style={{ transform: `translateY(${y}px) rotateX(${-d * 20}deg)`, opacity: d === 0 ? 1 : live ? Math.max(0, 1 - ad * 0.28) : Math.max(0, 0.16 - (ad - 1) * 0.08), '--blur': `${d ? Math.min(4, ad * (live ? 1.2 : 2.5)) : 0}px` }}
                 onClick={() => { if (still) return; if (d === 0) setOpened(i); else goItem(i) }} />
             )
           })}
+          {n > 0 && (
+            <div className="rl-detail" key={act} aria-hidden={!live}>
+              <p>{C.items[act].meta}</p>
+              <Thumbs it={C.items[act]} />
+            </div>
+          )}
         </div>
       </div>
     </nav>
   )
 }
 
-// the tab bar: the same reel laid flat; tabs roll sideways over a straight ruler under a fixed arrow
-const GAP = 150
+// the tab bar: the same reel laid flat; at rest only the chosen tab reads, engaged the others and the caption come in
+const GAP = 160
 export function ReelTab({ c, sel, className = '', ...rest }) {
-  const badge = c.items[0]?.slot?.type === 'badge' ? c.items[0].slot.v : null
   return (
     <button type="button" role="tab" aria-selected={sel} tabIndex={-1} className={`rl-tab ${sel ? 'is-sel' : ''} ${className}`} {...rest}>
-      <span className="rl-ic">{li(c.icon, sel ? 2 : 1.75)}</span><span className="rl-label">{c.name}</span>{badge && <i className="rl-slot is-badge">{badge}</i>}
+      <span className="rl-ic">{li(c.icon, sel ? 2 : 1.75)}</span><span className="rl-label">{c.name}</span>{c.badge && <i className="rl-slot is-badge">{c.badge}</i>}
     </button>
   )
 }
-export function ReelBar({ still, value: v0 = 0, items = REEL, onStatus }) {
+export function ReelBar({ still, live: liveProp, value: v0 = 0, items = TABS, onStatus }) {
   const [v, setV] = useState(v0)
+  const [live, engage] = useEngaged(liveProp)
   const ref = useRef(null)
   const go = (i) => setV(clamp(i, 0, items.length - 1))
   const w = useNotches((d) => go(v + d))
   useWheel(ref, w, still)
   const drag = useDragSteps('x', GAP * 0.45, (d) => go(v + d), still)
-  useEffect(() => { onStatus?.(items[v].name) }, [v]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onStatus?.(`${items[v].name} · ${items[v].meta}`) }, [v]) // eslint-disable-line react-hooks/exhaustive-deps
   const ticks = Array.from({ length: (items.length + 6) * 10 + 1 }, (_, i) => i - 30)
   return (
-    <div className="rl-bar" ref={ref} role="tablist" aria-label="Reel tab bar, ← → roll" tabIndex={still ? -1 : 0} {...drag}
+    <div className={`rl-bar ${live ? 'is-live' : ''}`} ref={ref} role="tablist" aria-label="Photos tab bar, ← → roll" tabIndex={still ? -1 : 0} {...drag} {...(still ? {} : engage)}
       onKeyDown={still ? undefined : (e) => { const k = { ArrowLeft: v - 1, ArrowRight: v + 1, Home: 0, End: items.length - 1 }[e.key]; if (k !== undefined) { e.preventDefault(); go(k) } else if (/^[1-9]$/.test(e.key)) go(+e.key - 1) }}>
       <span className="rl-down" aria-hidden="true">↓</span>
       <div className="rl-track" style={{ transform: `translateX(${-v * GAP}px)` }}>
         {items.map((c, i) => {
-          const d = i - v
-          return <ReelTab key={c.id} c={c} sel={d === 0} style={{ left: i * GAP, opacity: Math.max(0, 1 - Math.abs(d) * 0.3), filter: d ? `blur(${Math.min(3, Math.abs(d) * 1.1)}px)` : 'none' }} onClick={() => !still && go(i)} />
+          const d = i - v, ad = Math.abs(d)
+          return <ReelTab key={c.id} c={c} sel={d === 0} style={{ left: i * GAP, opacity: d === 0 ? 1 : live ? Math.max(0, 1 - ad * 0.3) : Math.max(0, 0.2 - (ad - 1) * 0.1), '--blur': `${d ? Math.min(4, ad * (live ? 1 : 2.5)) : 0}px` }} onClick={() => !still && go(i)} />
         })}
         <div className="rl-rule" aria-hidden="true">
           {ticks.map((t) => <i key={t} className={t % 10 === 0 ? 'is-major' : ''} style={{ left: t * (GAP / 10) }} />)}
         </div>
       </div>
+      <p className="rl-caption" key={v} aria-hidden={!live}>{items[v].meta}</p>
     </div>
   )
 }
@@ -206,13 +250,13 @@ export function ReelSet({ auto }) {
   return (
     <div className="ex nv-ex">
       <div className="nv-part">
-        <h3 className="group-k">Sidebar · roll the words, roll the ruler</h3>
-        <div className="rl-stage"><Reel onStatus={setS1} still={auto} cat={2} act={1} /></div>
+        <h3 className="group-k">Sidebar · point at it to open the reel</h3>
+        <div className="rl-stage"><Reel onStatus={setS1} still={auto} cat={1} act={0} /></div>
         {!auto && <p className="tb-status" aria-live="polite">{s1}</p>}
       </div>
       <div className="nv-part">
         <h3 className="group-k">Tab bar · the reel laid flat</h3>
-        <div className="rl-stage is-bar"><ReelBar onStatus={setS2} still={auto} value={2} /></div>
+        <div className="rl-stage is-bar"><ReelBar onStatus={setS2} still={auto} value={0} /></div>
         {!auto && <p className="tb-status" aria-live="polite">{s2}</p>}
       </div>
     </div>

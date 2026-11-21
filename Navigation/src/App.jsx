@@ -1,4 +1,4 @@
-import { Reel, ReelBar, ReelTab, ReelWord, ReelSet, REEL } from './Reel.jsx'
+import { Reel, ReelBar, ReelTab, ReelWord, ReelSet, REEL, TABS } from './Reel.jsx'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 /* ================= the navigation system =================
@@ -379,48 +379,58 @@ const SETS = [
   },
   {
     id: 'reel', tone: 'Kinetic, The Reel',
-    note: 'Scroll or drag the words to roll through a section, roll the ruler to change section, or use ↑ ↓ and ← →. Type the start of a word to jump to it.',
-    about: 'Navigation that reads like a title sequence: the section headers ride a curved ruler at the edge, and the section\'s pages roll past a fixed arrow as big words, the chosen one sharp, the rest tilting away.',
+    note: 'Point at the reel to open it. Scroll or drag the albums, roll the ruler to change month, or use ↑ ↓ and ← →. Type the start of an album to jump to it.',
+    about: 'A photo journal you move through like a title sequence. At rest it shows only the month and the album you are in; point at it and the reel opens: every month on the ruler, the albums around you, counts, and a strip of photos from the chosen one.',
     Body: (p) => <ReelSet {...p} />,
     configs: [
-      { title: 'Sidebar', row: true, items: [
-        ['Expanded: headers on the ruler, pages on the drum', <div className="rl-stage"><Reel still /></div>],
-        ['Collapsed: only the ruler, icons on its ticks', <div className="rl-stage"><Reel still collapsed /></div>],
+      { title: 'Sidebar · at rest and engaged', row: true, items: [
+        ['At rest: the month, the album, the arrow. Nothing else', <div className="rl-stage"><Reel still live={false} cat={1} /></div>],
+        ['Engaged (pointer or focus): every month, the albums around it, slots, and the chosen album\'s date, place, count and photos', <div className="rl-stage"><Reel still live cat={1} /></div>],
       ] },
-      { title: 'Item · the right slot', row: true, items: [
-        ['Badge', <div className="rl-frozen"><ReelWord it={REEL[0].items[0]} className="is-sel" /></div>],
-        ['Icon', <div className="rl-frozen"><ReelWord it={REEL[0].items[2]} className="is-sel" /></div>],
-        ['Text', <div className="rl-frozen"><ReelWord it={REEL[0].items[1]} className="is-sel" /></div>],
-        ['None', <div className="rl-frozen"><ReelWord it={REEL[0].items[4]} className="is-sel" /></div>],
+      { title: 'Sidebar · collapsed', row: true, items: [
+        ['At rest: the ruler and the current month\'s icon', <div className="rl-stage"><Reel still live={false} collapsed cat={4} /></div>],
+        ['Engaged: every month\'s icon comes in along the ruler', <div className="rl-stage"><Reel still live collapsed cat={4} /></div>],
       ] },
-      { title: 'Tab bar', items: [['Icon and word, the badge beside it; the tab under the arrow is chosen', <div className="rl-stage is-bar"><ReelBar still value={1} /></div>]] },
+      { title: 'Item · the right slot (shown when engaged)', row: true, items: [
+        ['Badge: new photos', <div className="rl-frozen"><ReelWord it={REEL[1].items[0]} className="is-sel" /></div>],
+        ['Text: the count', <div className="rl-frozen"><ReelWord it={REEL[1].items[1]} className="is-sel" /></div>],
+        ['Icon: shared', <div className="rl-frozen"><ReelWord it={REEL[4].items[2]} className="is-sel" /></div>],
+        ['None', <div className="rl-frozen"><ReelWord it={REEL[1].items[3]} className="is-sel" /></div>],
+      ] },
+      { title: 'Tab bar · at rest and engaged', items: [
+        ['At rest: only the chosen tab reads', <div className="rl-stage is-bar"><ReelBar still live={false} value={1} /></div>],
+        ['Engaged: the neighbours sharpen, badges and the caption come in', <div className="rl-stage is-bar"><ReelBar still live value={1} /></div>],
+      ] },
       { title: 'Edge cases', row: true, items: [
-        ['Long name: it truncates at 360, the full name on hover', <div className="rl-frozen"><ReelWord it={{ label: 'quarterly client reports', icon: REEL[0].icon, slot: { type: 'text', v: '14' } }} className="is-sel" title="quarterly client reports" /></div>],
+        ['Long name: it truncates at 376, the full name on hover', <div className="rl-frozen"><ReelWord it={{ label: 'grandma\'s ninetieth birthday dinner', icon: REEL[2].items[2].icon, slot: { type: 'text', v: '301' } }} className="is-sel" /></div>],
         ['Huge count: the badge stops at 99+', <div className="rl-frozen"><ReelWord it={{ ...REEL[1].items[0], slot: { type: 'badge', v: '99+' } }} className="is-sel" /></div>],
-        ['Last page: the drum stops, it does not wrap', <div className="rl-stage"><Reel still cat={2} act={3} /></div>],
-        ['Empty section: it says so', <div className="rl-stage"><Reel still sections={[REEL[0], { id: 'drafts', icon: REEL[0].icon, name: 'Drafts', items: [] }]} cat={1} /></div>],
-        ['Three tabs: the fewest', <div className="rl-stage is-bar"><ReelBar still items={REEL.slice(0, 3)} value={1} /></div>],
+        ['Last album: the drum stops, it does not wrap', <div className="rl-stage"><Reel still live cat={2} act={2} /></div>],
+        ['Empty month: it says so', <div className="rl-stage"><Reel still live sections={[...REEL, { id: 'dec', icon: REEL[5].icon, name: 'December', items: [] }]} cat={6} /></div>],
+        ['Three tabs: the fewest', <div className="rl-stage is-bar"><ReelBar still live items={TABS.slice(0, 3)} value={1} /></div>],
       ] },
     ],
     states: (
-      <StateGrid cols={['Drum word', 'Tab']} rows={STATES.map(([k, c]) => [k, [
+      <StateGrid cols={['Album', 'Tab']} rows={STATES.map(([k, c]) => [k, [
         <div className="rl-frozen"><ReelWord it={REEL[1].items[0]} className={c} /></div>,
-        <div className="rl-frozen"><ReelTab c={REEL[1]} sel={c.includes('is-sel')} className={c} /></div>,
+        <div className="rl-frozen"><ReelTab c={TABS[0]} sel={c.includes('is-sel')} className={c} /></div>,
       ]])} />
     ),
     spec: [
-      ['Sidebar', [['Size', 'expanded 640 × 480 · collapsed 190 × 480'], ['Container', 'radius 28 · #0b0b0b, edge white 6%'], ['Top', 'fold button 40 high at 16, 16: icon 20 and the name, Geist Mono 11 caps']]],
-      ['Ruler · the headers', [['Arc', 'radius 360, centre 190 off the left edge, on the middle line'], ['Ticks', 'every 3°: minor 12 long · major 22 long, every 15°, one per section'], ['Header', 'Geist Mono 12, caps, +8% · set along the arc, 34 inside the ticks'], ['Chosen', 'the header on the middle line, white · the rest fade 22% a step, ticks fade with distance']]],
-      ['Drum · the items', [['Word', 'Inter Bold 44 / 56, lowercase, −3.5% · max 360 wide'], ['Gaps', 'icon 26 to word 14 · word to slot 12'], ['Roll', '60 a step · each step tilts 20° on X with 900 perspective'], ['Depth', 'each step from the chosen one: −30% opacity, +1.2 blur, up to 3'], ['Arrow', '→ fixed at the middle line, Inter Bold 44, white']]],
-      ['Right slot', [['Badge', '22 high · radius 11 · padding 0 × 8 · Inter Bold 13 · white, ink'], ['Text', 'Geist Mono 13, #7a7a7a, raised to the cap line'], ['Icon', '18 × 18']]],
-      ['Tab bar', [['Size', 'width up to 720 · 140 high'], ['Tab', 'icon 22 beside the word, Inter Bold 24 · 150 apart, centre to centre'], ['Ruler', 'a tick every 15 · major every 150, under each tab'], ['Arrow', '↓ fixed above the centre'], ['Count', '3 to 7 tabs']]],
-      ['Color', [['Surface', '#0b0b0b'], ['Chosen', '#ffffff'], ['Others', '#5c5c5c'], ['Hover', '#a3a3a3'], ['Ticks', 'white 45%']]],
-      ['States', [['Enabled', 'grey #5c5c5c, tilted and blurred by its distance'], ['Hover', 'the word brightens to #a3a3a3 and nudges 6 right'], ['Pressed', '.97, held for 120 ms'], ['Selected', 'white, sharp, flat, on the arrow · the icon gets heavier'], ['Opened', 'a 3 white underline wipes in under the word']]],
-      ['Motion', [['Roll', '480 ms cubic-bezier(0.2, 0, 0, 1): transform, opacity and blur together'], ['Ruler', '520 ms, same curve'], ['New section', 'the words rise 32 out of a 6 blur, 360 ms'], ['Collapse', 'width 320 ms · the drum fades 150 ms · headers turn into icons'], ['Reduced motion', 'everything snaps, no blur']]],
-      ['Input', [['Drum', 'scroll, or drag 36 a step · click a word to roll to it, click the chosen one to open it'], ['Ruler', 'scroll, or drag 44 a step · click a header'], ['Keys', '↑ ↓ or j / k move a page · ← → move a section · Home / End · Enter opens · type a word to jump to it'], ['Tab bar', '← → · 1–7 · scroll, drag 68 a step, or click']]],
-      ['Laws of UX', [['Fitts', 'the chosen word is the largest target and always in the same place, on the arrow'], ['Hick', 'only one section\'s pages show at a time'], ['Miller', '3 to 5 pages a section, 7 sections'], ['Doherty', 'every roll lands within 520 ms'], ['Postel', 'scroll, drag, click, arrows, j / k and typing all roll the same reel'], ['Serial position', 'the chosen item sits in the middle, the first and last stay in view at the ends']]],
-      ['Responsive', [['Desktop', 'the full reel'], ['Phone', 'the reel scales to 52% · the tab bar stays full width']]],
-      ['Edge cases', [['Long name', 'truncates at 360, full name on hover'], ['Count over 99', '99+'], ['First, last', 'the drum stops, it does not wrap'], ['Empty section', 'says "nothing here yet"'], ['Tabs', '3 to 7']]],
+      ['Use case', [['Product', 'a photo journal: months, their albums, and the library around them'], ['Ruler', 'the months of the year · its count beside each when engaged'], ['Drum', 'that month\'s albums'], ['Tab bar', 'Library · Memories · Albums · Map · Shared']]],
+      ['Rest and engaged', [['At rest', 'the current month, the chosen album and the arrow · other months hidden · neighbours at 16% and 2.5 blur a step · no slots'], ['Engaged', 'pointer over it or focus inside it · every month · neighbours 72%, 1.2 blur a step · slots · the chosen album unfolds its detail'], ['Leaving', 'it stays open 400 ms after the pointer leaves, 2.5 s after a touch, so passing through never flickers'], ['Hovered album', 'a neighbour you point at sharpens fully before you pick it']]],
+      ['Sidebar', [['Size', 'expanded 640 × 480 · collapsed 190 × 480'], ['Container', 'radius 28 · #080808 to #121212, edge white 6%'], ['Top', 'fold button 40 high at 16, 16: icon 20 and the journal\'s name, Geist Mono 11 caps · #5c5c5c at rest, #a3a3a3 engaged']]],
+      ['Ruler · the months', [['Arc', 'radius 360, centre 170 off the left edge, on the middle line'], ['Ticks', 'every 3°: minor 12 · major 22, one per month · 55% at rest, 100% engaged'], ['Month', 'Geist Mono 12, caps, +8% · 34 inside the ticks · count Geist Mono 10 beside it when engaged'], ['Engaged', 'months come in from the middle out, 30 ms apart']]],
+      ['Drum · the albums', [['Word', 'Inter Bold 44 / 56, lowercase, −3.5% · max 376 wide'], ['Gaps', 'icon 26 to word 14 · word to slot 12'], ['Roll', '60 a step · each step tilts 20° on X with 900 perspective'], ['Opening', 'the albums below the chosen one drop 84 to make room for its detail']]],
+      ['Detail', [['Line', 'date · place · count, Geist Mono 12, #a3a3a3'], ['Photos', 'three 48 × 48 tiles, radius 8, 6 apart, then the rest as +n'], ['In', 'line 120 ms after engaging, photos 180 ms, each slides 8 down, 320 ms']]],
+      ['Right slot', [['Badge', 'new photos · 22 high · radius 11 · Inter Bold 13 · white, ink · grey on unchosen'], ['Text', 'the count · Geist Mono 13, #7a7a7a, at the cap line'], ['Icon', 'shared · 18 × 18'], ['At rest', 'hidden, slides 8 in when engaged']]],
+      ['Tab bar', [['Size', 'width up to 720 · 150 high'], ['Tab', 'icon 22 beside the word, Inter Bold 24 · 160 apart'], ['Ruler', 'a tick every 16 · major every 160, under each tab · 45% at rest'], ['Caption', 'the chosen tab\'s fact, Geist Mono 12, under the ruler, engaged only'], ['Arrow', '↓ fixed above the centre'], ['Count', '3 to 5 tabs']]],
+      ['Color', [['Surface', '#080808'], ['Chosen', '#ffffff'], ['Others', '#5c5c5c'], ['Hover', '#a3a3a3'], ['Detail', '#a3a3a3'], ['Photos', 'each album keeps its own colour']]],
+      ['States', [['Enabled', 'grey, tilted and blurred by its distance'], ['Hover', 'the word brightens to #a3a3a3, sharpens and nudges 6 right'], ['Pressed', '.97 for 120 ms'], ['Selected', 'white, sharp, flat, on the arrow · the icon gets heavier'], ['Opened', 'a 3 white underline wipes in under the word']]],
+      ['Motion', [['Roll', '480 ms cubic-bezier(0.2, 0, 0, 1)'], ['Ruler', '520 ms, same curve'], ['Open the reel', 'fades 420 ms, detail staggered 120 / 180 ms'], ['New month', 'the albums rise 32 out of a 6 blur, 360 ms'], ['Collapse', 'width 320 ms · the drum fades 150 ms · months turn into icons'], ['Reduced motion', 'everything snaps, no blur']]],
+      ['Input', [['Drum', 'scroll, or drag 36 a step · click an album to roll to it, click the chosen one to open it'], ['Ruler', 'scroll, or drag 44 a step · click a month'], ['Keys', '↑ ↓ or j / k move an album · ← → move a month · Home / End · Enter opens · type a name to jump to it'], ['Tab bar', '← → · 1–5 · scroll, drag 72 a step, or click']]],
+      ['Laws of UX', [['Progressive disclosure', 'at rest it answers one question, where am I; engaged it answers what is around me'], ['Fitts', 'the chosen album is the largest target, always on the arrow'], ['Hick', 'one month\'s albums at a time'], ['Doherty', 'the reel opens at once and settles within 420 ms'], ['Postel', 'scroll, drag, click, arrows, j / k and typing all roll the same reel']]],
+      ['Responsive', [['Desktop', 'the full reel'], ['Phone', 'the reel scales to 52% · a tap opens it for 2.5 s · the tab bar stays full width']]],
+      ['Edge cases', [['Long name', 'truncates at 376, full name on hover'], ['Count over 99', '99+'], ['First, last', 'the drum stops, it does not wrap'], ['Empty month', 'says "no albums yet"'], ['Tabs', '3 to 5']]],
     ],
   },
 ]
