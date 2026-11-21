@@ -81,14 +81,28 @@ function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, s
   const hidden = !collapsed && sections.some((sec) => shut.includes(sec.title) && sec.items.some((it) => it.id === value))
   const sel = useMarker(list, hidden ? null : `[data-id="${value}"]`, [value, collapsed, shut.join()])
   const all = sections.flatMap((s) => s.items)
+  // forgiving keys: arrows or j / k, Home / End, and typing the start of a name jumps to it
+  const typed = useRef({ text: '', t: 0 })
   const keys = (e) => {
-    const d = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0
-    if (!d) return
-    e.preventDefault()
     const btns = [...list.current.querySelectorAll('.nv-item:not(:disabled)')]
     const i = btns.indexOf(document.activeElement)
-    btns[(i + d + btns.length) % btns.length]?.focus()
+    const go = (n) => { e.preventDefault(); btns[(n + btns.length) % btns.length]?.focus() }
+    if (e.key === 'ArrowDown' || e.key === 'j') return go(i + 1)
+    if (e.key === 'ArrowUp' || e.key === 'k') return go(i - 1)
+    if (e.key === 'Home') return go(0)
+    if (e.key === 'End') return go(btns.length - 1)
+    if (e.key.length === 1 && /\S/.test(e.key) && !e.metaKey && !e.ctrlKey) {
+      const now = Date.now(), T = typed.current
+      T.text = (now - T.t < 600 ? T.text : '') + e.key.toLowerCase(); T.t = now
+      const hit = btns.find((b) => b.querySelector('.nv-label')?.textContent.toLowerCase().startsWith(T.text))
+      if (hit) { e.preventDefault(); hit.focus() }
+    }
   }
+  // coyote time: the rail's name tag lingers a moment after the pointer leaves, so moving between icons never flickers
+  const linger = useRef()
+  const show = (h) => { clearTimeout(linger.current); setHot(h) }
+  const hide = () => { clearTimeout(linger.current); linger.current = setTimeout(() => setHot(null), 160) }
+  useEffect(() => () => clearTimeout(linger.current), [])
   return (
     <nav className={`nv-side ${sys}-side ${collapsed ? 'is-col' : ''} ${className}`} aria-label={label}>
       <div className="nv-top">
@@ -97,7 +111,7 @@ function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, s
           {li(IC.rail)}
         </button>
       </div>
-      <div className={`nv-list ${maxH ? 'is-scroll' : ''}`} ref={list} style={maxH ? { maxHeight: maxH } : undefined} onKeyDown={keys} onPointerLeave={() => setHot(null)}>
+      <div className={`nv-list ${maxH ? 'is-scroll' : ''}`} ref={list} style={maxH ? { maxHeight: maxH } : undefined} onKeyDown={keys} onPointerLeave={hide}>
         {sel && <i className="nv-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
         {sections.map((sec) => (
           <div key={sec.title} className="nv-sec" role="group" aria-label={sec.title}>
@@ -109,8 +123,8 @@ function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, s
             {!sec.items.length && <p className="nv-empty">Nothing here yet</p>}
             {sec.items.map((it) => (
               <Item key={it.id} it={it} sel={it.id === value} onPick={onChange} aria-label={collapsed ? it.label : undefined}
-                onPointerEnter={(e) => setHot({ id: it.id, y: e.currentTarget.offsetTop + e.currentTarget.offsetHeight / 2 })}
-                onFocus={(e) => setHot({ id: it.id, y: e.currentTarget.offsetTop + e.currentTarget.offsetHeight / 2 })} onBlur={() => setHot(null)} />
+                onPointerEnter={(e) => show({ id: it.id, y: e.currentTarget.offsetTop + e.currentTarget.offsetHeight / 2 })}
+                onFocus={(e) => show({ id: it.id, y: e.currentTarget.offsetTop + e.currentTarget.offsetHeight / 2 })} onBlur={hide} />
             ))}
             </div></div>
           </div>
@@ -130,12 +144,17 @@ function TabBar({ sys, items, value, onChange, label }) {
   const bar = useRef(null)
   const sel = useMarker(bar, `[data-id="${value}"]`, [value])
   const keys = (e) => {
-    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
-    if (!d) return
-    e.preventDefault()
     const i = items.findIndex((t) => t.id === value)
-    const n = items[(i + d + items.length) % items.length]
-    onChange(n.id)
+    let j = null
+    if (e.key === 'ArrowRight') j = i + 1
+    else if (e.key === 'ArrowLeft') j = i - 1
+    else if (e.key === 'Home') j = 0
+    else if (e.key === 'End') j = items.length - 1
+    else if (/^[1-9]$/.test(e.key) && +e.key <= items.length) j = +e.key - 1
+    if (j == null) return
+    e.preventDefault()
+    const n = items[(j + items.length) % items.length]
+    onChange?.(n.id)
     bar.current.querySelector(`[data-id="${n.id}"]`)?.focus()
   }
   return (
@@ -330,6 +349,7 @@ const SETS = [
       ['States', [['Hover', 'fill #232322 · the slot says more'], ['Pressed', '.98 · fill #2C2C2B'], ['Selected', 'one light slab slides to it'], ['Focus', 'outline 2, offset 2']]],
       ['Motion', [['Selection', '220 ms cubic-bezier(0.2, 0, 0, 1), one slab moves and resizes'], ['Collapse', 'width 280 ms, same curve · labels fade 150 ms'], ['Slot', 'faces cross 150 ms'], ['Press', '120 ms ease-out']]],
       ['Input', [['Sidebar', '↑ ↓ move focus · Enter opens'], ['Tab bar', '← → move the tab'], ['Rail', 'pointing at an icon shows its name and fact']]],
+      ['Laws of UX', [['Fitts', 'targets at least 40 · tabs fill equal segments of the bar · the rail\'s name tag lingers 160 ms (coyote time) so moving between icons never flickers'], ['Hick', 'sections fold away · the phone shows three tabs and More, the rest one tap further'], ['Miller', 'no more than 5 items to a section, 3 to 5 tabs'], ['Doherty', 'every response starts at once and ends within 320 ms'], ['Postel', 'arrows or j / k, Home / End, type a name to jump to it, 1–5 picks a tab']]],
       ['Responsive', [['Desktop', 'the full sidebar stays open'], ['Tablet', 'a rail; its button lays the full sidebar over the page with a scrim, picking closes it'], ['Phone', 'a bottom tab bar of the first three destinations and More; More opens the sidebar as a drawer'], ['Selection', 'one destination stays chosen across all three']]],
       ['Edge cases', [['Long name', 'truncates with an ellipsis, full name on hover'], ['Count over 99', 'the badge reads 99+, hover gives the real number'], ['Zero', 'no badge'], ['Unavailable', '38% and skipped by the arrow keys'], ['Empty section', 'says "Nothing here yet"'], ['Long list', 'scrolls, the section header stays on top'], ['Tabs', '3 to 5, never more']]],
     ],
@@ -351,6 +371,7 @@ const SETS = [
       ['States', [['Hover', 'letters turn bone · a 3 rule wipes in under the item from the left'], ['Pressed', '.98 · the hover holds, no new colour'], ['Selected', 'one bone block slides under it, letters turn ink']]],
       ['Motion', [['Selection', '260 ms cubic-bezier(0.2, 0, 0, 1)'], ['Wipe', '320 ms cubic-bezier(.2, .9, .2, 1)'], ['Collapse', 'width 280 ms · labels fade 150 ms']]],
       ['Input', [['Sidebar', '↑ ↓ move focus · Enter opens'], ['Tab bar', '← → move the tab'], ['Rail', 'pointing at an icon shows its name']]],
+      ['Laws of UX', [['Fitts', 'targets at least 40 · tabs fill equal segments of the bar · the rail\'s name tag lingers 160 ms (coyote time) so moving between icons never flickers'], ['Hick', 'sections fold away · the phone shows three tabs and More, the rest one tap further'], ['Miller', 'no more than 5 items to a section, 3 to 5 tabs'], ['Doherty', 'every response starts at once and ends within 320 ms'], ['Postel', 'arrows or j / k, Home / End, type a name to jump to it, 1–5 picks a tab']]],
       ['Responsive', [['Desktop', 'the full sidebar stays open'], ['Tablet', 'a rail; its button lays the full sidebar over the page with a scrim, picking closes it'], ['Phone', 'a bottom tab bar of the first three destinations and More; More opens the sidebar as a drawer'], ['Selection', 'one destination stays chosen across all three']]],
       ['Edge cases', [['Long name', 'truncates with an ellipsis, full name on hover'], ['Count over 99', 'the badge reads 99+, hover gives the real number'], ['Zero', 'no badge'], ['Unavailable', '38% and skipped by the arrow keys'], ['Empty section', 'says "Nothing here yet"'], ['Long list', 'scrolls, the section header stays on top'], ['Tabs', '3 to 5, never more']]],
     ],
