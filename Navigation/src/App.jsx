@@ -68,7 +68,10 @@ function Item({ it, sel, onPick, className = '', role, ...rest }) {
 function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, still, label }) {
   const list = useRef(null)
   const [hot, setHot] = useState(null)
-  const sel = useMarker(list, `[data-id="${value}"]`, [value, collapsed])
+  // sections fold away under their header (a disclosure control); the slab only shows while its item is visible
+  const [shut, setShut] = useState([])
+  const hidden = !collapsed && sections.some((sec) => shut.includes(sec.title) && sec.items.some((it) => it.id === value))
+  const sel = useMarker(list, hidden ? null : `[data-id="${value}"]`, [value, collapsed, shut.join()])
   const all = sections.flatMap((s) => s.items)
   const keys = (e) => {
     const d = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0
@@ -90,12 +93,17 @@ function Sidebar({ sys, title, sections, value, onChange, collapsed, onToggle, s
         {sel && <i className="nv-sel" aria-hidden="true" style={{ transform: `translate(${sel.x}px, ${sel.y}px)`, width: sel.w, height: sel.h }} />}
         {sections.map((sec) => (
           <div key={sec.title} className="nv-sec" role="group" aria-label={sec.title}>
-            <div className="nv-head"><span>{sec.title}</span></div>
+            <button type="button" className="nv-head" aria-expanded={!shut.includes(sec.title)} disabled={still || collapsed} tabIndex={collapsed ? -1 : undefined}
+              onClick={() => setShut((v) => (v.includes(sec.title) ? v.filter((t) => t !== sec.title) : [...v, sec.title]))}>
+              <span>{sec.title}</span><span className="nv-disc">{li(['M6 8l4 4 4-4'])}</span>
+            </button>
+            <div className={`nv-items ${shut.includes(sec.title) && !collapsed ? 'is-shut' : ''}`}><div className="nv-items-in">
             {sec.items.map((it) => (
               <Item key={it.id} it={it} sel={it.id === value} onPick={onChange} aria-label={collapsed ? it.label : undefined}
                 onPointerEnter={(e) => setHot({ id: it.id, y: e.currentTarget.offsetTop + e.currentTarget.offsetHeight / 2 })}
                 onFocus={(e) => setHot({ id: it.id, y: e.currentTarget.offsetTop + e.currentTarget.offsetHeight / 2 })} onBlur={() => setHot(null)} />
             ))}
+            </div></div>
           </div>
         ))}
       </div>
@@ -251,11 +259,11 @@ const SETS = [
     spec: [
       ['Sidebar', [['Width', 'expanded 264 · collapsed 72'], ['Container', 'padding 12 · radius 20 · #141413, edge white 6%'], ['Top', '40 high: title, collapse button 40 × 40 radius 12']]],
       ['Item', [['Size', '40 high · padding 0 × 14 · radius 12'], ['Gaps', 'icon to label 12 · label to slot 8'], ['Icon', '20 × 20 · line 1.5'], ['Items apart', '2']]],
-      ['Category header', [['Type', 'Inter Medium 12 / 16, #8E8E8A'], ['Space', '16 above, 6 below, inset 14'], ['Collapsed', 'a 16 rule in its place']]],
+      ['Category header', [['Type', 'Inter Medium 12 / 16, #8E8E8A'], ['Space', '16 above, 6 below, inset 14'], ['Collapsed', 'a 16 rule in its place'], ['Disclosure', 'the header folds its section away, chevron turns −90°, 240 ms']]],
       ['Right slot', [['Badge', '20 high · radius 10 · padding 0 × 7 · Inter Semi Bold 12'], ['Text', 'Inter Medium 13 / 16, #8E8E8A, tabular'], ['Icon', '16 × 16'], ['On hover', 'the slot says more: 12 → 12 unread, ⌘3 → press ⌘3']]],
-      ['Tab bar', [['Container', 'padding 6 · radius 20 · tabs 4 apart'], ['Tab', '56 high · min 76 wide · icon 20 over label, 4 apart'], ['Label', 'Inter Medium 12 / 16'], ['Badge', 'on the icon\'s top right, 16 high']]],
+      ['Tab bar', [['Container', 'padding 6 · radius 20 · tabs 4 apart'], ['Tab', '56 high · min 76 wide · icon 20 over label, 4 apart'], ['Label', 'Inter Medium 12 / 16'], ['Badge', 'on the icon\'s top right, 16 high'], ['Layout', '4 destinations in equal-width segments · labels always shown']]],
       ['Type', [['Items', 'Inter Medium 14 / 20'], ['Title', 'Inter Semi Bold 15 / 20']]],
-      ['Color', [['Surface', '#141413'], ['Text', '#F4F4F2'], ['Selected', 'light slab #F4F4F2, ink #111'], ['Hover', '#232322'], ['Badge', 'light pill, ink · on the selected item it inverts']]],
+      ['Color', [['Surface', '#141413'], ['Text', '#F4F4F2'], ['Selected', 'light slab #F4F4F2, ink #111 · the icon gets heavier, line 2'], ['Hover', '#232322'], ['Badge', 'light pill, ink · on the selected item it inverts']]],
       ['States', [['Hover', 'fill #232322 · the slot says more'], ['Pressed', '.98 · fill #2C2C2B'], ['Selected', 'one light slab slides to it'], ['Focus', 'outline 2, offset 2']]],
       ['Motion', [['Selection', '220 ms cubic-bezier(0.2, 0, 0, 1), one slab moves and resizes'], ['Collapse', 'width 280 ms, same curve · labels fade 150 ms'], ['Slot', 'faces cross 150 ms'], ['Press', '120 ms ease-out']]],
       ['Input', [['Sidebar', '↑ ↓ move focus · Enter opens'], ['Tab bar', '← → move the tab'], ['Rail', 'pointing at an icon shows its name and fact']]],
@@ -270,10 +278,10 @@ const SETS = [
     spec: [
       ['Sidebar', [['Width', 'expanded 300 · collapsed 88'], ['Edge', '3 bone rule on the right'], ['Top', '48 high: title Big Shoulders 28, collapse button 48 × 48']]],
       ['Item', [['Size', '52 high · padding 0 × 20'], ['Gaps', 'icon to label 14 · label to slot 10'], ['Icon', '24 × 24 · line 2'], ['Items apart', '0, ruled by hover only']]],
-      ['Category header', [['Type', 'Inter Semi Bold 11 / 16, caps, +12%, #827B6F'], ['Rule', '3 bone rule above, 20 space'], ['Collapsed', 'only the rule stays']]],
+      ['Category header', [['Type', 'Inter Semi Bold 11 / 16, caps, +12%, #827B6F'], ['Rule', '3 bone rule above, 20 space'], ['Collapsed', 'only the rule stays'], ['Disclosure', 'the header folds its section away, chevron turns −90°, 240 ms']]],
       ['Right slot', [['Text', 'Big Shoulders 800 22 / 24, dim'], ['Badge', 'bone block · Inter Bold 11, caps · ink'], ['Icon', '20 × 20 · line 2']]],
-      ['Tab bar', [['Container', '64 high · 3 bone rule along the bottom'], ['Tab', 'padding 0 × 22 · icon 24 beside the label, 12 apart'], ['Badge', 'bone block numeral beside the label']]],
-      ['Type', [['Items, tabs', 'Big Shoulders Display ExtraBold 24 / 28, caps'], ['Unchosen', '#827B6F'], ['Chosen', 'ink #1A1815 on bone']]],
+      ['Tab bar', [['Container', '64 high · 3 bone rule along the bottom'], ['Tab', 'padding 0 × 22 · icon 24 beside the label, 12 apart'], ['Badge', 'bone block numeral beside the label'], ['Layout', 'equal-width segments · horizontal items on wide screens, icon over label on phones']]],
+      ['Type', [['Items, tabs', 'Big Shoulders Display ExtraBold 24 / 28, caps'], ['Unchosen', '#827B6F'], ['Chosen', 'ink #1A1815 on bone · the icon gets heavier, line 2.75']]],
       ['Color', [['Bone', '#E6E1D7'], ['Ink', '#1A1815'], ['Dim', '#827B6F']]],
       ['States', [['Hover', 'letters turn bone · a 3 rule wipes in under the item from the left'], ['Pressed', '.98 · the hover holds, no new colour'], ['Selected', 'one bone block slides under it, letters turn ink']]],
       ['Motion', [['Selection', '260 ms cubic-bezier(0.2, 0, 0, 1)'], ['Wipe', '320 ms cubic-bezier(.2, .9, .2, 1)'], ['Collapse', 'width 280 ms · labels fade 150 ms']]],
